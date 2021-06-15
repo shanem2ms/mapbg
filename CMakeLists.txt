@@ -37,6 +37,8 @@ add_executable(${PROJECT_NAME} WIN32 ${ALL_FILES})
 
 ExternalProject_Add(
   Bgfx
+  PATCH_COMMAND ""
+  UPDATE_COMMAND ""
   GIT_REPOSITORY "https://github.com/bkaradzic/bgfx.cmake.git"
 )
 
