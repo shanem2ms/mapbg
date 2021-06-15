@@ -44,7 +44,7 @@ ExternalProject_Add(
 
 ExternalProject_Get_Property(Bgfx SOURCE_DIR)
 ExternalProject_Get_Property(Bgfx BINARY_DIR)
-message(Status "Bindir ${BINARY_DIR}")
+message("Bindir ${BINARY_DIR}")
 
 
 set(BX_INC_DIR ${SOURCE_DIR}/bx/include)
@@ -69,19 +69,14 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     "${BGFX_INC_DIR}"
     )
 
-find_library(BGFX_LIBRARY bgfx HINT ${BX_BIN_DIR})
-find_library(BX_LIBRARY bx HINT ${BX_BIN_DIR})
-find_library(BIMG_LIBRARY bimg HINT ${BX_BIN_DIR})
-find_library(ASTC_LIBRARY astc-codec HINT ${BX_BIN_DIR})
-
 target_link_libraries(${PROJECT_NAME}
     "d3dcompiler;"
     "dxgi;"
     "dxguid;"
     "d3d11;"
     "Shcore;"
-    "${BGFX_LIBRARY}"
-    "${BX_LIBRARY}"
-    "${BIMG_LIBRARY}"
-    "${ASTC_LIBRARY}"
+    "${BX_BIN_DIR}/bgfx.lib"
+    "${BX_BIN_DIR}/bimg.lib"
+    "${BX_BIN_DIR}/bx.lib"
+    "${BX_BIN_DIR}/astc-codec.lib"
        )
