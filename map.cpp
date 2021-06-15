@@ -1,21 +1,20 @@
 #define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
-//
-
+#define NOMINMAX
 #define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
 // Windows Header Files
-#include <windows.h>
 #include "map.h"
 #include <chrono>
 #include <stdio.h>
 #include "shellscalingapi.h"
-#define NANOVG_D3D11_IMPLEMENTATION
-#define COBJMACROS // This example is in c, so we use the COM macros
-#define INITGUID
 #include <Windows.h>
 #include <windowsx.h>
+#include <bx/bx.h>
+#include <bx/spscqueue.h>
+#include <bx/thread.h>
+#include <bgfx/bgfx.h>
+#include <bgfx/platform.h>
 
-
-
+ 
 
 #define MAX_LOADSTRING 100
 
@@ -139,6 +138,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
     QueryPerformanceCounter(&startTime);
 
     timePeriod = 1.0f / frequency.QuadPart;
+
+    bgfx::renderFrame();
     return TRUE;
 }
 

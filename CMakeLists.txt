@@ -38,14 +38,19 @@ add_executable(${PROJECT_NAME} WIN32 ${ALL_FILES})
 ExternalProject_Add(
   Bgfx
   GIT_REPOSITORY "https://github.com/bkaradzic/bgfx.cmake.git"
-  GIT_TAG "master"
-  
-  UPDATE_COMMAND ""
-  PATCH_COMMAND ""
-  INSTALL_COMMAND ""
-  
-  SOURCE_DIR "${CMAKE_SOURCE_DIR}/3rdparty/bx"
 )
+
+ExternalProject_Get_Property(Bgfx SOURCE_DIR)
+ExternalProject_Get_Property(Bgfx BINARY_DIR)
+message(Status "Bindir ${BINARY_DIR}")
+
+
+set(BX_INC_DIR ${SOURCE_DIR}/bx/include)
+set(BGFX_INC_DIR ${SOURCE_DIR}/bgfx/include)
+set(BX_BIN_DIR ${BINARY_DIR})
+if (MSVC)
+set(BX_INC_DIR_COMPAT ${SOURCE_DIR}/bx/include/compat/msvc)
+endif()
 
 add_dependencies(${PROJECT_NAME} Bgfx)
 
@@ -57,13 +62,24 @@ add_dependencies(${PROJECT_NAME} Bgfx)
 target_include_directories(${PROJECT_NAME} PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/."
     "${CMAKE_BINARY_DIR}/."
+    "${BX_INC_DIR}"
+    "${BX_INC_DIR_COMPAT}"
+    "${BGFX_INC_DIR}"
     )
 
+find_library(BGFX_LIBRARY bgfx HINT ${BX_BIN_DIR})
+find_library(BX_LIBRARY bx HINT ${BX_BIN_DIR})
+find_library(BIMG_LIBRARY bimg HINT ${BX_BIN_DIR})
+find_library(ASTC_LIBRARY astc-codec HINT ${BX_BIN_DIR})
 
 target_link_libraries(${PROJECT_NAME}
     "d3dcompiler;"
     "dxgi;"
     "dxguid;"
     "d3d11;"
-    "Shcore;"        
+    "Shcore;"
+    "${BGFX_LIBRARY}"
+    "${BX_LIBRARY}"
+    "${BIMG_LIBRARY}"
+    "${ASTC_LIBRARY}"
        )
