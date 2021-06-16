@@ -14,6 +14,7 @@
 #include <bgfx/bgfx.h>
 #include <bgfx/platform.h>
 #include "logo.h"
+#include "Application.h"
 
 
 
@@ -115,6 +116,8 @@ LARGE_INTEGER startTime;
 RECT curWindowRect;
 HWND hWnd;
 bool bgfxInit = false;
+Application app;
+
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
     hInst = hInstance; // Store instance handle in our global variable
@@ -157,6 +160,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
     bgfx::setViewClear(kClearView, BGFX_CLEAR_COLOR);
     bgfx::setViewRect(kClearView, 0, 0, bgfx::BackbufferRatio::Equal);
     bgfxInit = true;
+    DrawContext ctx;
+    app.LoadResources(ctx);
     return TRUE;
 }
 
@@ -168,12 +173,7 @@ int ym = 0;
 int xWin = 0;
 int yWin = 0;
 
-//#define DEMO_MSAA
-struct NVGcontext* vg = NULL;
 float prevt = 0, cpuTime = 0;
-
-BOOL InitializeDX(HWND hWnd, unsigned int x, unsigned int y);
-void UnInitializeDX();
 
 const char* pszWindowClass = "WindowClass";
 
@@ -210,10 +210,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         PostQuitMessage(0);
         break;
     case WM_LBUTTONDOWN:
+        app.TouchDown((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), 0);
         break;
     case WM_LBUTTONUP:
+        app.TouchUp(0);
         break;
     case WM_MOUSEMOVE:
+        app.TouchDrag((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), 0);
         break;
 
     default:
@@ -226,8 +229,16 @@ void Tick()
 {
     if (!bgfxInit)
         return;
+
     LARGE_INTEGER cur;
     QueryPerformanceCounter(&cur);
+
+    float elapsedTime = (float)(cur.QuadPart - startTime.QuadPart) * timePeriod;
+    app.Tick(elapsedTime);
+
+    DrawContext ctx;
+    app.Draw(ctx);
+
     RECT r;
     GetWindowRect(hWnd, &r);
 
