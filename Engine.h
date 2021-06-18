@@ -22,9 +22,12 @@ class Engine
 
     std::shared_ptr<SceneGroup> m_root;
     std::vector<std::shared_ptr<Animation>> m_animations;
+    bgfx::ProgramHandle m_program;
+    bgfx::UniformHandle m_texture;
 public:
     Engine();
 
+    static Engine& Inst();
     Camera& Cam() { return m_camera; }
     void Tick(float time);
 

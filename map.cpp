@@ -149,7 +149,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
     bgfx::renderFrame();
     bgfx::Init init;
     init.platformData.nwh = hWnd;
-    GetWindowRect(hWnd, &curWindowRect);
+    GetClientRect(hWnd, &curWindowRect);
     init.resolution.width = (uint32_t)curWindowRect.right;
     init.resolution.height = (uint32_t)curWindowRect.bottom;
     init.resolution.reset = BGFX_RESET_VSYNC;
@@ -161,6 +161,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
     bgfx::setViewRect(kClearView, 0, 0, bgfx::BackbufferRatio::Equal);
     bgfxInit = true;
     DrawContext ctx;
+    app.Resize(rect.right, rect.bottom);
     app.LoadResources(ctx);
     return TRUE;
 }
@@ -203,7 +204,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_SIZE:
     {
         RECT rect;
-        GetWindowRect(hWnd, &rect);
+        GetClientRect(hWnd, &rect);
+        app.Resize(rect.right, rect.bottom);
     }
     break;
     case WM_DESTROY:
@@ -236,16 +238,12 @@ void Tick()
     float elapsedTime = (float)(cur.QuadPart - startTime.QuadPart) * timePeriod;
     app.Tick(elapsedTime);
 
-    DrawContext ctx;
-    app.Draw(ctx);
-
+    const bgfx::ViewId kClearView = 0;
     RECT r;
-    GetWindowRect(hWnd, &r);
+    GetClientRect(hWnd, &r);
 
     int width = r.right;
     int height = r.bottom;
-
-    const bgfx::ViewId kClearView = 0;
     if (r.right != curWindowRect.right || r.bottom != curWindowRect.bottom) {
         curWindowRect = r;
         bgfx::reset((uint32_t)r.right, (uint32_t)r.bottom, BGFX_RESET_VSYNC);
@@ -253,6 +251,12 @@ void Tick()
     }
     // This dummy draw call is here to make sure that view 0 is cleared if no other draw calls are submitted to view 0.
     bgfx::touch(kClearView);
+
+    DrawContext ctx;
+    app.Draw(ctx);
+
+#if 0
+
     // Use debug font to print information about this example.
     bgfx::dbgTextClear();
     bgfx::dbgTextImage(bx::max<uint16_t>(uint16_t(width / 2 / 8), 20) - 20, bx::max<uint16_t>(uint16_t(height / 2 / 16), 6) - 6, 40, 12, s_logo, 160);
@@ -267,4 +271,5 @@ void Tick()
     bgfx::setDebug(s_showStats ? BGFX_DEBUG_STATS : BGFX_DEBUG_TEXT);
     // Advance to next frame. Process submitted rendering primitives.
     bgfx::frame();
+#endif
 }

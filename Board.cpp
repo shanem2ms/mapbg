@@ -3,6 +3,7 @@
 #include "Engine.h"
 #include "HSLColor.h"
 #include "SimplexNoise/SimplexNoise.h"
+#include <numeric>
 #define NOMINMAX
 
 
@@ -16,7 +17,6 @@ Board::Board() :
 	m_height(-1),
 	m_currentTool(0)
 {	   
-    m_cursor = std::make_shared<Cursor>();
 }
 
 class BoardAnim1 : public Animation
@@ -87,22 +87,18 @@ void Board::TouchDown(float x, float y, int touchId)
 	else
 	{
 		AABoxf bounds = m_boardGroup->GetBounds();
-		float xoff = x - bounds.getMin()[0];
-		float yoff = y - bounds.getMin()[1];
+		float xb = x / m_width;
+		float yb = y / m_height;
 
-		float xscl = bounds.getMax()[0] - bounds.getMin()[0];
-		float yscl = bounds.getMax()[1] - bounds.getMin()[1];
-		float xb = xoff / xscl;
-		float yb = yoff / yscl;
-
+		float speed = m_squareSize / 16.0f;
 		if (xb > 0.9f)
-			m_camVel[0] += 1;
+			m_camVel[0] += speed;
 		else if (xb < 0.1f)
-			m_camVel[0] -= 1;
+			m_camVel[0] -= speed;
 		if (yb > 0.9f)
-			m_camVel[1] += 1;
+			m_camVel[1] += speed;
 		else if (yb < 0.1f)
-			m_camVel[1] -= 1;
+			m_camVel[1] -= speed;
 	}
 }
 
@@ -110,22 +106,9 @@ void Board::TouchDrag(float x, float y, int touchId)
 {
 	if (m_activeTouch != nullptr)
 	{ 
-		if (!m_activeTouch->IsInit())
-		{
-			m_activeTouch->SetInitialPos(Point2f(x, y), Point3f(m_cursor->Pos()[0], m_cursor->Pos()[1], 0));
-		}
 		Point3f objpt = m_activeTouch->ObjPoint(Point2f(x, y));
 		objpt[0] = std::max(0.0f, std::min(objpt[0], (float)m_width));
 		objpt[1] = std::max(0.0f, std::min(objpt[1], (float)m_height));
-		m_cursor->SetPos(objpt);
-		if (objpt[0] > (m_width - 20))
-			m_camPos[0] += 1;
-		else if (objpt[0] < 20)
-			m_camPos[0] -= 1;
-		if (objpt[1] > (m_height - 20))
-			m_camPos[1] += 1;
-		else if (objpt[1] < 20)
-			m_camPos[1] -= 1;
 	}
 }
 
@@ -139,10 +122,9 @@ void RefreshBiomes(int x, int y, int w, int h, unsigned char* pImgBuf);
 
 void Board::Update(Engine& e, DrawContext & ctx)
 {	
-	int cx = (int)m_camPos[0];
-	int cy = (int)m_camPos[1];
 	if (m_boardGroup == nullptr)
 	{
+		/*
 		std::shared_ptr<UIButton> btn1 = std::make_shared<UIButton>("Zoom", 100.0f, 10.0f, 100.0f, 50.0f);
 		btn1->OnPressed([this](int touchId) {
 			m_currentTool = 1;
@@ -154,42 +136,62 @@ void Board::Update(Engine& e, DrawContext & ctx)
 			m_currentTool = 0;
 			});
 		Application::Inst().UIMgr().AddControl(btn2);
-
+		*/
 		m_boardGroup = std::make_shared<SceneGroup>();
 		e.Root()->AddItem(m_boardGroup);
 	}
 
-	if (m_uiGroup == nullptr)
-	{
-		m_uiGroup = std::make_shared<SceneGroup>();
-		m_cursor->SetPos(Point3f((boardSizeW * m_squareSize) * 0.5f,
-			(boardSizeH * m_squareSize) * 0.5f,
-			0));
-		m_uiGroup->AddItem(m_cursor);
-	}
-	
 	m_boardGroup->Clear();
 	{
-		float offsetY = (m_height - (boardSizeH * m_squareSize)) * 0.5f;
-		float offsetX = (m_width - (boardSizeW * m_squareSize)) * 0.5f;
-		m_boardGroup->SetOffset(Point3f(offsetX + -m_camPos[0] * m_squareSize, 
-			offsetY + -m_camPos[1] * m_squareSize, m_width / 2));
+		float offsetY = -0.75f;
+		float offsetX = -0.5f;
+		//m_boardGroup->SetOffset(Point3f(offsetX  * m_squareSize, 
+		//	offsetY * m_squareSize, 0.5f));
 	}
+
+	auto oldSquares = m_activeSquares;
 	m_activeSquares.clear();
-	for (int x = 0; x < boardSizeW; ++x)
+	
+	Matrix44f viewProj = e.Cam().PerspectiveMatrix() * e.Cam().ViewMatrix();
+	invert(viewProj);
+
+	Point4f corners[5] =
+	{ Point4f(0, 0, 0.5f, 1),
+		Point4f(1, 1, 0.5f, 1),
+		Point4f(1, -1, 0.5f, 1),
+		Point4f(-1, 1, 0.5f, 1),
+		Point4f(-1, -1, 0.5f, 1) };
+	Point4f c[5];
+
+	float xdist = 0;
+	float ydist = 0;
+	for (int idx = 0; idx < 5; ++idx)
 	{
-		for (int y = 0; y < boardSizeH; ++y)
+		xform(c[idx], viewProj, corners[idx]);
+		c[idx] /= c[idx][3];
+		xdist += fabs(c[idx][0] - c[0][0]);
+		ydist += fabs(c[idx][1] - c[0][1]);
+	}
+
+	xdist *= 0.25f;
+	ydist *= 0.25f;
+	float xstart = floorf((c[0][0] - xdist) / m_squareSize);
+	float xend = ceilf((c[0][0] + xdist) / m_squareSize);
+	float ystart = floorf((c[0][1] - ydist) / m_squareSize);
+	float yend = ceilf((c[0][1] + ydist) / m_squareSize);
+
+	for (int x = xstart; x < xend; ++x)
+	{
+		for (int y = ystart; y < yend; ++y)
 		{
-			int wx = cx + x;
-			int wy = cy + y;
-			Loc l(wx, wy);
+			Loc l(x, y);
 			auto itSq = m_squares.find(l);
 			if (itSq == m_squares.end())
 			{
 				std::shared_ptr<Square> sq = std::make_shared<Square>(l);
 				{ // Init Square
-					float sx = wx * m_squareSize;
-					float sy = wy * m_squareSize;
+					float sx = x * m_squareSize;
+					float sy = y * m_squareSize;
 					sq->SetSquareSize(m_squareSize);
 					sq->SetOffset(Point3f(sx + m_squareSize / 2, sy + m_squareSize / 2, 0));
 					//sq->ProceduralBuild(ctx, simplex, wx, wy);
@@ -198,7 +200,7 @@ void Board::Update(Engine& e, DrawContext & ctx)
 				for (int dx = -1; dx <= 1; ++dx) {
 					for (int dy = -1; dy <= 1; ++dy)
 					{
-						auto itNeightborSq = m_squares.find(Loc(wx + dx, wy + dy));
+						auto itNeightborSq = m_squares.find(Loc(x + dx, y + dy));
 						if (itNeightborSq == m_squares.end())
 							continue;
 						sq->SetNeighbor(dx, dy, itNeightborSq->second);
@@ -209,15 +211,18 @@ void Board::Update(Engine& e, DrawContext & ctx)
 			m_activeSquares.insert(l);
 		}
 	}
-
-
+	for (auto loc : oldSquares)
+	{
+		if (m_activeSquares.find(loc) == m_activeSquares.end())
+		{ m_squares[loc]->Decomission();		}
+	}
 	for (auto sqPair : m_activeSquares)
 	{
 		auto itSq = m_squares.find(sqPair);
 		m_boardGroup->AddItem(itSq->second);
 	}
 
-	m_camPos += m_camVel;
+	e.Cam().SetPos(e.Cam().GetPos() + m_camVel);
 }
 
 
@@ -225,10 +230,7 @@ void Board::Layout(int w, int h)
 {
 	m_width = w;
 	m_height = h;
-	m_squareSize = (float)w / (boardSizeW + 1.0f);
-    
-    m_cursor->SetSquareSize(m_squareSize);
-    m_cursor->SetColor(Vec3f(0.5f,6.0f,1));
+	m_squareSize = 16.0f / boardSizeW;   
 }
 
 inline void AABoxAdd(AABoxf& aab, const Point3f& pt)
@@ -292,33 +294,34 @@ void Board::Square::NoiseGen()
 	float avgn2 = 0;
 	int wx = m_l.m_x;
 	int wy = m_l.m_y;
-	float nx = wx * 16;
-	float ny = wy * 16;
-	for (int oy = 0; oy < 16; ++oy)
+	float nx = wx * SquarePtsCt;
+	float ny = wy * SquarePtsCt;
+	float scale = 1 / 256.0f;
+	for (int oy = 0; oy < SquarePtsCt; ++oy)
 	{
-		for (int ox = 0; ox < 16; ++ox)
+		for (int ox = 0; ox < SquarePtsCt; ++ox)
 		{
-			float n1 = simplex.fractal(10, (float)(nx + ox) / (boardSizeW * 16), (float)(ny + oy) / (boardSizeH * 16));
-			float n2 = simplex.fractal(5, (float)(nx + ox) / (boardSizeW * 16) * 0.5f, (float)(ny + oy) / (boardSizeH * 16) * 0.5f);
+			float n1 = simplex.fractal(10, (float)(nx + ox) * scale, (float)(ny + oy) * scale);
+			float n2 = simplex.fractal(5, (float)(nx + ox) * scale * 0.5f, (float)(ny + oy) * scale * 0.5f);
 			avgn1 += n1;
 			avgn2 += n2;
-			m_pts[oy * 16 + ox].height = cHiehgt(n1, n2);
+			m_pts[oy * SquarePtsCt + ox].height = cHiehgt(n1, n2);
 		}
 	}
-	avgn1 /= 256.0f;
-	avgn2 /= 256.0f;
+	avgn1 /= (float)(SquarePtsCt * SquarePtsCt);
+	avgn2 /= (float)(SquarePtsCt * SquarePtsCt);
 	SetVals(Vec2f(avgn1, avgn2));
 }
 
 void Board::Square::Erode()
 {
 	const float factor = 50.0f;
-	for (int oy = 0; oy < 16; ++oy)
+	for (int oy = 0; oy < SquarePtsCt; ++oy)
 	{
-		for (int ox = 0; ox < 16; ++ox)
+		for (int ox = 0; ox < SquarePtsCt; ++ox)
 		{
-			float xprev = m_pts[oy * 16 + ox].dh[0] * -factor;
-			float yprev = m_pts[oy * 16 + ox].dh[1] * -factor;
+			float xprev = m_pts[oy * SquarePtsCt + ox].dh[0] * -factor;
+			float yprev = m_pts[oy * SquarePtsCt + ox].dh[1] * -factor;
 
 		}
 	}
@@ -326,29 +329,29 @@ void Board::Square::Erode()
 
 void Board::Square::GradientGen()
 {
-	for (int oy = 0; oy < 16; ++oy)
+	for (int oy = 0; oy < SquarePtsCt; ++oy)
 	{
-		for (int ox = 0; ox < 16; ++ox)
+		for (int ox = 0; ox < SquarePtsCt; ++ox)
 		{
 			if (ox == 0)
 			{
 				if (!m_neighbors[3].expired())
-					m_pts[oy * 16 + ox].dh[0] = m_pts[oy * 16 + ox].height - m_neighbors[3].lock()->Pts()[oy * 16 + 15].height;
+					m_pts[oy * SquarePtsCt + ox].dh[0] = m_pts[oy * SquarePtsCt + ox].height - m_neighbors[3].lock()->Pts()[oy * SquarePtsCt + 15].height;
 			}
 			else
-				m_pts[oy * 16 + ox].dh[0] = m_pts[oy * 16 + ox].height - m_pts[oy * 16 + ox - 1].height;
+				m_pts[oy * SquarePtsCt + ox].dh[0] = m_pts[oy * SquarePtsCt + ox].height - m_pts[oy * SquarePtsCt + ox - 1].height;
 			if (oy == 0)
 			{
 				if (!m_neighbors[1].expired())
-					m_pts[oy * 16 + ox].dh[1] = m_pts[oy * 16 + ox].height - m_neighbors[1].lock()->Pts()[15 * 16 + ox].height;
+					m_pts[oy * SquarePtsCt + ox].dh[1] = m_pts[oy * SquarePtsCt + ox].height - m_neighbors[1].lock()->Pts()[15 * SquarePtsCt + ox].height;
 			}
 			else
-				m_pts[oy * 16 + ox].dh[1] = m_pts[oy * 16 + ox].height - m_pts[(oy - 1) * 16 + ox].height;
+				m_pts[oy * SquarePtsCt + ox].dh[1] = m_pts[oy * SquarePtsCt + ox].height - m_pts[(oy - 1) * SquarePtsCt + ox].height;
 		}
 	}
 	m_mindh = Vec2f(1000, 1000);
 	m_maxdh = Vec2f(-1000, -1000);
-	for (int idx = 0; idx < 256; ++idx)
+	for (int idx = 0; idx < (SquarePtsCt * SquarePtsCt); ++idx)
 	{
 		m_mindh[0] = std::min(m_mindh[0], m_pts[idx].dh[0]);
 		m_mindh[1] = std::min(m_mindh[1], m_pts[idx].dh[1]);
@@ -357,15 +360,15 @@ void Board::Square::GradientGen()
 	}
 }
 
+std::atomic<unsigned long long> sTexCnt = 0;
 void Board::Square::ProceduralBuild(DrawContext & ctx)
 {
 	GradientGen();
 	Erode();
 	int wx = m_l.m_x;
 	int wy = m_l.m_y;
-	float nx = wx * 16;
-	float ny = wy * 16;
-	std::vector<unsigned char> data(16 * 16 * 4);
+	float nx = wx * SquarePtsCt;
+	float ny = wy * SquarePtsCt;
 
 	Palette palette[] =
 	{
@@ -383,29 +386,36 @@ void Board::Square::ProceduralBuild(DrawContext & ctx)
 
 	const int pSize = sizeof(palette) / sizeof(Palette);
 	
-	
+	const bgfx::Memory* m = bgfx::alloc(SquarePtsCt * SquarePtsCt * 4);
 
-	for (int oy = 0; oy < 16; ++oy)
+	for (int oy = 0; oy < SquarePtsCt; ++oy)
 	{
-		for (int ox = 0; ox < 16; ++ox)
+		for (int ox = 0; ox < SquarePtsCt; ++ox)
 		{
-			float val = m_pts[oy * 16 + ox].height;
+			float val = m_pts[oy * SquarePtsCt + ox].height;
 			int pIdx = 0;
 			for (; palette[pIdx].v < val && pIdx < pSize; ++pIdx);
 			pIdx--;
-			int offset = (oy * 16 + ox) * 4;
-			Vec2f v = m_pts[oy * 16 + ox].dh * 25.0f;
+			int offset = (oy * SquarePtsCt + ox) * 4;
+			Vec2f v = m_pts[oy * SquarePtsCt + ox].dh * 25.0f;
 			float d = length(v);
 			float diff = std::max(0.0f, 1 - d);
 			if (val < 0) diff = 1;
-			data[offset] = palette[pIdx].r * diff;
-			data[offset + 1] = palette[pIdx].g * diff;
-			data[offset + 2] = palette[pIdx].b * diff;
-			data[offset + 3] = 255;
+			m->data[offset] = palette[pIdx].r * diff;
+			m->data[offset + 1] = palette[pIdx].g * diff;
+			m->data[offset + 2] = palette[pIdx].b * diff;
+			m->data[offset + 3] = 255;
 		}
 	}
 
-
+	m_tex = bgfx::createTexture2D(
+		SquarePtsCt, SquarePtsCt, false,
+		1,
+		bgfx::TextureFormat::Enum::RGBA8,
+		BGFX_TEXTURE_NONE | BGFX_SAMPLER_NONE,
+		m
+	);
+	sTexCnt++;
 	m_needRecalc = false;
 }
 
@@ -431,17 +441,33 @@ AABoxf Board::Square::GetBounds() const
 	return aab;
 }
 
+void SceneRect_DrawCube();
 void Board::Square::Draw(DrawContext &ctx)
 {
 	if (m_needRecalc)
 		ProceduralBuild(ctx);
-	const int padding = 2;
+	float val = cHiehgt(m_vals[0], m_vals[1]);
+	float z = 0;// std::min(0.0f, -val * 4);
+
 	Matrix44f m =
 		ctx.m_mat * CalcMat() *
 		makeScale<Matrix44f>(Vec3f(
-			(float)(m_squareSize / 2 - padding), (float)(m_squareSize / 2 - padding), (float)(m_squareSize / 2 - padding)));
+			(float)(m_squareSize / 2), (float)(m_squareSize / 2), (float)(m_squareSize / 2))) *
+			gmtl::makeTrans<gmtl::Matrix44f>(Vec3f(0, 0, z));
 
 
+	bgfx::setTransform(m.getData());
+	bgfx::setTexture(0, ctx.m_texture, m_tex);
+	SceneRect_DrawCube();
+	bgfx::submit(0, ctx.m_pgm);
+}
+
+void Board::Square::Decomission()
+{
+	bgfx::destroy(m_tex);
+	sTexCnt--;
+	m_tex = BGFX_INVALID_HANDLE;
+	m_needRecalc = true;
 }
 
 Board::Square::~Square()
@@ -450,23 +476,6 @@ Board::Square::~Square()
 	{
 	}
 }
-
-AABoxf Board::Cursor::GetBounds() const
-{
-	return AABoxf();
-}
-
-void Board::Cursor::Draw(DrawContext &ctx)
-{
-    SetOffset(Point3f(m_pos[0], m_pos[1], 0));
-    const int padding = 2;
-    Matrix44f m =
-        ctx.m_mat * CalcMat() *
-        makeScale<Matrix44f>(Vec3f(
-            (float)(m_squareSize / 2 - padding), (float)(m_squareSize / 2 - padding), 0));
- 
-}
-
 
 Board::~Board()
 {

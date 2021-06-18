@@ -110,15 +110,15 @@ endif()
 add_custom_command(
   OUTPUT ${CMAKE_BINARY_DIR}/vs_cubes.bin
   COMMAND ${CMAKE_BINARY_DIR}/bgfx/src/Bgfx-build/shaderc${CMAKE_EXECUTABLE_SUFFIX} -f ${CMAKE_CURRENT_SOURCE_DIR}/vs_cubes.sc
-                     -o ${CMAKE_BINARY_DIR}/vs_cubes.bin --type v -i ${BGFX_SRCDIR}
-  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/vs_cubes.sc
+                     -o ${CMAKE_BINARY_DIR}/vs_cubes.bin --type v --platform windows --profile vs_4_0 -i ${BGFX_SRCDIR}
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/vs_cubes.sc ${CMAKE_CURRENT_SOURCE_DIR}/varying.def.sc
   VERBATIM)
 
 add_custom_command(
   OUTPUT ${CMAKE_BINARY_DIR}/fs_cubes.bin
   COMMAND ${CMAKE_BINARY_DIR}/bgfx/src/Bgfx-build/shaderc${CMAKE_EXECUTABLE_SUFFIX} -f ${CMAKE_CURRENT_SOURCE_DIR}/fs_cubes.sc
-                     -o ${CMAKE_BINARY_DIR}/fs_cubes.bin --type f -i ${BGFX_SRCDIR}
-  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/fs_cubes.sc
+                     -o ${CMAKE_BINARY_DIR}/fs_cubes.bin --type f --platform windows --profile ps_4_0 -i ${BGFX_SRCDIR}
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/fs_cubes.sc ${CMAKE_CURRENT_SOURCE_DIR}/varying.def.sc
   VERBATIM)
 ################################################################################
 # Include directories

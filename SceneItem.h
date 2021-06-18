@@ -11,24 +11,39 @@ typedef struct NVGcontext NVGcontext;
 #include "HSLColor.h"
 
 using namespace gmtl;
+class Camera;
 
 struct DrawContext
 {
     bgfx::ProgramHandle m_pgm;
     Matrix44f m_mat;
+    bgfx::UniformHandle m_texture;
 };
 
 
 class Camera
 {
     gmtl::Matrix44f m_persp;
+    gmtl::Matrix44f m_view;
 
+    Point3f m_pos;
+    Point3f m_lookat;
 public:
     Camera();
     void Update(int w, int h);
 
-    const gmtl::Matrix44f PerspectiveMatrix() const
+    void SetPos(const Point3f& pos)
+    {
+        m_pos = pos;
+    }
+
+    const Point3f &GetPos() const { return m_pos; }
+
+    const gmtl::Matrix44f &PerspectiveMatrix() const
     { return m_persp; }
+
+    const gmtl::Matrix44f &ViewMatrix() const
+    { return m_view; }
 };
 
 class SceneItem

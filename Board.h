@@ -32,6 +32,8 @@ public:
         float sed;
     };
 
+    static const int SquarePtsCt = 256;
+
     class Square : public SceneItem
     {
         float m_squareSize;
@@ -40,9 +42,10 @@ public:
         std::weak_ptr<Square> m_neighbors[9];
         Loc m_l;
         bool m_needRecalc;
-        SqPt m_pts[16 * 16];
+        SqPt m_pts[SquarePtsCt * SquarePtsCt];
         Vec2f m_maxdh;
         Vec2f m_mindh;
+        bgfx::TextureHandle m_tex;
     public:
         void Draw(DrawContext &ctx) override;
         Square(const Loc& l);
@@ -61,6 +64,7 @@ public:
             m_vals = v;
         }
         void SetNeighbor(int dx, int dy, std::weak_ptr<Square> sq);
+        void Decomission();
 
     private:
         void NoiseGen();
@@ -68,40 +72,16 @@ public:
         void GradientGen();
         void Erode();
     };
-    
-    class Cursor : public SceneItem
-    {
-        float m_squareSize;
-        
-        gmtl::Point3f m_pos;
-    public:
-        Cursor() : m_pos(0,0, 0) {}
-        void Draw(DrawContext &ctx) override;
-        void SetPos(const gmtl::Point3f &pos)
-        { m_pos = pos; }
-        const gmtl::Point3f& Pos() const {
-            return m_pos;
-        }
-        void SetSquareSize(float squareSize)
-        {
-            m_squareSize = squareSize;
-        }
-
-        virtual gmtl::AABoxf GetBounds() const;
-    };
 
     std::map<Loc, std::shared_ptr<Square>> m_squares;
     std::set<Loc> m_activeSquares;
 
-    std::shared_ptr<Cursor> m_cursor;
     float m_squareSize;
     int m_width;
     int m_height;
-    gmtl::Point3f m_camPos;
     gmtl::Point3f m_camVel;
 
     std::shared_ptr<SceneGroup> m_boardGroup;
-    std::shared_ptr<SceneGroup> m_uiGroup;
     std::shared_ptr<Touch> m_activeTouch;
     int m_currentTool;
    

@@ -3,24 +3,27 @@
 
 using namespace gmtl;
 
-struct PosColorVertex
+struct PosTexcoordVertex
 {
     float m_x;
     float m_y;
     float m_z;
+    float m_u;
+    float m_v;
 
     static void init()
     {
         ms_layout
             .begin()
             .add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
+            .add(bgfx::Attrib::TexCoord0, 2, bgfx::AttribType::Float)
             .end();
     };
 
     static bgfx::VertexLayout ms_layout;
 };
 
-bgfx::VertexLayout PosColorVertex::ms_layout;
+bgfx::VertexLayout PosTexcoordVertex::ms_layout;
 
 struct Cube
 {
@@ -28,43 +31,70 @@ struct Cube
     {
         if (isInit)
             return;
-        PosColorVertex::init();
+        PosTexcoordVertex::init();
 
-        static PosColorVertex s_cubeVertices[] =
+
+        static PosTexcoordVertex s_cubeVertices[] =
         {
-            {-1.0f,  1.0f,  1.0f },
-            { 1.0f,  1.0f,  1.0f },
-            {-1.0f, -1.0f,  1.0f },
-            { 1.0f, -1.0f,  1.0f },
-            {-1.0f,  1.0f, -1.0f },
-            { 1.0f,  1.0f, -1.0f },
-            {-1.0f, -1.0f, -1.0f },
-            { 1.0f, -1.0f, -1.0f },
+            {-1.0f,  1.0f,  1.0f,  0.0f,  1.0f},
+            { 1.0f,  1.0f,  1.0f,  1.0f,  1.0f},
+            {-1.0f, -1.0f,  1.0f,  0.0f,  0.0f},
+            { 1.0f, -1.0f,  1.0f,  1.0f,  0.0f},
+
+            {-1.0f,  1.0f, -1.0f,  0.0f,  1.0f},
+            { 1.0f,  1.0f, -1.0f,  1.0f,  1.0f},
+            {-1.0f, -1.0f, -1.0f,  0.0f,  0.0f},
+            { 1.0f, -1.0f, -1.0f,  1.0f,  0.0f},
+
+            {-1.0f,  1.0f,  1.0f, 0.0f,  1.0f},
+            {-1.0f,  1.0f, -1.0f, 1.0f,  1.0f},
+            {-1.0f, -1.0f,  1.0f, 0.0f,  0.0f},
+            {-1.0f, -1.0f, -1.0f, 1.0f,  0.0f},
+
+            { 1.0f,  1.0f,  1.0f, 0.0f,  1.0f},
+            { 1.0f, -1.0f,  1.0f, 1.0f,  1.0f},
+            { 1.0f,  1.0f, -1.0f, 0.0f,  0.0f},
+            { 1.0f, -1.0f, -1.0f, 1.0f,  0.0f},
+
+            {-1.0f,  1.0f,  1.0f, 0.0f,  1.0f},
+            { 1.0f,  1.0f,  1.0f, 1.0f,  1.0f},
+            {-1.0f,  1.0f, -1.0f, 0.0f,  0.0f},
+            { 1.0f,  1.0f, -1.0f, 1.0f,  0.0f},
+
+            {-1.0f, -1.0f,  1.0f, 0.0f,  1.0f},
+            {-1.0f, -1.0f, -1.0f, 1.0f,  1.0f},
+            { 1.0f, -1.0f,  1.0f, 0.0f,  0.0f},
+            { 1.0f, -1.0f, -1.0f, 1.0f,  0.0f},
         };
 
-        static const uint16_t s_cubeTriList[] =
+        static const uint16_t s_cubeIndices[] =
         {
-            0, 1, 2, // 0
-            1, 3, 2,
-            4, 6, 5, // 2
-            5, 6, 7,
-            0, 2, 4, // 4
-            4, 2, 6,
-            1, 5, 3, // 6
-            5, 7, 3,
-            0, 4, 1, // 8
-            4, 5, 1,
-            2, 3, 6, // 10
-            6, 3, 7,
+             0,  1,  2, // 0
+             1,  3,  2,
+
+             4,  6,  5, // 2
+             5,  6,  7,
+
+             8, 10,  9, // 4
+             9, 10, 11,
+
+            12, 14, 13, // 6
+            14, 15, 13,
+
+            16, 18, 17, // 8
+            18, 19, 17,
+
+            20, 22, 21, // 10
+            21, 22, 23,
         };
 
         vbh = bgfx::createVertexBuffer(
             bgfx::makeRef(s_cubeVertices, sizeof(s_cubeVertices))
-            , PosColorVertex::ms_layout
+            , PosTexcoordVertex::ms_layout
         );
 
         ibh = bgfx::createIndexBuffer(
-            bgfx::makeRef(s_cubeTriList, sizeof(s_cubeTriList))
+            bgfx::makeRef(s_cubeIndices, sizeof(s_cubeIndices))
         );
 
         isInit = true;
@@ -173,12 +203,8 @@ gmtl::AABoxf SceneText::GetBounds() const
     //nvgTextBounds()
 }
 
-void SceneRect::Draw(DrawContext& ctx)
+void SceneRect_DrawCube()
 {
-    const int padding = 2;
-    Matrix44f m =
-        ctx.m_mat * CalcMat();
-
     Cube::init();
 
     // Set vertex and index buffer.
@@ -189,14 +215,22 @@ void SceneRect::Draw(DrawContext& ctx)
         | BGFX_STATE_WRITE_A
         | BGFX_STATE_WRITE_Z
         | BGFX_STATE_DEPTH_TEST_LESS
-        | BGFX_STATE_CULL_CW
+        | BGFX_STATE_CULL_CCW
         | BGFX_STATE_MSAA;
     // Set render states.
     bgfx::setState(state);
+}
 
-    // Submit primitive for rendering to view 0.
+void SceneRect::Draw(DrawContext& ctx)
+{
+    const int padding = 2;
+    Matrix44f m =
+        ctx.m_mat * CalcMat();
+    
+    SceneRect_DrawCube();
+
+    Cube::init();
     bgfx::submit(0, ctx.m_pgm);
-
 }
 
 gmtl::AABoxf SceneRect::GetBounds() const
@@ -206,25 +240,21 @@ gmtl::AABoxf SceneRect::GetBounds() const
     //nvgTextBounds()
 }
 
+static const int boardSizeW = 32;
+static const int boardSizeH = 48;
 
-
-Camera::Camera() {}
+Camera::Camera() : m_pos(0, 0, -1.0f) {}
 
 void Camera::Update(int w, int h)
 {
     gmtl::Matrix44f rot, off, scl, perp;
-    gmtl::setScale(scl, gmtl::Vec3f(2.0f / w, -2.0f / h, 2.0f / w));
-    gmtl::setTrans(off, gmtl::Vec3f(-1.0f, 1.0f, 0.5f));
-    gmtl::setRot(rot, gmtl::AxisAnglef(0.0f * gmtl::Math::PI / 180.0f, 1.0f, 0.0f, 0.0f));
+   
+    float aspect = (float)w / (float)h;
+    gmtl::setPerspective(m_persp, 60.0f, aspect, 0.1f, 10.0f);
 
-    float nr = 0.1f;
-    float fr = 2.0f;
-    perp.mState = Matrix44f::FULL;
-    perp.mData[0] = 1.5f;
-    perp.mData[5] = 1.5f;
-    perp.mData[10] = fr / (fr - nr);;
-    perp.mData[11] = 1.0f;
-    perp.mData[14] = -(fr * nr) / (fr - nr);
-    perp.mData[15] = 0;
-    m_persp = perp * rot * off * scl;
+    gmtl::setRot(rot, gmtl::AxisAnglef(gmtl::Math::PI, 0.0f, 1.0f, 0.0f));
+    gmtl::setTrans(off, m_pos);
+
+    m_view = off * rot;
+    m_view = invert(m_view);
 }

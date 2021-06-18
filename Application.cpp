@@ -62,12 +62,20 @@ void Application::Draw(DrawContext & nvg)
 {
     m_uiMgr.Update(m_engine, m_width, m_height, nvg);
     m_board.Update(m_engine, nvg);
-    
-  
-    gmtl::Matrix44f perp = m_engine.Cam().PerspectiveMatrix();
-    gmtl::transpose(perp, perp);
 
-    //nvgBeginFrame(nvg, (float)m_width, (float)m_height, 1.0f, perp.mData);
+    bgfx::setViewClear(0
+        , BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH
+        , 0x303030ff
+        , 1.0f
+        , 0
+    );
+
+    gmtl::Matrix44f proj = m_engine.Cam().PerspectiveMatrix();
+    gmtl::Matrix44f view = m_engine.Cam().ViewMatrix();
+
+    bgfx::setViewTransform(0, view.getData(), proj.getData());
+    bgfx::setViewRect(0, 0, 0, uint16_t(m_width), uint16_t(m_height));
+
     m_engine.Draw(nvg);
     bgfx::frame();
 }
