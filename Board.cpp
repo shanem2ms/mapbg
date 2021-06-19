@@ -370,48 +370,24 @@ void Board::Square::ProceduralBuild(DrawContext & ctx)
 	float nx = wx * SquarePtsCt;
 	float ny = wy * SquarePtsCt;
 
-	Palette palette[] =
-	{
-		Palette(-1000, 0, 10, 160),
-		Palette(-0.4, 0, 15, 190),
-		Palette(-0.2, 0, 0, 255),
-		Palette(-0.1, 0, 128, 192),
-		Palette(0, 239, 228, 176),
-		Palette(0.1, 128, 64, 0),
-		Palette(0.2, 0, 128, 0),
-		Palette(0.5, 192, 192, 192),
-		Palette(0.7, 220, 240, 240),
-		Palette(0.8, 240, 255, 255)
-	};
-
-	const int pSize = sizeof(palette) / sizeof(Palette);
 	
 	const bgfx::Memory* m = bgfx::alloc(SquarePtsCt * SquarePtsCt * 4);
+	float* flData = (float*)m->data;
 
 	for (int oy = 0; oy < SquarePtsCt; ++oy)
 	{
 		for (int ox = 0; ox < SquarePtsCt; ++ox)
 		{
 			float val = m_pts[oy * SquarePtsCt + ox].height;
-			int pIdx = 0;
-			for (; palette[pIdx].v < val && pIdx < pSize; ++pIdx);
-			pIdx--;
-			int offset = (oy * SquarePtsCt + ox) * 4;
-			Vec2f v = m_pts[oy * SquarePtsCt + ox].dh * 25.0f;
-			float d = length(v);
-			float diff = std::max(0.0f, 1 - d);
-			if (val < 0) diff = 1;
-			m->data[offset] = palette[pIdx].r * diff;
-			m->data[offset + 1] = palette[pIdx].g * diff;
-			m->data[offset + 2] = palette[pIdx].b * diff;
-			m->data[offset + 3] = 255;
+			flData[oy * SquarePtsCt + ox] = val;
+			
 		}
 	}
 
 	m_tex = bgfx::createTexture2D(
 		SquarePtsCt, SquarePtsCt, false,
 		1,
-		bgfx::TextureFormat::Enum::RGBA8,
+		bgfx::TextureFormat::Enum::R32F,
 		BGFX_TEXTURE_NONE | BGFX_SAMPLER_NONE,
 		m
 	);
