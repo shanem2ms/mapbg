@@ -73,7 +73,7 @@ public:
         void Erode();
     };
 
-    std::map<Loc, std::shared_ptr<Square>> m_squares;
+    std::map<Loc, std::shared_ptr<Square> > m_squares;
     std::set<Loc> m_activeSquares;
 
     float m_squareSize;

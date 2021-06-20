@@ -3,6 +3,9 @@ cmake_minimum_required(VERSION 3.15.0 FATAL_ERROR)
 set(CMAKE_SYSTEM_VERSION 10.0 CACHE STRING "" FORCE)
 include(ExternalProject)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 project(map C CXX)
 
@@ -24,9 +27,14 @@ set(Header_Files
 
 source_group("Header Files" FILES ${Header_Files})
 
-set(Source_Files
+if (MSVC)
+set(Main_Files
     "map.cpp"
     "map.rc"
+)
+endif()    
+
+set(Source_Files
     "Application.cpp"
     "biomegen.cpp"
     "Board.cpp"
@@ -78,25 +86,25 @@ message("src ${BGFX_SRCDIR}")
 add_library(BgfxLib SHARED IMPORTED)
 add_dependencies(BgfxLib Bgfx)
 set_target_properties(BgfxLib
-    PROPERTIES IMPORTED_IMPLIB ${BINARY_DIR}/bgfx${CMAKE_STATIC_LIBRARY_SUFFIX}
+    PROPERTIES IMPORTED_LOCATION ${BINARY_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}bgfx${CMAKE_STATIC_LIBRARY_SUFFIX}
 )
 
 add_library(BxLib SHARED IMPORTED)
 add_dependencies(BxLib Bgfx)
 set_target_properties(BxLib
-    PROPERTIES IMPORTED_IMPLIB ${BINARY_DIR}/bx${CMAKE_STATIC_LIBRARY_SUFFIX}
+    PROPERTIES IMPORTED_LOCATION ${BINARY_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}bx${CMAKE_STATIC_LIBRARY_SUFFIX}
 )
 
 add_library(BimgLib SHARED IMPORTED)
 add_dependencies(BimgLib Bgfx)
 set_target_properties(BimgLib
-    PROPERTIES IMPORTED_IMPLIB ${BINARY_DIR}/bimg${CMAKE_STATIC_LIBRARY_SUFFIX}
+    PROPERTIES IMPORTED_LOCATION ${BINARY_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}bimg${CMAKE_STATIC_LIBRARY_SUFFIX}
 )
 
 add_library(AstcCodecLib SHARED IMPORTED)
 add_dependencies(AstcCodecLib Bgfx)
 set_target_properties(AstcCodecLib
-    PROPERTIES IMPORTED_IMPLIB ${BINARY_DIR}/astc-codec${CMAKE_STATIC_LIBRARY_SUFFIX}
+    PROPERTIES IMPORTED_LOCATION ${BINARY_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}astc-codec${CMAKE_STATIC_LIBRARY_SUFFIX}
 )
 
 set(BX_INC_DIR ${SOURCE_DIR}/bx/include)
@@ -104,20 +112,21 @@ set(BGFX_INC_DIR ${SOURCE_DIR}/bgfx/include)
 set(BX_BIN_DIR ${BINARY_DIR})
 if (MSVC)
 set(BX_INC_DIR_COMPAT ${SOURCE_DIR}/bx/include/compat/msvc)
+elseif (APPLE)
+set(BX_INC_DIR_COMPAT ${SOURCE_DIR}/bx/include/compat/osx)
 endif()
-
 
 add_custom_command(
   OUTPUT ${CMAKE_BINARY_DIR}/vs_cubes.bin
   COMMAND ${CMAKE_BINARY_DIR}/bgfx/src/Bgfx-build/shaderc${CMAKE_EXECUTABLE_SUFFIX} -f ${CMAKE_CURRENT_SOURCE_DIR}/vs_cubes.sc
-                     -o ${CMAKE_BINARY_DIR}/vs_cubes.bin --type v --platform windows --profile vs_4_0 -i ${BGFX_SRCDIR}
+                     -o ${CMAKE_BINARY_DIR}/vs_cubes.bin --type v --platform osx --profile metal -i ${BGFX_SRCDIR}
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/vs_cubes.sc ${CMAKE_CURRENT_SOURCE_DIR}/varying.def.sc
   VERBATIM)
 
 add_custom_command(
   OUTPUT ${CMAKE_BINARY_DIR}/fs_cubes.bin
   COMMAND ${CMAKE_BINARY_DIR}/bgfx/src/Bgfx-build/shaderc${CMAKE_EXECUTABLE_SUFFIX} -f ${CMAKE_CURRENT_SOURCE_DIR}/fs_cubes.sc
-                     -o ${CMAKE_BINARY_DIR}/fs_cubes.bin --type f --platform windows --profile ps_4_0 -i ${BGFX_SRCDIR}
+                     -o ${CMAKE_BINARY_DIR}/fs_cubes.bin --type f --platform osx --profile metal -i ${BGFX_SRCDIR}
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/fs_cubes.sc ${CMAKE_CURRENT_SOURCE_DIR}/varying.def.sc
   VERBATIM)
 ################################################################################
@@ -132,12 +141,32 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     "${BGFX_INC_DIR}"
     )
 
-target_link_libraries(${PROJECT_NAME}
+if (MSVC)
+    set (PLATFORMLIBS
     "d3dcompiler;"
     "dxgi;"
     "dxguid;"
     "d3d11;"
     "Shcore;"
+)
+elseif (APPLE)
+    find_library(FOUNDATIONLIB Foundation)
+    find_library(COREFOUNDATIONLIB CoreFoundation)
+    find_library(METALLIB Metal)
+    find_library(QUARTZCORELIB QuartzCore)
+    find_library(APPKITLIB AppKit)
+    set (PLATFORMLIBS 
+    "${FOUNDATIONLIB};"
+    "${COREFOUNDATIONLIB};"
+    "${METALLIB};"
+    "${QUARTZCORELIB};"
+    "${APPKITLIB};"
+    )
+endif()
+
+message("PLT ${PLATFORMLIBS}")
+target_link_libraries(${PROJECT_NAME}
+    ${PLATFORMLIBS}
     BgfxLib
     BxLib
     BimgLib
