@@ -33,6 +33,8 @@ set(Main_Files
     "map.cpp"
     "map.rc"
 )
+elseif(APPLE)
+set(Main_Files "")
 endif()    
 
 set(Source_Files
@@ -47,12 +49,13 @@ set(Source_Files
     "SimplexNoise/SimplexNoise.cpp"
     )
 
-source_group("Source Files" FILES ${Source_Files})
+source_group("Source Files" FILES ${Source_Files} ${Main_Files})
 
 set(ALL_FILES
     
     ${Header_Files} 
     ${Source_Files}
+    ${Main_Files}
     ${CMAKE_BINARY_DIR}/vs_cubes.bin
     ${CMAKE_BINARY_DIR}/fs_cubes.bin
 )
@@ -88,25 +91,33 @@ message("src ${BGFX_SRCDIR}")
 add_library(BgfxLib SHARED IMPORTED)
 add_dependencies(BgfxLib Bgfx)
 set_target_properties(BgfxLib
-    PROPERTIES IMPORTED_LOCATION ${BINARY_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}bgfx${CMAKE_STATIC_LIBRARY_SUFFIX}
+    PROPERTIES 
+    IMPORTED_LOCATION ${BINARY_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}bgfx${CMAKE_STATIC_LIBRARY_SUFFIX}
+    IMPORTED_IMPLIB ${BINARY_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}bgfx${CMAKE_STATIC_LIBRARY_SUFFIX}
 )
 
 add_library(BxLib SHARED IMPORTED)
 add_dependencies(BxLib Bgfx)
 set_target_properties(BxLib
-    PROPERTIES IMPORTED_LOCATION ${BINARY_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}bx${CMAKE_STATIC_LIBRARY_SUFFIX}
+    PROPERTIES 
+    IMPORTED_LOCATION ${BINARY_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}bx${CMAKE_STATIC_LIBRARY_SUFFIX}
+    IMPORTED_IMPLIB ${BINARY_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}bx${CMAKE_STATIC_LIBRARY_SUFFIX}
 )
 
 add_library(BimgLib SHARED IMPORTED)
 add_dependencies(BimgLib Bgfx)
 set_target_properties(BimgLib
-    PROPERTIES IMPORTED_LOCATION ${BINARY_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}bimg${CMAKE_STATIC_LIBRARY_SUFFIX}
+    PROPERTIES 
+    IMPORTED_LOCATION ${BINARY_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}bimg${CMAKE_STATIC_LIBRARY_SUFFIX}
+    IMPORTED_IMPLIB ${BINARY_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}bimg${CMAKE_STATIC_LIBRARY_SUFFIX}
 )
 
 add_library(AstcCodecLib SHARED IMPORTED)
 add_dependencies(AstcCodecLib Bgfx)
 set_target_properties(AstcCodecLib
-    PROPERTIES IMPORTED_LOCATION ${BINARY_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}astc-codec${CMAKE_STATIC_LIBRARY_SUFFIX}
+    PROPERTIES 
+    IMPORTED_LOCATION ${BINARY_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}astc-codec${CMAKE_STATIC_LIBRARY_SUFFIX}
+    IMPORTED_IMPLIB ${BINARY_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}astc-codec${CMAKE_STATIC_LIBRARY_SUFFIX}
 )
 
 set(BX_INC_DIR ${SOURCE_DIR}/bx/include)
@@ -118,19 +129,31 @@ elseif (APPLE)
 set(BX_INC_DIR_COMPAT ${SOURCE_DIR}/bx/include/compat/osx)
 endif()
 
+if (MSVC)
+set (SHADERC_PLATFORM windows)
+set (SHADERC_VPROF vs_4_0)
+set (SHADERC_FPROF ps_4_0)
+elseif (APPLE)
+set (SHADERC_PLATFORM osx)
+set (SHADERC_VPROF metal)
+set (SHADERC_FPROF metal)
+endif()
+
 add_custom_command(
   OUTPUT ${CMAKE_BINARY_DIR}/vs_cubes.bin
   COMMAND ${CMAKE_BINARY_DIR}/bgfx/src/Bgfx-build/shaderc${CMAKE_EXECUTABLE_SUFFIX} -f ${CMAKE_CURRENT_SOURCE_DIR}/vs_cubes.sc
-                     -o ${CMAKE_BINARY_DIR}/vs_cubes.bin --type v --platform osx --profile metal -i ${BGFX_SRCDIR}
+                     -o ${CMAKE_BINARY_DIR}/vs_cubes.bin --type v --platform ${SHADERC_PLATFORM} --profile ${SHADERC_VPROF} -i ${BGFX_SRCDIR}
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/vs_cubes.sc ${CMAKE_CURRENT_SOURCE_DIR}/varying.def.sc
   VERBATIM)
 
 add_custom_command(
   OUTPUT ${CMAKE_BINARY_DIR}/fs_cubes.bin
   COMMAND ${CMAKE_BINARY_DIR}/bgfx/src/Bgfx-build/shaderc${CMAKE_EXECUTABLE_SUFFIX} -f ${CMAKE_CURRENT_SOURCE_DIR}/fs_cubes.sc
-                     -o ${CMAKE_BINARY_DIR}/fs_cubes.bin --type f --platform osx --profile metal -i ${BGFX_SRCDIR}
+                     -o ${CMAKE_BINARY_DIR}/fs_cubes.bin --type f --platform ${SHADERC_PLATFORM} --profile ${SHADERC_FPROF} -i ${BGFX_SRCDIR}
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/fs_cubes.sc ${CMAKE_CURRENT_SOURCE_DIR}/varying.def.sc
   VERBATIM)
+
+
 ################################################################################
 # Include directories
 ################################################################################
