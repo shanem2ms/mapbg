@@ -19,10 +19,28 @@ public:
             m_z(0),
             m_l(0) {}
 
+        Loc(int x, int y, int z) :
+            m_x(x),
+            m_y(y),
+            m_z(z),
+            m_l(0) {}
+
         int m_x;
         int m_y;
         int m_z;
         int m_l;
+
+        bool operator < (const Loc& rhs)
+        {
+            if (m_x != rhs.m_x)
+                return m_x < rhs.m_x;
+            if (m_y != rhs.m_y)
+                return m_y < rhs.m_y;
+            if (m_z != rhs.m_z)
+                return m_z < rhs.m_z;
+            if (m_l != rhs.m_l)
+                return m_l < rhs.m_l;
+        }
     };
 
     struct SqPt
@@ -80,6 +98,7 @@ public:
     int m_width;
     int m_height;
     gmtl::Point3f m_camVel;
+    float m_tiltVel;
 
     std::shared_ptr<SceneGroup> m_boardGroup;
     std::shared_ptr<Touch> m_activeTouch;

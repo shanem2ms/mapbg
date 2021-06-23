@@ -25,12 +25,18 @@ void main()
 				vec4(0.8, 240, 255, 255)
 			};
 
+		vec2 ts = textureSize(s_texColor, 0);
         float val = texture2DLod(s_texColor, v_texcoord0.xy, 0);
-
+		float val0 = texture2DLod(s_texColor, v_texcoord0.xy - vec2(1.0 / ts.x, 0), 0);
+		float val1 = texture2DLod(s_texColor, v_texcoord0.xy - vec2(0, 1.0 / ts.y), 0);
+		
+		vec3 nrm = normalize(vec3(val - val0, val - val1, 0.05));
+		
+		float mul = max(0, dot(vec3(0, 0, 1), nrm));
 		int pIdx = 0;
 		for (; palette[pIdx].r < val && pIdx < 10; ++pIdx);
 		pIdx--;
-		float m = 1 / 255.0;
+		float m = 1 / 255.0 * mul;
 		gl_FragColor = vec4( 		
 			palette[pIdx].g * m,
 			palette[pIdx].b * m,

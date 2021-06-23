@@ -7,6 +7,9 @@ typedef struct NVGcontext NVGcontext;
 #include <gmtl/Vec.h>
 #include <gmtl/AABox.h>
 #include <gmtl/AABoxOps.h>
+#include <gmtl/Plane.h>
+#include <gmtl/PlaneOps.h>
+#include <gmtl/Frustum.h>
 #include <bgfx/bgfx.h>
 #include "HSLColor.h"
 
@@ -23,24 +26,38 @@ struct DrawContext
 
 class Camera
 {
-    gmtl::Matrix44f m_persp;
+    gmtl::Matrix44f m_proj;
     gmtl::Matrix44f m_view;
 
-    Point3f m_pos;
-    Point3f m_lookat;
+
 public:
+
+    struct LookAt
+    {
+        LookAt() : pos(0,0,0),
+            tilt(0),
+            dist(0) {}
+
+        Point3f pos;
+        float tilt;
+        float dist;
+    };
+
+    LookAt m_lookat;
     Camera();
     void Update(int w, int h);
 
-    void SetPos(const Point3f& pos)
+    Frustumf GetFrustum() const;
+
+    void SetLookat(const LookAt& la)
     {
-        m_pos = pos;
+        m_lookat = la;
     }
 
-    const Point3f &GetPos() const { return m_pos; }
+    const LookAt&GetLookat() const { return m_lookat; }
 
     const gmtl::Matrix44f &PerspectiveMatrix() const
-    { return m_persp; }
+    { return m_proj; }
 
     const gmtl::Matrix44f &ViewMatrix() const
     { return m_view; }

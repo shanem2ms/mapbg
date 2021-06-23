@@ -4,14 +4,13 @@
 #include "HSLColor.h"
 #include "SimplexNoise/SimplexNoise.h"
 #include <numeric>
+#include "Mesh.h"
 #define NOMINMAX
 
 
 using namespace gmtl;
 
 
-static const int boardSizeW = 32;
-static const int boardSizeH = 48;
 Board::Board() :
 	m_width(-1),
 	m_height(-1),
@@ -96,9 +95,9 @@ void Board::TouchDown(float x, float y, int touchId)
 		else if (xb < 0.1f)
 			m_camVel[0] -= speed;
 		if (yb > 0.9f)
-			m_camVel[1] += speed;
+			m_tiltVel -= 0.01f;
 		else if (yb < 0.1f)
-			m_camVel[1] -= speed;
+			m_tiltVel += 0.01f;
 	}
 }
 
@@ -116,9 +115,11 @@ void Board::TouchUp(int touchId)
 {
 	m_activeTouch = nullptr;
 	m_camVel = Point3f(0, 0, 0);
+	m_tiltVel = 0;
 }
 
 void RefreshBiomes(int x, int y, int w, int h, unsigned char* pImgBuf);
+void GetFrustumLocs(Camera& cam, std::vector<Board::Loc>& locs);
 
 void Board::Update(Engine& e, DrawContext & ctx)
 {	
@@ -180,37 +181,41 @@ void Board::Update(Engine& e, DrawContext & ctx)
 	float ystart = floorf((c[0][1] - ydist) / m_squareSize);
 	float yend = ceilf((c[0][1] + ydist) / m_squareSize);
 
-	for (int x = xstart; x < xend; ++x)
+	std::vector<Board::Loc> locs;
+	GetFrustumLocs(e.Cam(), locs);
+
+	std::sort(locs.begin(), locs.end());
+	for (const Loc& l : locs)
 	{
-		for (int y = ystart; y < yend; ++y)
+		if (l.m_z != 0)
+			continue;
+
+		auto itSq = m_squares.find(l);
+		if (itSq == m_squares.end())
 		{
-			Loc l(x, y);
-			auto itSq = m_squares.find(l);
-			if (itSq == m_squares.end())
-			{
-				std::shared_ptr<Square> sq = std::make_shared<Square>(l);
-				{ // Init Square
-					float sx = x * m_squareSize;
-					float sy = y * m_squareSize;
-					sq->SetSquareSize(m_squareSize);
-					sq->SetOffset(Point3f(sx + m_squareSize / 2, sy + m_squareSize / 2, 0));
-					//sq->ProceduralBuild(ctx, simplex, wx, wy);
-				}
-				m_squares.insert(std::make_pair(l, sq));
-				for (int dx = -1; dx <= 1; ++dx) {
-					for (int dy = -1; dy <= 1; ++dy)
-					{
-						auto itNeightborSq = m_squares.find(Loc(x + dx, y + dy));
-						if (itNeightborSq == m_squares.end())
-							continue;
-						sq->SetNeighbor(dx, dy, itNeightborSq->second);
-						itNeightborSq->second->SetNeighbor(-dx, -dy, sq);
-					}
+			std::shared_ptr<Square> sq = std::make_shared<Square>(l);
+			{ // Init Square
+				float sx = l.m_x * m_squareSize;
+				float sy = l.m_y * m_squareSize;
+				sq->SetSquareSize(m_squareSize);
+				sq->SetOffset(Point3f(sx + m_squareSize / 2, sy + m_squareSize / 2, 0));
+				//sq->ProceduralBuild(ctx, simplex, wx, wy);
+			}
+			m_squares.insert(std::make_pair(l, sq));
+			for (int dx = -1; dx <= 1; ++dx) {
+				for (int dy = -1; dy <= 1; ++dy)
+				{
+					auto itNeightborSq = m_squares.find(Loc(l.m_x + dx, l.m_y + dy));
+					if (itNeightborSq == m_squares.end())
+						continue;
+					sq->SetNeighbor(dx, dy, itNeightborSq->second);
+					itNeightborSq->second->SetNeighbor(-dx, -dy, sq);
 				}
 			}
-			m_activeSquares.insert(l);
 		}
+		m_activeSquares.insert(l);
 	}
+	
 	for (auto loc : oldSquares)
 	{
 		if (m_activeSquares.find(loc) == m_activeSquares.end())
@@ -222,7 +227,13 @@ void Board::Update(Engine& e, DrawContext & ctx)
 		m_boardGroup->AddItem(itSq->second);
 	}
 
-	e.Cam().SetPos(e.Cam().GetPos() + m_camVel);
+	auto &cam = e.Cam();
+	Camera::LookAt la = cam.GetLookat();
+	la.pos += m_camVel;
+	la.pos[2] = 0.5f;
+	la.tilt = std::max(la.tilt + m_tiltVel, 0.0f);
+	la.dist = 1.5f;
+	cam.SetLookat(la);
 }
 
 
@@ -230,7 +241,7 @@ void Board::Layout(int w, int h)
 {
 	m_width = w;
 	m_height = h;
-	m_squareSize = 16.0f / boardSizeW;   
+	m_squareSize = 1.0f;
 }
 
 inline void AABoxAdd(AABoxf& aab, const Point3f& pt)
@@ -417,13 +428,12 @@ AABoxf Board::Square::GetBounds() const
 	return aab;
 }
 
-void SceneRect_DrawCube();
 void Board::Square::Draw(DrawContext &ctx)
 {
 	if (m_needRecalc)
 		ProceduralBuild(ctx);
 	float val = cHiehgt(m_vals[0], m_vals[1]);
-	float z = 0;// std::min(0.0f, -val * 4);
+	float z = 2;// std::min(0.0f, -val * 4);
 
 	Matrix44f m =
 		ctx.m_mat * CalcMat() *
@@ -434,7 +444,22 @@ void Board::Square::Draw(DrawContext &ctx)
 
 	bgfx::setTransform(m.getData());
 	bgfx::setTexture(0, ctx.m_texture, m_tex);
-	SceneRect_DrawCube();
+	
+	Grid::init();
+
+	// Set vertex and index buffer.
+	bgfx::setVertexBuffer(0, Grid::vbh);
+	bgfx::setIndexBuffer(Grid::ibh);
+	uint64_t state = 0
+		| BGFX_STATE_WRITE_RGB
+		| BGFX_STATE_WRITE_A
+		| BGFX_STATE_WRITE_Z
+		| BGFX_STATE_DEPTH_TEST_LESS
+		| BGFX_STATE_CULL_CCW
+		| BGFX_STATE_MSAA;
+	// Set render states.
+	bgfx::setState(state);
+
 	bgfx::submit(0, ctx.m_pgm);
 }
 
@@ -456,4 +481,154 @@ Board::Square::~Square()
 Board::~Board()
 {
 
+}
+
+enum class ContainmentType
+{
+	Disjoint = 0,
+	Contains = 1,
+	Intersects = 2
+};
+
+Vec3f FrustumCenter(Matrix44f viewproj);
+void GetBBoxes(std::vector<Board::Loc>& locs, AABoxf curbb,
+	const Frustumf& f);
+
+void GetFrustumLocs(Camera &cam, std::vector<Board::Loc> &locs)
+{
+	Frustumf viewFrust = cam.GetFrustum();
+	Matrix44f viewproj = cam.PerspectiveMatrix()* cam.ViewMatrix();
+	Vec3f ctr = FrustumCenter(viewproj);
+	Vec3f startlen(128, 128, 128);
+
+	Vec3f chkpos(floorf(ctr[0]), floorf(ctr[1]), floorf(ctr[2]));
+	AABoxf bb;
+	bb.mMin = chkpos - startlen;
+	bb.mMax = chkpos + startlen;
+	GetBBoxes(locs , bb, viewFrust);
+}
+
+Vec3f FrustumCenter(Matrix44f viewproj)
+{
+	Matrix44f mInv;
+	invert(viewproj);
+	Vec4f inpt4;
+	xform(inpt4, mInv, Vec4f(0, 0, 0.5f, 1.0f));
+	inpt4 /= inpt4[3];
+	return Vec3f(inpt4[0], inpt4[1], inpt4[2]);
+}
+
+template< class DATA_TYPE >
+DATA_TYPE pdistance(const Plane<DATA_TYPE>& plane, const Point<DATA_TYPE, 3>& pt)
+{
+	return (dot(plane.mNorm, static_cast<Vec<DATA_TYPE, 3>>(pt)) + plane.mOffset);
+}
+
+
+ContainmentType Contains(Frustumf f, AABoxf box)
+{	
+	ContainmentType result = ContainmentType::Contains;
+	for (int i = 0; i < 6; i++)
+	{
+		Planef plane = f.mPlanes[i];
+
+		// Approach: http://zach.in.tu-clausthal.de/teaching/cg_literatur/lighthouse3d_view_frustum_culling/index.html
+
+		Point3f positive = Point3f(box.mMin[0], box.mMin[1], box.mMin[2]);
+		Point3f negative = Point3f(box.mMax[0], box.mMax[1], box.mMax[2]);
+
+		if (plane.mNorm[0] >= 0)
+		{
+			positive[0] = box.mMax[0];
+			negative[0] = box.mMin[0];
+		}
+		if (plane.mNorm[1] >= 0)
+		{
+			positive[1] = box.mMax[1];
+			negative[1] = box.mMin[1];
+		}
+		if (plane.mNorm[2] >= 0)
+		{
+			positive[2] = box.mMax[2];
+			negative[2] = box.mMin[2];
+		}
+
+		// If the positive vertex is outside (behind plane), the box is disjoint.
+		float positiveDistance = pdistance(plane, positive);
+		if (positiveDistance < 0)
+		{
+			return ContainmentType::Disjoint;
+		}
+
+		// If the negative vertex is outside (behind plane), the box is intersecting.
+		// Because the above check failed, the positive vertex is in front of the plane,
+		// and the negative vertex is behind. Thus, the box is intersecting this plane.
+		float negativeDistance = pdistance(plane, negative);
+		if (negativeDistance < 0)
+		{
+			result = ContainmentType::Intersects;
+		}
+	}
+
+	return result;
+}
+
+
+void SplitAABox(AABoxf children[8], const AABoxf box)
+{
+	Vec3f mid = (box.mMax + box.mMin) * 0.5f;
+	Vec3f s[3] = { box.mMin, mid, box.mMax };
+	for (int i = 0; i < 8; ++i)
+	{
+		int xoff = i & 1;
+		int yoff = (i / 2) & 1;
+		int zoff = i / 4;
+
+		children[i].mMin[0] = s[xoff][0];
+		children[i].mMax[0] = s[xoff + 1][0];
+		children[i].mMin[1] = s[yoff][1];
+		children[i].mMax[1] = s[yoff + 1][1];
+		children[i].mMin[2] = s[zoff][2];
+		children[i].mMax[2] = s[zoff + 1][2];
+	}
+}
+
+void GetBBoxes(std::vector<Board::Loc>& locs, AABoxf curbb,
+	const Frustumf &f)
+{
+	ContainmentType res = Contains(f, curbb);
+	if (res == ContainmentType::Contains)
+	{
+		if ((curbb.mMax[0] - curbb.mMin[0]) > 1)
+		{
+			for (float x = curbb.mMin[0]; x < curbb.mMax[0]; x += 1.0f)
+			{
+				for (float y = curbb.mMin[1]; y < curbb.mMax[1]; y += 1.0f)
+				{
+					for (float z = curbb.mMin[2]; z < curbb.mMax[2]; z += 1.0f)
+					{
+						locs.push_back(Board::Loc((int)x, (int)y, (int)z));
+					}
+				}
+			}
+		}
+		else
+		{
+			locs.push_back(Board::Loc((int)curbb.mMin[0], (int)curbb.mMin[1], (int)curbb.mMin[2]));
+		}
+	}
+	else if (res == ContainmentType::Intersects)
+	{
+		if ((curbb.mMax[0] - curbb.mMin[0]) > 1)
+		{
+			AABoxf children[8];
+			SplitAABox(children, curbb);
+			for (int i = 0; i < 8; ++ i)
+			{
+				GetBBoxes(locs, children[i], f);
+			}
+		}
+		else
+			locs.push_back(Board::Loc((int)curbb.mMin[0], (int)curbb.mMin[1], (int)curbb.mMin[2]));
+	}
 }

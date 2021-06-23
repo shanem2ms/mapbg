@@ -22,6 +22,7 @@ set(Header_Files
     "HSLColor.h"
     "Resource.h"
     "SceneItem.h"
+    "Mesh.h"
     "SimplexNoise/SimplexNoise.h"
 )
 
@@ -42,6 +43,7 @@ set(Source_Files
     "HSLColor.cpp"
     "SceneItem.cpp"
     "UIControl.cpp"
+    "Mesh.cpp"
     "SimplexNoise/SimplexNoise.cpp"
     )
 

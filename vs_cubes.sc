@@ -10,9 +10,13 @@ $output v_texcoord0
 
 #include <bgfx_shader.sh>
 
+SAMPLER2D(s_texColor, 0);
+
 void main()
 {
+	float val = texture2DLod(s_texColor, a_texcoord0.xy, 0);
 	v_texcoord0 = a_texcoord0;
-	gl_Position = mul(u_modelViewProj, vec4(a_position, 1.0) );
+	val = max(val, 0);
+	gl_Position = mul(u_modelViewProj, vec4(a_position.x, a_position.y, a_position.z - val * 0.5, 1.0) );
 }
  

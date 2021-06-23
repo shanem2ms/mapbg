@@ -1,113 +1,9 @@
 #include "SceneItem.h"
 #include <bgfx/bgfx.h>
+#include <gmtl/FrustumOps.h>
+#include "Mesh.h"
 
 using namespace gmtl;
-
-struct PosTexcoordVertex
-{
-    float m_x;
-    float m_y;
-    float m_z;
-    float m_u;
-    float m_v;
-
-    static void init()
-    {
-        ms_layout
-            .begin()
-            .add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
-            .add(bgfx::Attrib::TexCoord0, 2, bgfx::AttribType::Float)
-            .end();
-    };
-
-    static bgfx::VertexLayout ms_layout;
-};
-
-bgfx::VertexLayout PosTexcoordVertex::ms_layout;
-
-struct Cube
-{
-    static void init()
-    {
-        if (isInit)
-            return;
-        PosTexcoordVertex::init();
-
-
-        static PosTexcoordVertex s_cubeVertices[] =
-        {
-            {-1.0f,  1.0f,  1.0f,  0.0f,  1.0f},
-            { 1.0f,  1.0f,  1.0f,  1.0f,  1.0f},
-            {-1.0f, -1.0f,  1.0f,  0.0f,  0.0f},
-            { 1.0f, -1.0f,  1.0f,  1.0f,  0.0f},
-
-            {-1.0f,  1.0f, -1.0f,  0.0f,  1.0f},
-            { 1.0f,  1.0f, -1.0f,  1.0f,  1.0f},
-            {-1.0f, -1.0f, -1.0f,  0.0f,  0.0f},
-            { 1.0f, -1.0f, -1.0f,  1.0f,  0.0f},
-
-            {-1.0f,  1.0f,  1.0f, 0.0f,  1.0f},
-            {-1.0f,  1.0f, -1.0f, 1.0f,  1.0f},
-            {-1.0f, -1.0f,  1.0f, 0.0f,  0.0f},
-            {-1.0f, -1.0f, -1.0f, 1.0f,  0.0f},
-
-            { 1.0f,  1.0f,  1.0f, 0.0f,  1.0f},
-            { 1.0f, -1.0f,  1.0f, 1.0f,  1.0f},
-            { 1.0f,  1.0f, -1.0f, 0.0f,  0.0f},
-            { 1.0f, -1.0f, -1.0f, 1.0f,  0.0f},
-
-            {-1.0f,  1.0f,  1.0f, 0.0f,  1.0f},
-            { 1.0f,  1.0f,  1.0f, 1.0f,  1.0f},
-            {-1.0f,  1.0f, -1.0f, 0.0f,  0.0f},
-            { 1.0f,  1.0f, -1.0f, 1.0f,  0.0f},
-
-            {-1.0f, -1.0f,  1.0f, 0.0f,  1.0f},
-            {-1.0f, -1.0f, -1.0f, 1.0f,  1.0f},
-            { 1.0f, -1.0f,  1.0f, 0.0f,  0.0f},
-            { 1.0f, -1.0f, -1.0f, 1.0f,  0.0f},
-        };
-
-        static const uint16_t s_cubeIndices[] =
-        {
-             0,  1,  2, // 0
-             1,  3,  2,
-
-             4,  6,  5, // 2
-             5,  6,  7,
-
-             8, 10,  9, // 4
-             9, 10, 11,
-
-            12, 14, 13, // 6
-            14, 15, 13,
-
-            16, 18, 17, // 8
-            18, 19, 17,
-
-            20, 22, 21, // 10
-            21, 22, 23,
-        };
-
-        vbh = bgfx::createVertexBuffer(
-            bgfx::makeRef(s_cubeVertices, sizeof(s_cubeVertices))
-            , PosTexcoordVertex::ms_layout
-        );
-
-        ibh = bgfx::createIndexBuffer(
-            bgfx::makeRef(s_cubeIndices, sizeof(s_cubeIndices))
-        );
-
-        isInit = true;
-    }
-
-    static bgfx::VertexBufferHandle vbh;
-    static bgfx::IndexBufferHandle ibh;
-    static bool isInit;
-};
-
-bool Cube::isInit = false;
-bgfx::VertexBufferHandle Cube::vbh;
-bgfx::IndexBufferHandle Cube::ibh;
 
 SceneItem::SceneItem() :
     m_offset(0, 0, 0),
@@ -116,14 +12,14 @@ SceneItem::SceneItem() :
 {
 }
 
-gmtl::Matrix44f SceneItem::CalcMat() const
+Matrix44f SceneItem::CalcMat() const
 {
-    return gmtl::makeTrans<gmtl::Matrix44f>(m_offset) *
-        gmtl::makeRot<gmtl::Matrix44f>(m_rotate) *
-        gmtl::makeScale<gmtl::Matrix44f>(m_scale);
+    return makeTrans<Matrix44f>(m_offset) *
+        makeRot<Matrix44f>(m_rotate) *
+        makeScale<Matrix44f>(m_scale);
 }
 
-inline void AABoxAdd(gmtl::AABoxf& aab1, const gmtl::AABoxf& aab2)
+inline void AABoxAdd(AABoxf& aab1, const AABoxf& aab2)
 {
     if (aab1.isEmpty())
     {
@@ -149,9 +45,9 @@ inline void AABoxAdd(gmtl::AABoxf& aab1, const gmtl::AABoxf& aab2)
     }
 }
 
-gmtl::AABoxf SceneGroup::GetBounds() const
+AABoxf SceneGroup::GetBounds() const
 {
-    gmtl::AABoxf bnds;
+    AABoxf bnds;
     for (auto item : m_sceneItems)
     {
         AABoxAdd(bnds, item->GetBounds());
@@ -168,7 +64,7 @@ gmtl::AABoxf SceneGroup::GetBounds() const
 
 void SceneGroup::Draw(DrawContext& ctx)
 {
-    gmtl::Matrix44f prevMat = ctx.m_mat;
+    Matrix44f prevMat = ctx.m_mat;
     for (auto item : m_sceneItems)
     {
         ctx.m_mat *= CalcMat();
@@ -190,16 +86,16 @@ void SceneText::SetFont(const std::string& fontname, float size)
 
 void SceneText::Draw(DrawContext& ctx)
 {
-    gmtl::Matrix44f m =
+    Matrix44f m =
         ctx.m_mat * CalcMat();
 
-    gmtl::Point3f pt = gmtl::makeTrans<gmtl::Point3f>(m);
+    Point3f pt = makeTrans<Point3f>(m);
 }
 
-gmtl::AABoxf SceneText::GetBounds() const
+AABoxf SceneText::GetBounds() const
 {
-    gmtl::Matrix44f m = CalcMat();
-    return gmtl::AABoxf();
+    Matrix44f m = CalcMat();
+    return AABoxf();
     //nvgTextBounds()
 }
 
@@ -233,28 +129,37 @@ void SceneRect::Draw(DrawContext& ctx)
     bgfx::submit(0, ctx.m_pgm);
 }
 
-gmtl::AABoxf SceneRect::GetBounds() const
+AABoxf SceneRect::GetBounds() const
 {
-    gmtl::Matrix44f m = CalcMat();
-    return gmtl::AABoxf();
+    Matrix44f m = CalcMat();
+    return AABoxf();
     //nvgTextBounds()
 }
 
 static const int boardSizeW = 32;
 static const int boardSizeH = 48;
 
-Camera::Camera() : m_pos(0, 0, -1.0f) {}
+Camera::Camera() 
+{}
 
 void Camera::Update(int w, int h)
 {
-    gmtl::Matrix44f rot, off, scl, perp;
+    Matrix44f rot, off, scl, perp;
    
     float aspect = (float)w / (float)h;
-    gmtl::setPerspective(m_persp, 60.0f, aspect, 0.1f, 10.0f);
-
-    gmtl::setRot(rot, gmtl::AxisAnglef(gmtl::Math::PI, 0.0f, 1.0f, 0.0f));
-    gmtl::setTrans(off, m_pos);
-
+    setPerspective(m_proj, 60.0f, aspect, 0.1f, 10.0f);    
+    setRot(rot, AxisAnglef(Math::PI + m_lookat.tilt, 1.0f, 0.0f, 0.0f));
+    Vec3f vec(0, 0, m_lookat.dist);
+    Quatf q = make<gmtl::Quatf>(AxisAnglef(Math::PI + m_lookat.tilt, 1.0f, 0.0f, 0.0f));
+    vec = q * vec;    
+    setTrans(off, m_lookat.pos + vec);
     m_view = off * rot;
-    m_view = invert(m_view);
+    m_view = invert(m_view);    
+}
+
+Frustumf Camera::GetFrustum() const
+{
+    Frustumf f(m_view, m_proj);
+    normalize(f);
+    return f;
 }
