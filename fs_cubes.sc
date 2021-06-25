@@ -22,19 +22,22 @@ void main()
 				vec4(0.2, 0, 128, 0),
 				vec4(0.5, 192, 192, 192),
 				vec4(0.7, 220, 240, 240),
-				vec4(0.8, 240, 255, 255)
+				vec4(0.8, 240, 255, 255),
+				vec4(100, 255, 0, 0)
 			};
 
 		vec2 ts = textureSize(s_texColor, 0);
-        float val = texture2DLod(s_texColor, v_texcoord0.xy, 0);
+        vec2 v2 = texture2DLod(s_texColor, v_texcoord0.xy, 0);
+		float val = v2.r;
 		float val0 = texture2DLod(s_texColor, v_texcoord0.xy - vec2(1.0 / ts.x, 0), 0);
 		float val1 = texture2DLod(s_texColor, v_texcoord0.xy - vec2(0, 1.0 / ts.y), 0);
 		
 		vec3 nrm = normalize(vec3(val - val0, val - val1, 0.05));
 		
 		float mul = max(0, dot(vec3(0, 0, 1), nrm));
+		if (val < 0) mul = 1;
 		int pIdx = 0;
-		for (; palette[pIdx].r < val && pIdx < 10; ++pIdx);
+		for (; palette[pIdx].r < val && pIdx < 11; ++pIdx);
 		pIdx--;
 		float m = 1 / 255.0 * mul;
 		gl_FragColor = vec4( 		
@@ -42,4 +45,12 @@ void main()
 			palette[pIdx].b * m,
 			palette[pIdx].a * m,
 			1);
+			/*
+		float s = max(-v2.g * 100, 0);
+		float b = 0.5f;
+		if (s > 0) b = 0;
+		gl_FragColor = vec4((s + b) * mul,
+			b * mul,
+			b * mul,
+			1);*/
 } 

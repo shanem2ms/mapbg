@@ -317,6 +317,7 @@ void Board::Square::NoiseGen()
 			avgn1 += n1;
 			avgn2 += n2;
 			m_pts[oy * SquarePtsCt + ox].height = cHiehgt(n1, n2);
+			m_pts[oy * SquarePtsCt + ox].sediment = 0;
 		}
 	}
 	avgn1 /= (float)(SquarePtsCt * SquarePtsCt);
@@ -324,51 +325,172 @@ void Board::Square::NoiseGen()
 	SetVals(Vec2f(avgn1, avgn2));
 }
 
+
+inline float RandF()
+{
+	static const float RM = 1.0f / RAND_MAX;
+	return rand() * RM;
+}
+
+inline float Lerp(float l, float r, float t)
+{
+	return l * (1 - t) + r * t;
+}
+
+const float resolution = 1.0f;
+const float scale = 1.0f;
+
+float Board::Square::SampleHeight(float x, float y)
+{
+	x *= scale;
+	y *= scale;
+
+	if (x < 0)
+		x = 0;
+	if (y < 0)
+		y = 0;
+	if (x >= (SquarePtsCt - 1))
+		x = (SquarePtsCt - 1);
+	if (y >= (SquarePtsCt - 1))
+		y = (SquarePtsCt - 1);
+
+	int ix = (int)x;
+	int iy = (int)y;
+	int iyy = iy < (SquarePtsCt - 1) ? iy + 1 : iy;
+	int ixx = ix < (SquarePtsCt - 1) ? ix + 1 : ix;
+	
+	const Board::SqPt& pt00 = m_pts[iy * SquarePtsCt + ix];
+	const Board::SqPt& pt01 = m_pts[iy * SquarePtsCt + ixx];
+	const Board::SqPt& pt10 = m_pts[iyy * SquarePtsCt + ix];
+	const Board::SqPt& pt11 = m_pts[iyy * SquarePtsCt + ixx];
+	float lerpx = x - ix;
+	float lerpy = y - iy;
+
+	float hy0 = Lerp(pt00.height, pt01.height, lerpx);
+	float hy1 = Lerp(pt10.height, pt11.height, lerpx);
+	return Lerp(hy0, hy1, lerpy);
+}
+
+float terrain = 0.05f;
+Vec3f Board::Square::SampleNormal(float x, float y)
+{
+	float doubleRadius = -(resolution + resolution);
+	float left = SampleHeight(x - resolution, y);
+	float right = SampleHeight(x + resolution, y);
+
+	float top = SampleHeight(x, y - resolution);
+	float bottom = SampleHeight(x, y + resolution);
+
+	Vec3f nrm(
+		-1 * (right - left),		
+		-1 * (bottom - top),
+		terrain);
+
+	normalize(nrm);
+	return nrm;
+}
+
+void Board::Square::AdjustHeight(float x, float y, float amt)
+{
+	amt *= 0.1f;
+	x *= scale;
+	y *= scale;
+	if (x < 0)
+		x = 0;
+	if (y < 0)
+		y = 0;
+	if (x >= (SquarePtsCt - 1))
+		x = (SquarePtsCt - 1);
+	if (y >= (SquarePtsCt - 1))
+		y = (SquarePtsCt - 1);
+
+	int ix = (int)x;
+	int iy = (int)y;
+	int iyy = iy < (SquarePtsCt - 1) ? iy + 1 : iy;
+	int ixx = ix < (SquarePtsCt - 1) ? ix + 1 : ix;
+	float lerpx = x - ix;
+	float lerpy = y - iy;
+
+	float amt00 = amt * (1 - lerpx) * (1 - lerpy);
+	Board::SqPt& pt00 = m_pts[iy * SquarePtsCt + ix];
+	pt00.height += amt00;
+	pt00.sediment += amt00;
+
+	float amt01 = amt * lerpx * (1 - lerpy);
+	Board::SqPt& pt01 = m_pts[iy * SquarePtsCt + ixx];
+	pt01.height += amt01;
+	pt01.sediment += amt01;
+
+	float amt10 = amt * (1 - lerpx) * lerpy;
+	Board::SqPt& pt10 = m_pts[iyy * SquarePtsCt + ix];
+	pt10.height += amt10;
+	pt10.sediment += amt10;
+
+	float amt11 = amt * lerpx * lerpy;
+	Board::SqPt& pt11 = m_pts[iyy * SquarePtsCt + ixx];
+	pt11.height += amt11;
+	pt11.sediment += amt11;
+}
+
+
+
+void Board::Square::TraceBall(float x, float y)
+{
+	float erosionRate = 0.04f;
+	float depositionRate = 0.03f;
+	float speed = 0.15f;
+	float friction = 0.7f;
+	float radius = 0.8f;
+	const int maxIterations = 800;
+	float iterationScale = 0.04f;
+
+	float sediment = 0; // The amount of carried sediment
+	float xp = x; // The previous X position
+	float yp = y; // The previous Y position
+	float vx = 0; // The horizontal velocity
+	float vy = 0; // The vertical velocity
+
+	for (int i = 0; i < maxIterations; ++i) 
+	{
+		const float ox = (RandF() * 2 - 1) * radius; // The X offset
+		const float oy = (RandF() * 2 - 1) * radius; // The Y offset
+		float h = SampleHeight(x, y);
+		if (h < 0)
+			break;
+		Vec3f nrm = SampleNormal(x, y);
+		if (nrm[2] > 0.99f)
+			break;
+
+		// Calculate the deposition and erosion rate
+		const float deposit = sediment * depositionRate * nrm[2];
+		const float erosion = erosionRate * (1 - nrm[2]) * std::min(1.0f, i * iterationScale);
+
+		// Change the sediment on the place this snowball came from
+		AdjustHeight(xp, yp, deposit - erosion);
+		sediment += erosion - deposit;
+
+		vx = friction * vx + nrm[0] * speed;
+		vy = friction * vy + nrm[1] * speed;
+		xp = x;
+		yp = y;
+		x += vx;
+		y += vy;
+	}
+};
+
+
 void Board::Square::Erode()
 {
-	const float factor = 50.0f;
-	for (int oy = 0; oy < SquarePtsCt; ++oy)
+	for (int i = 0; i < 50000; ++i)
 	{
-		for (int ox = 0; ox < SquarePtsCt; ++ox)
-		{
-			float xprev = m_pts[oy * SquarePtsCt + ox].dh[0] * -factor;
-			float yprev = m_pts[oy * SquarePtsCt + ox].dh[1] * -factor;
-
-		}
+		TraceBall(RandF() * SquarePtsCt * resolution,
+			RandF() * SquarePtsCt * resolution);
 	}
 }
 
 void Board::Square::GradientGen()
 {
-	for (int oy = 0; oy < SquarePtsCt; ++oy)
-	{
-		for (int ox = 0; ox < SquarePtsCt; ++ox)
-		{
-			if (ox == 0)
-			{
-				if (!m_neighbors[3].expired())
-					m_pts[oy * SquarePtsCt + ox].dh[0] = m_pts[oy * SquarePtsCt + ox].height - m_neighbors[3].lock()->Pts()[oy * SquarePtsCt + 15].height;
-			}
-			else
-				m_pts[oy * SquarePtsCt + ox].dh[0] = m_pts[oy * SquarePtsCt + ox].height - m_pts[oy * SquarePtsCt + ox - 1].height;
-			if (oy == 0)
-			{
-				if (!m_neighbors[1].expired())
-					m_pts[oy * SquarePtsCt + ox].dh[1] = m_pts[oy * SquarePtsCt + ox].height - m_neighbors[1].lock()->Pts()[15 * SquarePtsCt + ox].height;
-			}
-			else
-				m_pts[oy * SquarePtsCt + ox].dh[1] = m_pts[oy * SquarePtsCt + ox].height - m_pts[(oy - 1) * SquarePtsCt + ox].height;
-		}
-	}
-	m_mindh = Vec2f(1000, 1000);
-	m_maxdh = Vec2f(-1000, -1000);
-	for (int idx = 0; idx < (SquarePtsCt * SquarePtsCt); ++idx)
-	{
-		m_mindh[0] = std::min(m_mindh[0], m_pts[idx].dh[0]);
-		m_mindh[1] = std::min(m_mindh[1], m_pts[idx].dh[1]);
-		m_maxdh[0] = std::max(m_maxdh[0], m_pts[idx].dh[0]);
-		m_maxdh[1] = std::max(m_maxdh[1], m_pts[idx].dh[1]);
-	}
+	
 }
 
 std::atomic<unsigned long long> sTexCnt = 0;
@@ -382,24 +504,24 @@ void Board::Square::ProceduralBuild(DrawContext & ctx)
 	float ny = wy * SquarePtsCt;
 
 	
-	const bgfx::Memory* m = bgfx::alloc(SquarePtsCt * SquarePtsCt * 4);
-	float* flData = (float*)m->data;
+	const bgfx::Memory* m = bgfx::alloc(SquarePtsCt * SquarePtsCt * 8);
+	Vec2f* flData = (Vec2f*)m->data;
 
 	for (int oy = 0; oy < SquarePtsCt; ++oy)
 	{
 		for (int ox = 0; ox < SquarePtsCt; ++ox)
 		{
 			float val = m_pts[oy * SquarePtsCt + ox].height;
-			flData[oy * SquarePtsCt + ox] = val;
-			
+			flData[oy * SquarePtsCt + ox][0] = val;
+			flData[oy * SquarePtsCt + ox][1] = m_pts[oy * SquarePtsCt + ox].sediment;
 		}
 	}
 
 	m_tex = bgfx::createTexture2D(
 		SquarePtsCt, SquarePtsCt, false,
 		1,
-		bgfx::TextureFormat::Enum::R32F,
-		BGFX_TEXTURE_NONE | BGFX_SAMPLER_NONE,
+		bgfx::TextureFormat::Enum::RG32F,
+		BGFX_TEXTURE_NONE | BGFX_SAMPLER_POINT,
 		m
 	);
 	sTexCnt++;

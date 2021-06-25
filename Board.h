@@ -45,9 +45,8 @@ public:
 
     struct SqPt
     {
-        float height;;
-        Vec2f dh;
-        float sed;
+        float height;
+        float sediment;
     };
 
     static const int SquarePtsCt = 256;
@@ -89,6 +88,10 @@ public:
         void ProceduralBuild(DrawContext &ctx);
         void GradientGen();
         void Erode();
+        void TraceBall(float x, float y);
+        float SampleHeight(float x, float y);
+        Vec3f SampleNormal(float x, float y);
+        void AdjustHeight(float x, float y, float amt);
     };
 
     std::map<Loc, std::shared_ptr<Square> > m_squares;
