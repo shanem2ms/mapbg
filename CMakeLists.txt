@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+set(CMAKE_CONFIGURATION_TYPES "Debug;Release") 
 project(map C CXX)
 
 set(PROJECT_NAME map)
@@ -24,7 +25,7 @@ set(Header_Files
     "SceneItem.h"
     "Mesh.h"
     "SimplexNoise/SimplexNoise.h"
-)
+)  
 
 source_group("Header Files" FILES ${Header_Files})
 
