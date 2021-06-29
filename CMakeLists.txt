@@ -74,6 +74,7 @@ ExternalProject_Add(
   PATCH_COMMAND ""
   UPDATE_COMMAND ""
   GIT_REPOSITORY "https://github.com/bkaradzic/bgfx.cmake.git"
+  CMAKE_ARGS -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
   BUILD_BYPRODUCTS (
     ${CMAKE_BINARY_DIR}/bgfx/src/Bgfx-build/bx${CMAKE_STATIC_LIBRARY_SUFFIX}
     ${CMAKE_BINARY_DIR}/bgfx/src/Bgfx-build/bimg${CMAKE_STATIC_LIBRARY_SUFFIX}
