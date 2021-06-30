@@ -7,11 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A850DD3D268CEB6E00389DAC /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = A87BBD4D268C000C00F69D09 /* Main.storyboard */; };
 		A87BBD42268C000C00F69D09 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = A87BBD41268C000C00F69D09 /* AppDelegate.m */; };
 		A87BBD45268C000C00F69D09 /* Renderer.m in Sources */ = {isa = PBXBuildFile; fileRef = A87BBD44268C000C00F69D09 /* Renderer.m */; };
 		A87BBD48268C000C00F69D09 /* GameViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = A87BBD47268C000C00F69D09 /* GameViewController.m */; };
 		A87BBD4A268C000C00F69D09 /* Shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = A87BBD49268C000C00F69D09 /* Shaders.metal */; };
-		A87BBD4E268C000C00F69D09 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = A87BBD4C268C000C00F69D09 /* Main.storyboard */; };
 		A87BBD50268C000D00F69D09 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A87BBD4F268C000D00F69D09 /* Assets.xcassets */; };
 		A87BBD53268C000D00F69D09 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = A87BBD52268C000D00F69D09 /* main.m */; };
 /* End PBXBuildFile section */
@@ -26,7 +26,7 @@
 		A87BBD47268C000C00F69D09 /* GameViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = GameViewController.m; sourceTree = "<group>"; };
 		A87BBD49268C000C00F69D09 /* Shaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Shaders.metal; sourceTree = "<group>"; };
 		A87BBD4B268C000C00F69D09 /* ShaderTypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ShaderTypes.h; sourceTree = "<group>"; };
-		A87BBD4D268C000C00F69D09 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Main.storyboard; sourceTree = "<group>"; };
+		A87BBD4D268C000C00F69D09 /* Main.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = Main.storyboard; sourceTree = "<group>"; };
 		A87BBD4F268C000D00F69D09 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A87BBD51268C000D00F69D09 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A87BBD52268C000D00F69D09 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
@@ -46,7 +46,7 @@
 		A87BBD34268C000C00F69D09 = {
 			isa = PBXGroup;
 			children = (
-				A87BBD3F268C000C00F69D09 /* app */,
+				A87BBD3F268C000C00F69D09 /*  */,
 				A87BBD3E268C000C00F69D09 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -59,7 +59,7 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		A87BBD3F268C000C00F69D09 /* app */ = {
+		A87BBD3F268C000C00F69D09 /*  */ = {
 			isa = PBXGroup;
 			children = (
 				A87BBD40268C000C00F69D09 /* AppDelegate.h */,
@@ -70,12 +70,12 @@
 				A87BBD47268C000C00F69D09 /* GameViewController.m */,
 				A87BBD49268C000C00F69D09 /* Shaders.metal */,
 				A87BBD4B268C000C00F69D09 /* ShaderTypes.h */,
-				A87BBD4C268C000C00F69D09 /* Main.storyboard */,
+				A87BBD4D268C000C00F69D09 /* Main.storyboard */,
 				A87BBD4F268C000D00F69D09 /* Assets.xcassets */,
 				A87BBD51268C000D00F69D09 /* Info.plist */,
 				A87BBD52268C000D00F69D09 /* main.m */,
 			);
-			path = "";
+			name = "";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -135,7 +135,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A87BBD50268C000D00F69D09 /* Assets.xcassets in Resources */,
-				A87BBD4E268C000C00F69D09 /* Main.storyboard in Resources */,
+				A850DD3D268CEB6E00389DAC /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -155,17 +155,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXVariantGroup section */
-		A87BBD4C268C000C00F69D09 /* Main.storyboard */ = {
-			isa = PBXVariantGroup;
-			children = (
-				A87BBD4D268C000C00F69D09 /* Base */,
-			);
-			name = Main.storyboard;
-			sourceTree = "<group>";
-		};
-/* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
 		A87BBD54268C000D00F69D09 /* Debug */ = {
