@@ -68,15 +68,20 @@ set(ALL_FILES
 add_executable(${PROJECT_NAME} WIN32 ${ALL_FILES})
 
 
+set(BGFX_INSTALL_DIR ${CMAKE_SOURCE_DIR}/bgfx.cmake/out/install/x64-Debug)
+set(BGFX_INCLUDE_ROOT ${BGFX_INSTALL_DIR}/include)
+set(BGFX_LIB_DIR ${BGFX_INSTALL_DIR}/lib)
 
-set(BX_INC_DIR ${SOURCE_DIR}/bg/bx/include)
-set(BGFX_INC_DIR ${SOURCE_DIR}/bg/bgfx/include)
-set(BX_BIN_DIR ${BINARY_DIR})
+set(BX_INC_DIR ${BGFX_INCLUDE_ROOT}/bx)
+set(BGFX_INC_DIR ${BGFX_INCLUDE_ROOT}/bgfx)
 if (MSVC)
-set(BX_INC_DIR_COMPAT ${SOURCE_DIR}/bx/include/compat/msvc)
+set(BX_INC_DIR_COMPAT ${BGFX_INCLUDE_ROOT}/compat/msvc)
 elseif (APPLE)
-set(BX_INC_DIR_COMPAT ${SOURCE_DIR}/bx/include/compat/osx)
+set(BX_INC_DIR_COMPAT ${BGFX_INCLUDE_ROOT}/osx)
 endif()
+set(BX_BIN_DIR ${BINARY_DIR})
+
+message(BGFX_INC ${BX_INC_DIR})
 
 if (MSVC)
 set (SHADERC_PLATFORM windows)
@@ -88,17 +93,19 @@ set (SHADERC_VPROF metal)
 set (SHADERC_FPROF metal)
 endif()
 
+set (SHADERC ${CMAKE_SOURCE_DIR}/bgfx.cmake/out/install/x64-Debug/bin/shaderc${CMAKE_EXECUTABLE_SUFFIX})
+
 add_custom_command(
   OUTPUT ${CMAKE_BINARY_DIR}/vs_cubes.bin
-  COMMAND ${CMAKE_BINARY_DIR}/bg/bgfx/src/Bgfx-build/shaderc${CMAKE_EXECUTABLE_SUFFIX} -f ${CMAKE_CURRENT_SOURCE_DIR}/vs_cubes.sc
-                     -o ${CMAKE_BINARY_DIR}/vs_cubes.bin --type v --platform ${SHADERC_PLATFORM} --profile ${SHADERC_VPROF} -i ${BGFX_SRCDIR}
+  COMMAND ${SHADERC} -f ${CMAKE_CURRENT_SOURCE_DIR}/vs_cubes.sc
+                     -o ${CMAKE_BINARY_DIR}/vs_cubes.bin --type v --platform ${SHADERC_PLATFORM} --profile ${SHADERC_VPROF} -i ${BGFX_INC_DIR}
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/vs_cubes.sc ${CMAKE_CURRENT_SOURCE_DIR}/varying.def.sc
   VERBATIM)
 
 add_custom_command(
   OUTPUT ${CMAKE_BINARY_DIR}/fs_cubes.bin
-  COMMAND ${CMAKE_BINARY_DIR}/bg/bgfx/src/Bgfx-build/shaderc${CMAKE_EXECUTABLE_SUFFIX} -f ${CMAKE_CURRENT_SOURCE_DIR}/fs_cubes.sc
-                     -o ${CMAKE_BINARY_DIR}/fs_cubes.bin --type f --platform ${SHADERC_PLATFORM} --profile ${SHADERC_FPROF} -i ${BGFX_SRCDIR}
+  COMMAND ${SHADERC} -f ${CMAKE_CURRENT_SOURCE_DIR}/fs_cubes.sc
+                     -o ${CMAKE_BINARY_DIR}/fs_cubes.bin --type f --platform ${SHADERC_PLATFORM} --profile ${SHADERC_FPROF} -i ${BGFX_INC_DIR}
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/fs_cubes.sc ${CMAKE_CURRENT_SOURCE_DIR}/varying.def.sc
   VERBATIM)
 
@@ -110,7 +117,7 @@ add_custom_command(
 target_include_directories(${PROJECT_NAME} PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/."
     "${CMAKE_BINARY_DIR}/."
-    "${BX_INC_DIR}"
+    "${BGFX_INCLUDE_ROOT}"
     "${BX_INC_DIR_COMPAT}"
     "${BGFX_INC_DIR}"
     )
@@ -141,4 +148,11 @@ endif()
 message("PLT ${PLATFORMLIBS}")
 target_link_libraries(${PROJECT_NAME}
     ${PLATFORMLIBS}
+    ${BGFX_LIB_DIR}/bgfx.lib
+    ${BGFX_LIB_DIR}/bgfx.lib
+    ${BGFX_LIB_DIR}/bx.lib
+    ${BGFX_LIB_DIR}/astc.lib
+    ${BGFX_LIB_DIR}/bimg.lib
+    ${BGFX_LIB_DIR}/astc-codec.lib    
        )
+       
