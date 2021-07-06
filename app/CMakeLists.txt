@@ -83,6 +83,7 @@ endif()
 set(MainStoryboard "Main.storyboard")
 set(Assets "Assets.xcassets")
 set(CMAKE_XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.mapbg.shane")
+set(CMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "73CP3TPHE9")
 
 target_sources(${PROJECT_NAME} PUBLIC ${MainStoryboard} ${Assets})
 
