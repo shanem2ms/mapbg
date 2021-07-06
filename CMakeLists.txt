@@ -59,6 +59,7 @@ set(ALL_FILES
     ${Main_Files}
     ${CMAKE_BINARY_DIR}/vs_cubes.bin
     ${CMAKE_BINARY_DIR}/fs_cubes.bin
+    ${CMAKE_BINARY_DIR}/cs_erosion.bin
 )
 
 ################################################################################
@@ -87,10 +88,12 @@ if (MSVC)
 set (SHADERC_PLATFORM windows)
 set (SHADERC_VPROF vs_4_0)
 set (SHADERC_FPROF ps_4_0)
+set (SHADERC_CPROF cs_5_0)
 elseif (APPLE)
 set (SHADERC_PLATFORM osx)
 set (SHADERC_VPROF metal)
 set (SHADERC_FPROF metal)
+set (SHADERC_CPROF metal)
 endif()
 
 set (SHADERC ${CMAKE_SOURCE_DIR}/bgfx.cmake/out/install/x64-Debug/bin/shaderc${CMAKE_EXECUTABLE_SUFFIX})
@@ -109,6 +112,12 @@ add_custom_command(
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/fs_cubes.sc ${CMAKE_CURRENT_SOURCE_DIR}/varying.def.sc
   VERBATIM)
 
+add_custom_command(
+  OUTPUT ${CMAKE_BINARY_DIR}/cs_erosion.bin
+  COMMAND ${SHADERC} -f ${CMAKE_CURRENT_SOURCE_DIR}/cs_erosion.sc
+                     -o ${CMAKE_BINARY_DIR}/cs_erosion.bin --type c --platform ${SHADERC_PLATFORM} --profile ${SHADERC_CPROF} -i ${BGFX_INC_DIR}
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/cs_erosion.sc ${CMAKE_CURRENT_SOURCE_DIR}/uniforms.sh
+  VERBATIM)
 
 ################################################################################
 # Include directories

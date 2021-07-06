@@ -7,7 +7,7 @@ $input v_texcoord0
 
 #include <bgfx_shader.sh>
 
-SAMPLER2D(s_texColor, 0);
+SAMPLER2D(s_terrain, 0);
 
 void main()
 {
@@ -26,11 +26,11 @@ void main()
 				vec4(100, 255, 0, 0)
 			};
 
-		vec2 ts = textureSize(s_texColor, 0);
-        vec2 v2 = texture2DLod(s_texColor, v_texcoord0.xy, 0);
+		vec2 ts = textureSize(s_terrain, 0);
+        vec2 v2 = texture2DLod(s_terrain, v_texcoord0.xy, 0);
 		float val = v2.r;
-		float val0 = texture2DLod(s_texColor, v_texcoord0.xy - vec2(1.0 / ts.x, 0), 0);
-		float val1 = texture2DLod(s_texColor, v_texcoord0.xy - vec2(0, 1.0 / ts.y), 0);
+		float val0 = texture2DLod(s_terrain, v_texcoord0.xy - vec2(1.0 / ts.x, 0), 0);
+		float val1 = texture2DLod(s_terrain, v_texcoord0.xy - vec2(0, 1.0 / ts.y), 0);
 		
 		vec3 nrm = normalize(vec3(val - val0, val - val1, 0.05));
 		

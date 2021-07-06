@@ -23,7 +23,9 @@ class Engine
     std::shared_ptr<SceneGroup> m_root;
     std::vector<std::shared_ptr<Animation>> m_animations;
     bgfx::ProgramHandle m_program;
+    bgfx::ProgramHandle m_erosion;
     bgfx::UniformHandle m_texture;
+    bgfx::UniformHandle m_gradient;
 public:
     Engine();
 

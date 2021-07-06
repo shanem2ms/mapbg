@@ -35,6 +35,8 @@ void Engine::Draw(DrawContext & dc)
 {
     dc.m_pgm = m_program;
     dc.m_texture = m_texture;
+    dc.m_compute = m_erosion;
+    dc.m_gradient = m_gradient;
     gmtl::identity(dc.m_mat);
     m_root->Draw(dc);
 }
@@ -78,7 +80,10 @@ void Engine::LoadResources(DrawContext& nvg)
 	bgfx::ShaderHandle vtxShader = bgfx::createShader(loadMem(&fileReader, "vs_cubes.bin"));
     bgfx::ShaderHandle fragShader = bgfx::createShader(loadMem(&fileReader, "fs_cubes.bin"));
     m_program = bgfx::createProgram(vtxShader, fragShader, true);
-    m_texture = bgfx::createUniform("s_texColor", bgfx::UniformType::Sampler);
+    m_texture = bgfx::createUniform("s_terrain", bgfx::UniformType::Sampler);
+    m_gradient = bgfx::createUniform("s_gradient", bgfx::UniformType::Sampler); 
+    bgfx::ShaderHandle erosion = bgfx::createShader(loadMem(&fileReader, "cs_erosion.bin"));
+    m_erosion = bgfx::createProgram(erosion, true);
 }
 
 Engine& Engine::Inst()

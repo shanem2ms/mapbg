@@ -21,6 +21,8 @@ struct DrawContext
     bgfx::ProgramHandle m_pgm;
     Matrix44f m_mat;
     bgfx::UniformHandle m_texture;
+    bgfx::UniformHandle m_gradient;
+    bgfx::ProgramHandle m_compute;
 };
 
 

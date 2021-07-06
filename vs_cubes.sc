@@ -10,11 +10,11 @@ $output v_texcoord0
 
 #include <bgfx_shader.sh>
 
-SAMPLER2D(s_texColor, 0);
+SAMPLER2D(s_terrain, 0);
 
 void main()
 {
-	float val = texture2DLod(s_texColor, a_texcoord0.xy, 0);
+	float val = texture2DLod(s_terrain, a_texcoord0.xy, 0);
 	if (val > 900)
 		val -= 1000;
 	v_texcoord0 = a_texcoord0;

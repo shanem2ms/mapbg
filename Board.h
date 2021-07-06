@@ -62,7 +62,7 @@ public:
         SqPt m_pts[SquarePtsCt * SquarePtsCt];
         Vec2f m_maxdh;
         Vec2f m_mindh;
-        bgfx::TextureHandle m_tex;
+        bgfx::TextureHandle m_tex[2];
     public:
         void Draw(DrawContext &ctx) override;
         Square(const Loc& l);

@@ -481,7 +481,7 @@ void Board::Square::TraceBall(float x, float y)
 
 void Board::Square::Erode()
 {
-	for (int i = 0; i < 50000; ++i)
+	for (int i = 0; i < 5000; ++i)
 	{
 		TraceBall(RandF() * SquarePtsCt * resolution,
 			RandF() * SquarePtsCt * resolution);
@@ -493,7 +493,6 @@ void Board::Square::GradientGen()
 	
 }
 
-std::atomic<unsigned long long> sTexCnt = 0;
 void Board::Square::ProceduralBuild(DrawContext & ctx)
 {
 	GradientGen();
@@ -503,28 +502,29 @@ void Board::Square::ProceduralBuild(DrawContext & ctx)
 	float nx = wx * SquarePtsCt;
 	float ny = wy * SquarePtsCt;
 
-	
-	const bgfx::Memory* m = bgfx::alloc(SquarePtsCt * SquarePtsCt * 8);
-	Vec2f* flData = (Vec2f*)m->data;
+	const bgfx::Memory* m = bgfx::alloc(SquarePtsCt * SquarePtsCt * sizeof(Vec4f));
+	Vec4f* flData = (Vec4f*)m->data;
 
 	for (int oy = 0; oy < SquarePtsCt; ++oy)
 	{
 		for (int ox = 0; ox < SquarePtsCt; ++ox)
 		{
 			float val = m_pts[oy * SquarePtsCt + ox].height;
-			flData[oy * SquarePtsCt + ox][0] = val;
-			flData[oy * SquarePtsCt + ox][1] = m_pts[oy * SquarePtsCt + ox].sediment;
+			flData[oy * SquarePtsCt + ox] = Vec4f(val, 0, 0, 0);
 		}
 	}
 
-	m_tex = bgfx::createTexture2D(
-		SquarePtsCt, SquarePtsCt, false,
-		1,
-		bgfx::TextureFormat::Enum::RG32F,
-		BGFX_TEXTURE_NONE | BGFX_SAMPLER_POINT,
-		m
-	);
-	sTexCnt++;
+	for (int i = 0; i < 2; ++i)
+	{
+		m_tex[i] = bgfx::createTexture2D(
+			SquarePtsCt, SquarePtsCt, false,
+			1,
+			bgfx::TextureFormat::Enum::RGBA32F,
+			BGFX_TEXTURE_COMPUTE_WRITE | BGFX_TEXTURE_NONE | BGFX_SAMPLER_POINT,
+			i == 0 ? m : nullptr
+		);
+	}
+
 	m_needRecalc = false;
 }
 
@@ -554,6 +554,10 @@ void Board::Square::Draw(DrawContext &ctx)
 {
 	if (m_needRecalc)
 		ProceduralBuild(ctx);
+	bgfx::setTexture(0, ctx.m_texture, m_tex[0]);
+	bgfx::setImage(1, m_tex[1], 0, bgfx::Access::Write, bgfx::TextureFormat::RGBA16);
+	bgfx::dispatch(0, ctx.m_compute, 16, 16);
+
 	float val = cHiehgt(m_vals[0], m_vals[1]);
 	float z = 2;// std::min(0.0f, -val * 4);
 
@@ -565,7 +569,7 @@ void Board::Square::Draw(DrawContext &ctx)
 
 
 	bgfx::setTransform(m.getData());
-	bgfx::setTexture(0, ctx.m_texture, m_tex);
+	bgfx::setTexture(0, ctx.m_texture, m_tex[1]);
 	
 	Grid::init();
 
@@ -581,15 +585,16 @@ void Board::Square::Draw(DrawContext &ctx)
 		| BGFX_STATE_MSAA;
 	// Set render states.
 	bgfx::setState(state);
-
 	bgfx::submit(0, ctx.m_pgm);
 }
 
 void Board::Square::Decomission()
 {
-	bgfx::destroy(m_tex);
-	sTexCnt--;
-	m_tex = BGFX_INVALID_HANDLE;
+	for (int i = 0; i < 2; ++i)
+	{
+		bgfx::destroy(m_tex[i]);
+		m_tex[i] = BGFX_INVALID_HANDLE;
+	}
 	m_needRecalc = true;
 }
 
