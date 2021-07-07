@@ -1,22 +1,7 @@
-cmake_minimum_required(VERSION 3.15.0 FATAL_ERROR)
-
-set(CMAKE_SYSTEM_VERSION 10.0 CACHE STRING "" FORCE)
-include(ExternalProject)
-
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-
-set(CMAKE_CONFIGURATION_TYPES "Debug;Release") 
-project(map C CXX)
-
-set(PROJECT_NAME map)
-
 ################################################################################
 # Source groups
 ################################################################################
 set(Header_Files
-    "map.h"
     "Application.h"
     "Board.h"
     "Engine.h"
@@ -28,15 +13,6 @@ set(Header_Files
 )  
 
 source_group("Header Files" FILES ${Header_Files})
-
-if (MSVC)
-set(Main_Files
-    "map.cpp"
-    "map.rc"
-)
-elseif(APPLE)
-set(Main_Files "")
-endif()    
 
 set(Source_Files
     "Application.cpp"
@@ -61,13 +37,6 @@ set(ALL_FILES
     ${CMAKE_BINARY_DIR}/fs_cubes.bin
     ${CMAKE_BINARY_DIR}/cs_erosion.bin
 )
-
-################################################################################
-# Target
-################################################################################
-
-add_executable(${PROJECT_NAME} WIN32 ${ALL_FILES})
-
 
 set(BGFX_INSTALL_DIR ${CMAKE_SOURCE_DIR}/bgfx.cmake/out/install/x64-Debug)
 set(BGFX_INCLUDE_ROOT ${BGFX_INSTALL_DIR}/include)
@@ -119,49 +88,16 @@ add_custom_command(
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/cs_erosion.sc ${CMAKE_CURRENT_SOURCE_DIR}/uniforms.sh
   VERBATIM)
 
+add_library(core STATIC ${ALL_FILES})
+
 ################################################################################
 # Include directories
 ################################################################################
 
-target_include_directories(${PROJECT_NAME} PUBLIC
+target_include_directories(core PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/."
     "${CMAKE_BINARY_DIR}/."
     "${BGFX_INCLUDE_ROOT}"
     "${BX_INC_DIR_COMPAT}"
     "${BGFX_INC_DIR}"
     )
-
-if (MSVC)
-    set (PLATFORMLIBS
-    "d3dcompiler;"
-    "dxgi;"
-    "dxguid;"
-    "d3d11;"
-    "Shcore;"
-)
-elseif (APPLE)
-    find_library(FOUNDATIONLIB Foundation)
-    find_library(COREFOUNDATIONLIB CoreFoundation)
-    find_library(METALLIB Metal)
-    find_library(QUARTZCORELIB QuartzCore)
-    find_library(APPKITLIB AppKit)
-    set (PLATFORMLIBS 
-    "${FOUNDATIONLIB};"
-    "${COREFOUNDATIONLIB};"
-    "${METALLIB};"
-    "${QUARTZCORELIB};"
-    "${APPKITLIB};"
-    )
-endif()
-
-message("PLT ${PLATFORMLIBS}")
-target_link_libraries(${PROJECT_NAME}
-    ${PLATFORMLIBS}
-    ${BGFX_LIB_DIR}/bgfx.lib
-    ${BGFX_LIB_DIR}/bgfx.lib
-    ${BGFX_LIB_DIR}/bx.lib
-    ${BGFX_LIB_DIR}/astc.lib
-    ${BGFX_LIB_DIR}/bimg.lib
-    ${BGFX_LIB_DIR}/astc-codec.lib    
-       )
-       
