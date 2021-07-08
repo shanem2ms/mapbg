@@ -43,17 +43,21 @@ if (MSVC)
     "Shcore;"
 )
 elseif (APPLE)
-    find_library(FOUNDATIONLIB Foundation)
-    find_library(COREFOUNDATIONLIB CoreFoundation)
-    find_library(METALLIB Metal)
-    find_library(QUARTZCORELIB QuartzCore)
-    find_library(APPKITLIB AppKit)
-    set (PLATFORMLIBS 
-    "${FOUNDATIONLIB};"
-    "${COREFOUNDATIONLIB};"
-    "${METALLIB};"
-    "${QUARTZCORELIB};"
-    "${APPKITLIB};"
+find_library(FOUNDATIONLIB Foundation)
+find_library(COREFOUNDATIONLIB CoreFoundation)
+find_library(METALLIB Metal)
+find_library(QUARTZCORELIB QuartzCore)
+find_library(METALKITLIB MetalKit)
+find_library(UIKITLIB UIKit)
+find_library(MODELIOLIB ModelIO)
+set (PLATFORMLIBS 
+"${FOUNDATIONLIB};"
+"${COREFOUNDATIONLIB};"
+"${METALLIB};"
+"${QUARTZCORELIB};"
+"${METALKITLIB};"
+"${UIKITLIB};"
+"${MODELIOLIB};"
     )
 endif()
 
