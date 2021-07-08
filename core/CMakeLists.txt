@@ -1,3 +1,12 @@
+
+get_target_property(BGFXDIR bgfx SOURCE_DIR)
+
+if (MSVC)
+set(BX_INC_DIR_COMPAT ${BGFXDIR}/bx/include/compat/msvc)
+elseif (APPLE)
+set(BX_INC_DIR_COMPAT ${BGFX_INCLUDE_ROOT}/bx/include/compat/osx)
+endif()
+
 ################################################################################
 # Source groups
 ################################################################################
@@ -38,21 +47,6 @@ set(ALL_FILES
     ${CMAKE_BINARY_DIR}/cs_erosion.bin
 )
 
-set(BGFX_INSTALL_DIR ${CMAKE_SOURCE_DIR}/bgfx.cmake/out/install/x64-Debug)
-set(BGFX_INCLUDE_ROOT ${BGFX_INSTALL_DIR}/include)
-set(BGFX_LIB_DIR ${BGFX_INSTALL_DIR}/lib)
-
-set(BX_INC_DIR ${BGFX_INCLUDE_ROOT}/bx)
-set(BGFX_INC_DIR ${BGFX_INCLUDE_ROOT}/bgfx)
-if (MSVC)
-set(BX_INC_DIR_COMPAT ${BGFX_INCLUDE_ROOT}/compat/msvc)
-elseif (APPLE)
-set(BX_INC_DIR_COMPAT ${BGFX_INCLUDE_ROOT}/osx)
-endif()
-set(BX_BIN_DIR ${BINARY_DIR})
-
-message(BGFX_INC ${BX_INC_DIR})
-
 if (MSVC)
 set (SHADERC_PLATFORM windows)
 set (SHADERC_VPROF vs_4_0)
@@ -65,26 +59,26 @@ set (SHADERC_FPROF metal)
 set (SHADERC_CPROF metal)
 endif()
 
-set (SHADERC ${CMAKE_SOURCE_DIR}/bgfx.cmake/out/install/x64-Debug/bin/shaderc${CMAKE_EXECUTABLE_SUFFIX})
+set (BGFX_SRC_DIR ${CMAKE_SOURCE_DIR}/bgfx.cmake/bgfx/src)
 
 add_custom_command(
   OUTPUT ${CMAKE_BINARY_DIR}/vs_cubes.bin
-  COMMAND ${SHADERC} -f ${CMAKE_CURRENT_SOURCE_DIR}/vs_cubes.sc
-                     -o ${CMAKE_BINARY_DIR}/vs_cubes.bin --type v --platform ${SHADERC_PLATFORM} --profile ${SHADERC_VPROF} -i ${BGFX_INC_DIR}
+  COMMAND shaderc -f ${CMAKE_CURRENT_SOURCE_DIR}/vs_cubes.sc
+                     -o ${CMAKE_BINARY_DIR}/vs_cubes.bin --type v --platform ${SHADERC_PLATFORM} --profile ${SHADERC_VPROF} -i ${BGFX_SRC_DIR}
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/vs_cubes.sc ${CMAKE_CURRENT_SOURCE_DIR}/varying.def.sc
   VERBATIM)
 
 add_custom_command(
   OUTPUT ${CMAKE_BINARY_DIR}/fs_cubes.bin
-  COMMAND ${SHADERC} -f ${CMAKE_CURRENT_SOURCE_DIR}/fs_cubes.sc
-                     -o ${CMAKE_BINARY_DIR}/fs_cubes.bin --type f --platform ${SHADERC_PLATFORM} --profile ${SHADERC_FPROF} -i ${BGFX_INC_DIR}
+  COMMAND shaderc -f ${CMAKE_CURRENT_SOURCE_DIR}/fs_cubes.sc
+                     -o ${CMAKE_BINARY_DIR}/fs_cubes.bin --type f --platform ${SHADERC_PLATFORM} --profile ${SHADERC_FPROF} -i ${BGFX_SRC_DIR}
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/fs_cubes.sc ${CMAKE_CURRENT_SOURCE_DIR}/varying.def.sc
   VERBATIM)
 
 add_custom_command(
   OUTPUT ${CMAKE_BINARY_DIR}/cs_erosion.bin
-  COMMAND ${SHADERC} -f ${CMAKE_CURRENT_SOURCE_DIR}/cs_erosion.sc
-                     -o ${CMAKE_BINARY_DIR}/cs_erosion.bin --type c --platform ${SHADERC_PLATFORM} --profile ${SHADERC_CPROF} -i ${BGFX_INC_DIR}
+  COMMAND shaderc -f ${CMAKE_CURRENT_SOURCE_DIR}/cs_erosion.sc
+                     -o ${CMAKE_BINARY_DIR}/cs_erosion.bin --type c --platform ${SHADERC_PLATFORM} --profile ${SHADERC_CPROF} -i ${BGFX_SRC_DIR}
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/cs_erosion.sc ${CMAKE_CURRENT_SOURCE_DIR}/uniforms.sh
   VERBATIM)
 
@@ -94,10 +88,11 @@ add_library(core STATIC ${ALL_FILES})
 # Include directories
 ################################################################################
 
+message("BGFX_INC_DIR = ${BGFX_INC_DIR}")
+
 target_include_directories(core PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/."
-    "${CMAKE_BINARY_DIR}/."
-    "${BGFX_INCLUDE_ROOT}"
-    "${BX_INC_DIR_COMPAT}"
-    "${BGFX_INC_DIR}"
+    "${BGFXDIR}/bgfx/include"
+    "${BGFXDIR}/bx/include"
+    ${BX_INC_DIR_COMPAT}
     )

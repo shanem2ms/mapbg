@@ -10,14 +10,11 @@ project(map C CXX)
 
 set(PROJECT_NAME map)
 
-add_subdirectory(core)
 add_subdirectory(bgfx.cmake)
+add_subdirectory(core)
 
+add_dependencies(core shaderc)
 
-cmake_minimum_required(VERSION 3.15.0 FATAL_ERROR)
-
-set(CMAKE_SYSTEM_VERSION 10.0 CACHE STRING "" FORCE)
-include(ExternalProject)
 
 ################################################################################
 # Target
@@ -28,7 +25,7 @@ set(Main_Files
 "map.rc"
 )
 
-add_executable(${PROJECT_NAME} WIN32 ${Main_Files})
+add_executable(${PROJECT_NAME} WIN32 ${Main_Files} bgfx.cmake core)
 
 if (MSVC)
     set (PLATFORMLIBS
@@ -53,14 +50,15 @@ elseif (APPLE)
     )
 endif()
 
-message("PLT ${PLATFORMLIBS}")
-target_link_libraries(${PROJECT_NAME}
+
+target_link_libraries(${PROJECT_NAME} LINK_PUBLIC bgfx bx core
     ${PLATFORMLIBS}
-    ${BGFX_LIB_DIR}/bgfx.lib
-    ${BGFX_LIB_DIR}/bgfx.lib
-    ${BGFX_LIB_DIR}/bx.lib
-    ${BGFX_LIB_DIR}/astc.lib
-    ${BGFX_LIB_DIR}/bimg.lib
-    ${BGFX_LIB_DIR}/astc-codec.lib    
        )
        
+target_include_directories(${PROJECT_NAME} PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/."
+    "${CMAKE_BINARY_DIR}/."
+    "${BGFX_INCLUDE_ROOT}"
+    "${BX_INC_DIR_COMPAT}"
+    "${BGFX_INC_DIR}"
+    )
