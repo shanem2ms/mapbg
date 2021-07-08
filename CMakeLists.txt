@@ -10,6 +10,13 @@ project(map C CXX)
 
 set(PROJECT_NAME map)
 
+set(BGFX_BUILD_EXAMPLES off)
+set(BGFX_CUSTOM_TARGETS off)
+
+if (APPLE)
+    set(BGFX_BUILD_TOOLS off)
+endif()
+
 add_subdirectory(bgfx.cmake)
 add_subdirectory(core)
 
