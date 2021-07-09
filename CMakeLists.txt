@@ -18,6 +18,10 @@ if (APPLE)
     set(BGFX_BUILD_TOOLS off)
 endif()
 
+set (BGFX_INCLUDE_ROOT ${CMAKE_INSTALL_PREFIX}/include)
+set (BGFX_INCLUDE ${BGFX_INCLUDE_ROOT}/bgfx)
+set (BGFX_LIB ${CMAKE_INSTALL_PREFIX}/lib)
+
 ExternalProject_Add(
   Bgfx
   PREFIX "bgfx"
@@ -25,6 +29,12 @@ ExternalProject_Add(
   UPDATE_COMMAND ""
   GIT_REPOSITORY "https://github.com/bkaradzic/bgfx.cmake.git"
   CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+   BUILD_BYPRODUCTS (
+    ${BGFX_LIB}/bx${CMAKE_STATIC_LIBRARY_SUFFIX}
+    ${BGFX_LIB}/bimg${CMAKE_STATIC_LIBRARY_SUFFIX}
+    ${BGFX_LIB}/astc-codec${CMAKE_STATIC_LIBRARY_SUFFIX}
+    ${BGFX_LIB}/bgfx${CMAKE_STATIC_LIBRARY_SUFFIX}
+    )
 )
 
 add_subdirectory(core)
@@ -40,7 +50,7 @@ set(Main_Files
 "map.rc"
 )
 
-add_executable(${PROJECT_NAME} WIN32 ${Main_Files} bgfx.cmake core)
+add_executable(${PROJECT_NAME} WIN32 ${Main_Files} Bgfx core)
 
 if (MSVC)
     set (PLATFORMLIBS
@@ -68,10 +78,6 @@ set (PLATFORMLIBS
 "${MODELIOLIB};"
     )
 endif()
-
-set (BGFX_INCLUDE_ROOT ${CMAKE_INSTALL_PREFIX}/include)
-set (BGFX_INCLUDE ${BGFX_INCLUDE_ROOT}/bgfx)
-set (BGFX_LIB ${CMAKE_INSTALL_PREFIX}/lib)
 
 target_link_libraries(${PROJECT_NAME} LINK_PUBLIC 
     ${BGFX_LIB}/bgfx.lib 
