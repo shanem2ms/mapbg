@@ -13,7 +13,7 @@
 #include <bx/thread.h>
 #include <bgfx/bgfx.h>
 #include <bgfx/platform.h>
-#include "core/Application.h"
+#include "Application.h"
 
 
 

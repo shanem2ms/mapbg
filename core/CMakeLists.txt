@@ -35,6 +35,12 @@ set(Source_Files
     "SimplexNoise/SimplexNoise.cpp"
     )
 
+set(Main_Files
+"map.cpp"
+"map.h"
+"map.rc"
+)
+
 source_group("Source Files" FILES ${Source_Files} ${Main_Files})
 
 set(ALL_FILES
@@ -42,9 +48,9 @@ set(ALL_FILES
     ${Header_Files} 
     ${Source_Files}
     ${Main_Files}
-    ${CMAKE_BINARY_DIR}/vs_cubes.bin
-    ${CMAKE_BINARY_DIR}/fs_cubes.bin
-    ${CMAKE_BINARY_DIR}/cs_erosion.bin
+    ${CMAKE_CURRENT_BINARY_DIR}/vs_cubes.bin
+    ${CMAKE_CURRENT_BINARY_DIR}/fs_cubes.bin
+    ${CMAKE_CURRENT_BINARY_DIR}/cs_erosion.bin
 )
 
 if (MSVC)
@@ -62,37 +68,67 @@ endif()
 set (BGFX_SRC_DIR ${CMAKE_SOURCE_DIR}/bgfx.cmake/bgfx/src)
 
 add_custom_command(
-  OUTPUT ${CMAKE_BINARY_DIR}/vs_cubes.bin
+  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/vs_cubes.bin
   COMMAND shaderc -f ${CMAKE_CURRENT_SOURCE_DIR}/vs_cubes.sc
-                     -o ${CMAKE_BINARY_DIR}/vs_cubes.bin --type v --platform ${SHADERC_PLATFORM} --profile ${SHADERC_VPROF} -i ${BGFX_SRC_DIR}
+                     -o ${CMAKE_CURRENT_BINARY_DIR}/vs_cubes.bin --type v --platform ${SHADERC_PLATFORM} --profile ${SHADERC_VPROF} -i ${BGFX_SRC_DIR}
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/vs_cubes.sc ${CMAKE_CURRENT_SOURCE_DIR}/varying.def.sc
   VERBATIM)
 
 add_custom_command(
-  OUTPUT ${CMAKE_BINARY_DIR}/fs_cubes.bin
+  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/fs_cubes.bin
   COMMAND shaderc -f ${CMAKE_CURRENT_SOURCE_DIR}/fs_cubes.sc
-                     -o ${CMAKE_BINARY_DIR}/fs_cubes.bin --type f --platform ${SHADERC_PLATFORM} --profile ${SHADERC_FPROF} -i ${BGFX_SRC_DIR}
+                     -o ${CMAKE_CURRENT_BINARY_DIR}/fs_cubes.bin --type f --platform ${SHADERC_PLATFORM} --profile ${SHADERC_FPROF} -i ${BGFX_SRC_DIR}
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/fs_cubes.sc ${CMAKE_CURRENT_SOURCE_DIR}/varying.def.sc
   VERBATIM)
 
 add_custom_command(
-  OUTPUT ${CMAKE_BINARY_DIR}/cs_erosion.bin
+  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/cs_erosion.bin
   COMMAND shaderc -f ${CMAKE_CURRENT_SOURCE_DIR}/cs_erosion.sc
-                     -o ${CMAKE_BINARY_DIR}/cs_erosion.bin --type c --platform ${SHADERC_PLATFORM} --profile ${SHADERC_CPROF} -i ${BGFX_SRC_DIR}
+                     -o ${CMAKE_CURRENT_BINARY_DIR}/cs_erosion.bin --type c --platform ${SHADERC_PLATFORM} --profile ${SHADERC_CPROF} -i ${BGFX_SRC_DIR}
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/cs_erosion.sc ${CMAKE_CURRENT_SOURCE_DIR}/uniforms.sh
   VERBATIM)
 
-add_library(core STATIC ${ALL_FILES})
 
-################################################################################
-# Include directories
-################################################################################
+add_executable(${PROJECT_NAME} WIN32 ${ALL_FILES})
 
-message("BGFX_INC_DIR = ${BGFX_INC_DIR}")
+if (MSVC)
+    set (PLATFORMLIBS
+    "d3dcompiler;"
+    "dxgi;"
+    "dxguid;"
+    "d3d11;"
+    "Shcore;"
+)
+elseif (APPLE)
+find_library(FOUNDATIONLIB Foundation)
+find_library(COREFOUNDATIONLIB CoreFoundation)
+find_library(METALLIB Metal)
+find_library(QUARTZCORELIB QuartzCore)
+find_library(METALKITLIB MetalKit)
+find_library(UIKITLIB UIKit)
+find_library(MODELIOLIB ModelIO)
+set (PLATFORMLIBS 
+"${FOUNDATIONLIB};"
+"${COREFOUNDATIONLIB};"
+"${METALLIB};"
+"${QUARTZCORELIB};"
+"${METALKITLIB};"
+"${UIKITLIB};"
+"${MODELIOLIB};"
+    )
+endif()
 
-target_include_directories(core PUBLIC
+
+target_link_libraries(${PROJECT_NAME} LINK_PUBLIC bgfx bx
+    ${PLATFORMLIBS}
+       )
+       
+target_include_directories(${PROJECT_NAME} PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/."
+    "${CMAKE_CURRENT_BINARY_DIR}/."
+    "${BGFX_INCLUDE_ROOT}"
+    "${BX_INC_DIR_COMPAT}"
+    "${BGFX_INC_DIR}"
     "${BGFXDIR}/bgfx/include"
     "${BGFXDIR}/bx/include"
-    ${BX_INC_DIR_COMPAT}
     )
