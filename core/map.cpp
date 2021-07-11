@@ -159,7 +159,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
     bgfx::setViewClear(kClearView, BGFX_CLEAR_COLOR);
     bgfx::setViewRect(kClearView, 0, 0, bgfx::BackbufferRatio::Equal);
     bgfxInit = true;
-    DrawContext ctx;
+    sam::DrawContext ctx;
     app.Resize(rect.right, rect.bottom);
     app.LoadResources(ctx);
     return TRUE;
@@ -251,6 +251,6 @@ void Tick()
     // This dummy draw call is here to make sure that view 0 is cleared if no other draw calls are submitted to view 0.
     bgfx::touch(kClearView);
 
-    DrawContext ctx;
+    sam::DrawContext ctx;
     app.Draw(ctx);
 }
