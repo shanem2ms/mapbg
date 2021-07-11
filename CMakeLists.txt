@@ -39,6 +39,7 @@ ExternalProject_Add(
 )
 
 add_subdirectory(core)
+add_subdirectory(app)
 add_dependencies(core Bgfx)
 
 
@@ -50,6 +51,9 @@ set(Main_Files
 "map.h"
 "map.rc"
 )
+
+set(CMAKE_XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.mapbg.shane")
+set(CMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "73CP3TPHE9")
 
 add_executable(${PROJECT_NAME} WIN32 ${Main_Files} Bgfx core)
 

@@ -1,6 +1,9 @@
 #pragma once
 
 #include "SceneItem.h"
+
+namespace sam
+{
 struct DrawContext;
 
 class Animation
@@ -41,3 +44,4 @@ public:
     const std::shared_ptr<SceneGroup> &Root() { return m_root; }
 };
 
+}

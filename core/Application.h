@@ -3,6 +3,8 @@
 #include "UIControl.h"
 #include "Board.h"
 
+namespace sam
+{
 class Application
 {
     Board m_board;
@@ -26,3 +28,4 @@ public:
     void Draw(DrawContext & nvg);
 };
 
+}
