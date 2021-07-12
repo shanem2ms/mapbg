@@ -80,7 +80,7 @@ namespace sam
             {
                 m_image = image;
             }
-            virtual gmtl::AABoxf GetBounds() const;
+            gmtl::AABoxf GetBounds() const override;
             void SetVals(const Vec2f& v)
             {
                 m_vals = v;

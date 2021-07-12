@@ -32,7 +32,7 @@ set(Source_Files
     "AppDelegate.m"
     "Renderer.mm"
     "GameViewController.m"
-    "main.m"
+    "main.mm"
     "Main.storyboard"
     "Shaders.metal"
     )
@@ -62,6 +62,9 @@ find_library(QUARTZCORELIB QuartzCore)
 find_library(METALKITLIB MetalKit)
 find_library(UIKITLIB UIKit)
 find_library(MODELIOLIB ModelIO)
+find_library(OPENGL OpenGLES)
+
+
 set (PLATFORMLIBS 
 "${FOUNDATIONLIB};"
 "${COREFOUNDATIONLIB};"
@@ -70,6 +73,7 @@ set (PLATFORMLIBS
 "${METALKITLIB};"
 "${UIKITLIB};"
 "${MODELIOLIB};"
+"${OPENGL};"
 )
 
 set(MainStoryboard "Main.storyboard")
@@ -90,5 +94,12 @@ target_include_directories(${IOSAPPNAME} PUBLIC
     "${BGFX_INC_DIR}"
     )
 
-target_link_libraries(${IOSAPPNAME}
-    ${PLATFORMLIBS})
+target_link_libraries(${IOSAPPNAME} LINK_PUBLIC
+    ${PLATFORMLIBS}
+    core
+    ${BGFX_LIB}/${CMAKE_STATIC_LIBRARY_PREFIX}bgfx${CMAKE_STATIC_LIBRARY_SUFFIX}
+    ${BGFX_LIB}/${CMAKE_STATIC_LIBRARY_PREFIX}astc-codec${CMAKE_STATIC_LIBRARY_SUFFIX}
+    ${BGFX_LIB}/${CMAKE_STATIC_LIBRARY_PREFIX}bimg${CMAKE_STATIC_LIBRARY_SUFFIX}
+    ${BGFX_LIB}/${CMAKE_STATIC_LIBRARY_PREFIX}bx${CMAKE_STATIC_LIBRARY_SUFFIX}
+    ${PLATFORMLIBS}
+       )

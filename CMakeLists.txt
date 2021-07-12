@@ -41,6 +41,7 @@ ExternalProject_Add(
 add_subdirectory(core)
 if (APPLE)
 add_subdirectory(app)
+add_dependencies(app core)
 endif()
 add_dependencies(core Bgfx)
 
