@@ -3,7 +3,7 @@
  * License: https://github.com/bkaradzic/bgfx#license-bsd-2-clause
  */
 
-#include "entry_p.h"
+//#include "entry_p.h"
 
 #if ENTRY_CONFIG_USE_NATIVE && BX_PLATFORM_IOS
 
@@ -374,6 +374,8 @@ static	void* m_device = NULL;
 
 @end
 
+#endif // BX_PLATFORM_IOS
+
 int main(int _argc, const char* const* _argv)
 {
 	NSAutoreleasePool* pool = [ [NSAutoreleasePool alloc] init];
@@ -381,5 +383,3 @@ int main(int _argc, const char* const* _argv)
 	[pool release];
 	return exitCode;
 }
-
-#endif // BX_PLATFORM_IOS

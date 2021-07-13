@@ -121,21 +121,6 @@ static const NSUInteger MaxBuffersInFlight = 3;
 
     _commandQueue = [_device newCommandQueue];
     
-    bgfx::renderFrame();
-     bgfx::Init init;
-     init.resolution.width = (uint32_t)curWindowRect.right;
-     init.resolution.height = (uint32_t)curWindowRect.bottom;
-     init.resolution.reset = BGFX_RESET_VSYNC;
-     if (!bgfx::init(init))
-         return 1;
-     // Set view 0 to the same dimensions as the window and to clear the color buffer.
-     const bgfx::ViewId kClearView = 0;
-     bgfx::setViewClear(kClearView, BGFX_CLEAR_COLOR);
-     bgfx::setViewRect(kClearView, 0, 0, bgfx::BackbufferRatio::Equal);
-     bgfxInit = true;
-     sam::DrawContext ctx;
-     app.Resize(rect.right, rect.bottom);
-     app.LoadResources(ctx);
 }
 
 - (void)_loadAssets

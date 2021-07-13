@@ -93,7 +93,6 @@ set(S1 ${CMAKE_BINARY_DIR}/vs_cubes.bin)
 set(S2 ${CMAKE_BINARY_DIR}/fs_cubes.bin)
 set(S3 ${CMAKE_BINARY_DIR}/cs_erosion.bin)
 
-target_sources(core PUBLIC ${S1} ${S2} ${S3})
 
 set_source_files_properties(${S1} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 set_source_files_properties(${S2} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
