@@ -33,6 +33,9 @@ set(Source_Files
     "entry.cpp"
     "cmd.cpp"
     "input.cpp"
+    "start.cpp"
+    "bounds.cpp"
+    "bgfx_utils.cpp"    
     )
 
 source_group("Source Files" FILES ${Source_Files})
