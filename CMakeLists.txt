@@ -37,6 +37,7 @@ ExternalProject_Add(
     ${BGFX_LIB}/bgfx${CMAKE_STATIC_LIBRARY_SUFFIX}
     )
 )
+set(BUNDLE_ID "com.mapbg.shane")
 
 add_subdirectory(core)
 if (APPLE)
@@ -55,7 +56,7 @@ set(Main_Files
 "map.rc"
 )
 
-set(CMAKE_XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.mapbg.shane")
+set(CMAKE_XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER ${BUNDLE_ID})
 set(CMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "73CP3TPHE9")
 
 add_executable(${PROJECT_NAME} WIN32 ${Main_Files} Bgfx core)

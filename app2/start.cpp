@@ -8,6 +8,7 @@
 #include <bx/uint32_t.h>
 #include "entry.h"
 #include "bgfx_utils.h"
+#include "Application.h"
 
 namespace
 {
@@ -47,6 +48,10 @@ public:
 			, 1.0f
 			, 0
 			);
+        
+        sam::DrawContext ctx;
+        app.Resize(_width, _height);
+        app.LoadResources(ctx);
 	}
 
 	virtual int shutdown() override
@@ -67,7 +72,10 @@ public:
 			// This dummy draw call is here to make sure that view 0 is cleared
 			// if no other draw calls are submitted to view 0.
 			bgfx::touch(0);
-		
+            
+            app.Tick(0);
+            sam::DrawContext ctx;
+            app.Draw(ctx);
 			// Advance to next frame. Rendering thread will be kicked to
 			// process submitted rendering primitives.
 			bgfx::frame();
@@ -84,6 +92,7 @@ public:
 	uint32_t m_height;
 	uint32_t m_debug;
 	uint32_t m_reset;
+    sam::Application app;
 };
 
 } // namespace

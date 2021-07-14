@@ -40,10 +40,16 @@ set(Source_Files
 
 source_group("Source Files" FILES ${Source_Files})
 
-set(ALL_FILES
-    
+set(S1 ${CMAKE_BINARY_DIR}/vs_cubes.bin)
+set(S2 ${CMAKE_BINARY_DIR}/fs_cubes.bin)
+set(S3 ${CMAKE_BINARY_DIR}/cs_erosion.bin)
+
+set(ALL_FILES    
     ${Header_Files} 
     ${Source_Files}
+    ${S1}
+    ${S2}
+    ${S3}
 )
 
 ################################################################################
@@ -72,6 +78,12 @@ set (PLATFORMLIBS
 "${MODELIOLIB};"
 "${OPENGL};"
 )
+
+set_target_properties(${IOSAPPNAME} PROPERTIES MACOSX_BUNDLE_GUI_IDENTIFIER ${BUNDLE_ID})
+
+set_source_files_properties(${S1} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+set_source_files_properties(${S2} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+set_source_files_properties(${S3} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 
 target_include_directories(${IOSAPPNAME} PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/"
