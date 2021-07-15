@@ -64,8 +64,13 @@ public:
 
 	bool update() override
 	{
+        int prevheight = m_height;
+        int prevwidth = m_width;
 		if (!entry::processEvents(m_width, m_height, m_debug, m_reset, &m_mouseState) )
 		{
+            if (prevheight != m_height ||
+                prevwidth != m_width)
+                app.Resize(m_width, m_height);
 			// Set view 0 default viewport.
 			bgfx::setViewRect(0, 0, 0, uint16_t(m_width), uint16_t(m_height) );
 
