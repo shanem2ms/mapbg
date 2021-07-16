@@ -66,6 +66,7 @@ namespace sam
             Vec2f m_maxdh;
             Vec2f m_mindh;
             bgfx::TextureHandle m_tex[2];
+            int m_texpingpong;
         public:
             void Draw(DrawContext& ctx) override;
             Square(const Loc& l);

@@ -40,17 +40,10 @@ void main()
 		for (; palette[pIdx].r < val && pIdx < 11; ++pIdx);
 		pIdx--;
 		float m = 1 / 255.0 * mul;
+
 		gl_FragColor = vec4( 		
 			palette[pIdx].g * m,
 			palette[pIdx].b * m,
 			palette[pIdx].a * m,
 			1);
-			/*
-		float s = max(-v2.g * 100, 0);
-		float b = 0.5f;
-		if (s > 0) b = 0;
-		gl_FragColor = vec4((s + b) * mul,
-			b * mul,
-			b * mul,
-			1);*/
 } 

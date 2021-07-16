@@ -12,7 +12,6 @@ using namespace gmtl;
 
 namespace sam
 {
-
 	Board::Board() :
 		m_width(-1),
 		m_height(-1),
@@ -507,15 +506,15 @@ namespace sam
 		float nx = wx * SquarePtsCt;
 		float ny = wy * SquarePtsCt;
 
-		const bgfx::Memory* m = bgfx::alloc(SquarePtsCt * SquarePtsCt * sizeof(Vec4f));
-		Vec4f* flData = (Vec4f*)m->data;
+		const bgfx::Memory* m = bgfx::alloc(SquarePtsCt * SquarePtsCt * sizeof(float));
+		float* flData = (float*)m->data;
 
 		for (int oy = 0; oy < SquarePtsCt; ++oy)
 		{
 			for (int ox = 0; ox < SquarePtsCt; ++ox)
 			{
 				float val = m_pts[oy * SquarePtsCt + ox].height;
-				flData[oy * SquarePtsCt + ox] = Vec4f(val, 0, 0, 0);
+				flData[oy * SquarePtsCt + ox] = val;
 			}
 		}
 
@@ -524,8 +523,8 @@ namespace sam
 			m_tex[i] = bgfx::createTexture2D(
 				SquarePtsCt, SquarePtsCt, false,
 				1,
-				bgfx::TextureFormat::Enum::RGBA32F,
-				BGFX_TEXTURE_COMPUTE_WRITE | BGFX_TEXTURE_NONE | BGFX_SAMPLER_POINT,
+				bgfx::TextureFormat::Enum::R32F,
+				BGFX_TEXTURE_COMPUTE_WRITE | BGFX_TEXTURE_NONE,
 				i == 0 ? m : nullptr
 			);
 		}
@@ -558,9 +557,12 @@ namespace sam
 	void Board::Square::Draw(DrawContext& ctx)
 	{
 		if (m_needRecalc)
+		{
 			ProceduralBuild(ctx);
-		bgfx::setTexture(0, ctx.m_texture, m_tex[0]);
-		bgfx::setImage(1, m_tex[1], 0, bgfx::Access::Write, bgfx::TextureFormat::RGBA16);
+			m_texpingpong = 0;
+		}
+		bgfx::setTexture(0, ctx.m_texture, m_tex[m_texpingpong]);
+		bgfx::setImage(1, m_tex[1 - m_texpingpong], 0, bgfx::Access::Write, bgfx::TextureFormat::RGBA16);
 		bgfx::dispatch(0, ctx.m_compute, 16, 16);
 
 		float val = cHiehgt(m_vals[0], m_vals[1]);
@@ -574,7 +576,7 @@ namespace sam
 
 
 		bgfx::setTransform(m.getData());
-		bgfx::setTexture(0, ctx.m_texture, m_tex[1]);
+		bgfx::setTexture(0, ctx.m_texture, m_tex[1 - m_texpingpong]);
 
 		Grid::init();
 
@@ -591,6 +593,7 @@ namespace sam
 		// Set render states.
 		bgfx::setState(state);
 		bgfx::submit(0, ctx.m_pgm);
+		m_texpingpong = 1 - m_texpingpong;
 	}
 
 	void Board::Square::Decomission()
