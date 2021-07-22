@@ -46,13 +46,9 @@ namespace sam
             }
         };
 
-        struct SqPt
-        {
-            float height;
-            float sediment;
-        };
-
         static const int SquarePtsCt = 256;
+        static const int OverlapPtsCt = 64;
+        static const int TotalPtsCt = SquarePtsCt + OverlapPtsCt * 2;
 
         class Square : public SceneItem
         {
@@ -62,7 +58,8 @@ namespace sam
             std::weak_ptr<Square> m_neighbors[9];
             Loc m_l;
             bool m_needRecalc;
-            SqPt m_pts[SquarePtsCt * SquarePtsCt];
+            bool m_needErode;
+            float m_pts[TotalPtsCt * TotalPtsCt];
             Vec2f m_maxdh;
             Vec2f m_mindh;
             bgfx::TextureHandle m_tex[2];
@@ -76,7 +73,7 @@ namespace sam
                 m_squareSize = squareSize;
             }
 
-            const SqPt* Pts() const { return m_pts; }
+            const float* Pts() const { return m_pts; }
             void SetImage(int image)
             {
                 m_image = image;
@@ -92,9 +89,6 @@ namespace sam
         private:
             void NoiseGen();
             void ProceduralBuild(DrawContext& ctx);
-            void GradientGen();
-            void Erode();
-            void TraceBall(float x, float y);
             float SampleHeight(float x, float y);
             Vec3f SampleNormal(float x, float y);
             void AdjustHeight(float x, float y, float amt);
