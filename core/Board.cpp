@@ -53,26 +53,37 @@ namespace sam
     class Touch
     {
         Point2f m_touch;
-        Point3f m_obj;
+        Point2f m_lastDragPos;
         bool m_isInit;
+        bool m_isDragging;
     public:
-        Touch() : m_isInit(false) {}
+
+        Camera::Fly m_initCamPos;
+
+        Touch() : m_isInit(false),
+            m_isDragging(false) {}
 
         bool IsInit() const {
             return m_isInit;
         }
-        void SetInitialPos(const Point2f& mouse, const Point3f& obj)
+        void SetInitialPos(const Point2f& mouse)
         {
             m_touch = mouse;
-            m_obj = obj;
             m_isInit = true;
         }
 
-        Point3f ObjPoint(const Point2f& newTouchPt) const
+        bool IsDragging() const { return m_isDragging; }
+
+        void SetDragPos(const Point2f& newTouchPt)
         {
-            Point2f dpt = (newTouchPt - m_touch);
-            return Point3f(dpt[0], dpt[1], 0) + m_obj;
+            Vec2f dpt = (newTouchPt - m_touch);
+            if (length(dpt) > 0.04)
+                m_isDragging = true;
+            m_lastDragPos = newTouchPt;
         }
+
+        const Point2f& LastDragPos() const { return m_lastDragPos; }
+        const Point2f& TouchPos() const { return m_touch; }        
     };
     //https://shanetest-cos-earth.s3.us-east.cloud-object-storage.appdomain.cloud/usa10m_whqt/Q0/L0/R0/C0
     //https://shanetest-cos-earth.s3.us-east.cloud-object-storage.appdomain.cloud/world9m_whqt/Q0/L0/R0/C0
@@ -81,46 +92,130 @@ namespace sam
     bool cursormode = false;
     void Board::TouchDown(float x, float y, int touchId)
     {
-        if (cursormode)
-        {
-            m_activeTouch = std::make_shared<Touch>();
-        }
-        else
-        {
-            AABoxf bounds = m_boardGroup->GetBounds();
-            float xb = x / m_width;
-            float yb = y / m_height;
+        m_activeTouch = std::make_shared<Touch>();
+        float xb = x / m_width;
+        float yb = y / m_height;
 
-            float speed = m_squareSize / 16.0f;
-            if (xb > 0.9f)
-                m_camVel[0] += speed;
-            else if (xb < 0.1f)
-                m_camVel[0] -= speed;
-            if (yb > 0.9f)
-                m_tiltVel -= 0.01f;
-            else if (yb < 0.1f)
-                m_tiltVel += 0.01f;
-        }
+        Engine& e = Engine::Inst();
+        Camera::Fly la = e.Cam().GetFly();
+
+        m_activeTouch->m_initCamPos = la;
+        m_activeTouch->SetInitialPos(Point2f(xb, yb));
+        /*
+
+        float speed = m_squareSize / 16.0f;
+        if (xb > 0.9f)
+            m_camVel[0] += speed;
+        else if (xb < 0.1f)
+            m_camVel[0] -= speed;
+        if (yb > 0.9f)
+            m_tiltVel -= 0.01f;
+        else if (yb < 0.1f)
+            m_tiltVel += 0.01f;*/
     }
 
     void Board::TouchDrag(float x, float y, int touchId)
     {
         if (m_activeTouch != nullptr)
         {
-            Point3f objpt = m_activeTouch->ObjPoint(Point2f(x, y));
-            objpt[0] = std::max(0.0f, std::min(objpt[0], (float)m_width));
-            objpt[1] = std::max(0.0f, std::min(objpt[1], (float)m_height));
+            float xb = x / m_width;
+            float yb = y / m_height;
+
+            m_activeTouch->SetDragPos(Point2f(xb, yb));
+
+            Vec2f dragDiff = Point2f(xb, yb) - m_activeTouch->TouchPos();
+
+            Engine& e = Engine::Inst();
+            Camera::Fly la = m_activeTouch->m_initCamPos;
+
+            la.dir[0] -= dragDiff[0];
+            la.dir[1] -= dragDiff[1];
+            e.Cam().SetFly(la);
+
         }
     }
 
     void Board::TouchUp(int touchId)
     {
+        if (m_activeTouch != nullptr &&
+            !m_activeTouch->IsDragging())
+        {
+            
+            Engine& e = Engine::Inst();
+            Matrix44f viewProj = e.Cam().PerspectiveMatrix() * e.Cam().ViewMatrix();
+            invert(viewProj);
+            Point2f p = m_activeTouch->TouchPos() * 2.0f - Vec2f(1, 1);
+            p[1] *= -1;
+            Point4f screenPt(p[0], p[1], 0.9f, 1), objpt;
+            xform(objpt, viewProj, screenPt);
+            objpt /= objpt[3];
+
+            Camera::LookAt la = e.Cam().GetLookat();
+            la.pos = Point3f(objpt[0], objpt[1], objpt[2]);
+            la.pos[2] = 0.5f;
+            la.tilt = std::max(la.tilt + m_tiltVel, 0.0f);
+            la.dist *= 0.5f;
+            e.Cam().SetLookat(la);
+
+        }
         m_activeTouch = nullptr;
         m_camVel = Point3f(0, 0, 0);
         m_tiltVel = 0;
     }
 
-    void RefreshBiomes(int x, int y, int w, int h, unsigned char* pImgBuf);
+    const int LeftShift = 160;
+    const int SpaceBar = 32;
+    const int AButton = 'A';
+    const int DButton = 'D';
+    const int WButton = 'W';
+    const int SButton = 'S';
+
+
+    void Board::KeyDown(int k)
+    {
+        float speed = 0.05f;
+        switch (k)
+        {
+        case LeftShift:
+            m_camVel[1] -= speed;
+            break;
+        case SpaceBar:
+            m_camVel[1] += speed;
+            break;
+        case AButton:
+            m_camVel[0] -= speed;
+            break;
+        case DButton:
+            m_camVel[0] += speed;
+            break;
+        case WButton:
+            m_camVel[2] -= speed;
+            break;
+        case SButton:
+            m_camVel[2] += speed;
+            break;
+        }
+    }
+
+    void Board::KeyUp(int k)
+    {
+        switch (k)
+        {
+        case LeftShift:
+        case SpaceBar:
+            m_camVel[1] = 0;
+            break;
+        case AButton:
+        case DButton:
+            m_camVel[0] = 0;
+            break;
+        case WButton:
+        case SButton:
+            m_camVel[2] = 0;
+            break;
+        }
+    }
+
     void GetFrustumLocs(Camera& cam, std::vector<Board::Loc>& locs);
 
     void Board::Update(Engine& e, DrawContext& ctx)
@@ -142,6 +237,11 @@ namespace sam
             */
             m_boardGroup = std::make_shared<SceneGroup>();
             e.Root()->AddItem(m_boardGroup);
+
+            Camera::Fly fly;
+            fly.pos = Point3f(0, 2.0f, 0);
+            fly.dir = Vec2f(0, 0.0f);
+            e.Cam().SetFly(fly);
         }
 
         m_boardGroup->Clear();
@@ -183,14 +283,60 @@ namespace sam
         float ystart = floorf((c[0][1] - ydist) / m_squareSize);
         float yend = ceilf((c[0][1] + ydist) / m_squareSize);
 
+        auto &cam = e.Cam();
+        Camera::Fly fly = cam.GetFly();
+
+        Vec3f right, up, forward;
+        fly.GetDirs(right, up, forward);
+        fly.pos +=
+            m_camVel[0] * right +
+            m_camVel[1] * up +
+            m_camVel[2] * forward;
+
+        int tx = (int)floor(fly.pos[0]);
+        int tz = (int)floor(fly.pos[2]);
+        Loc camLoc(tx, 0, tz);
+
         std::vector<Board::Loc> locs;
         GetFrustumLocs(e.Cam(), locs);
 
         std::sort(locs.begin(), locs.end());
+        if (std::find(locs.begin(), locs.end(), camLoc) == locs.end())
+        {
+            locs.push_back(camLoc);
+        }
+        struct LocDist
+        {
+            float d;
+            const Board::Loc* loc;
+        };
+        std::vector<LocDist> locDists;
+
+        Point3f campos = fly.pos;
         for (const Loc& l : locs)
         {
-            if (l.m_z != 0)
+            if (l.m_y != 0)
                 continue;
+
+            float sx = l.m_x * m_squareSize;
+            float sy = l.m_z * m_squareSize;
+            
+            Vec2f diffvec = Vec2f(campos[0], campos[1]) - Vec2f(sx, sy);
+            float ls = lengthSquared(diffvec);
+            locDists.push_back(LocDist { ls, &l });
+        }
+
+
+        std::sort(locDists.begin(), locDists.end(), [](const LocDist& l, const LocDist& r) { return l.d < r.d;  });
+
+        if (locDists.size() > 10)
+        {
+            locDists.erase(locDists.begin() + 10, locDists.end());
+        }
+
+        for (const LocDist& ld : locDists)
+        {
+            const Loc& l = *ld.loc;
 
             auto itSq = m_squares.find(l);
             if (itSq == m_squares.end())
@@ -198,16 +344,16 @@ namespace sam
                 std::shared_ptr<Square> sq = std::make_shared<Square>(l);
                 { // Init Square
                     float sx = l.m_x * m_squareSize;
-                    float sy = l.m_y * m_squareSize;
+                    float sy = l.m_z * m_squareSize;
                     sq->SetSquareSize(m_squareSize);
-                    sq->SetOffset(Point3f(sx + m_squareSize / 2, sy + m_squareSize / 2, 0));
+                    sq->SetOffset(Point3f(sx + m_squareSize / 2, 0, sy + m_squareSize / 2));
                     //sq->ProceduralBuild(ctx, simplex, wx, wy);
                 }
                 m_squares.insert(std::make_pair(l, sq));
                 for (int dx = -1; dx <= 1; ++dx) {
                     for (int dy = -1; dy <= 1; ++dy)
                     {
-                        auto itNeightborSq = m_squares.find(Loc(l.m_x + dx, l.m_y + dy));
+                        auto itNeightborSq = m_squares.find(Loc(l.m_x + dx, 0, l.m_z + dy));
                         if (itNeightborSq == m_squares.end())
                             continue;
                         sq->SetNeighbor(dx, dy, itNeightborSq->second);
@@ -230,14 +376,16 @@ namespace sam
             auto itSq = m_squares.find(sqPair);
             m_boardGroup->AddItem(itSq->second);
         }
+       
 
-        auto& cam = e.Cam();
-        Camera::LookAt la = cam.GetLookat();
-        la.pos += m_camVel;
-        la.pos[2] = 0.5f;
-        la.tilt = std::max(la.tilt + m_tiltVel, 0.0f);
-        la.dist = 1.5f;
-        cam.SetLookat(la);
+        auto itCamTile = m_squares.find(camLoc);
+        if (itCamTile != m_squares.end())
+        {
+            fly.pos[1] = 
+                itCamTile->second->GetGroundHeight(fly.pos);
+        }
+
+        cam.SetFly(fly);
     }
 
 
@@ -287,7 +435,8 @@ namespace sam
 
 
     Board::Square::Square(const Loc& l) : m_image(-1), m_l(l), m_needRecalc(true),
-        m_needErode(false)
+        m_buildFrame(0), 
+        m_dataready(false)
     {
         NoiseGen();
     }
@@ -309,7 +458,7 @@ namespace sam
         float avgn1 = 0;
         float avgn2 = 0;
         int wx = m_l.m_x;
-        int wy = m_l.m_y;
+        int wy = m_l.m_z;
         float nx = wx * SquarePtsCt;
         float ny = wy * SquarePtsCt;
         float scale = 1 / (float)SquarePtsCt;
@@ -332,6 +481,25 @@ namespace sam
         SetVals(Vec2f(avgn1, avgn2));
     }
 
+    float Board::Square::GetGroundHeight(const Point3f& pt) const
+    {
+        if (!m_dataready)
+            return 0;
+        int wx = m_l.m_x;
+        int wz = m_l.m_z;
+        float nx = wx * SquarePtsCt;
+        float nz = wz * SquarePtsCt;
+        float tileU = pt[0] - wx;
+        float tileV = pt[2] - wz;
+        tileU *= SquarePtsCt;
+        tileV *= SquarePtsCt;
+        tileU += OverlapPtsCt;
+        tileV += OverlapPtsCt;
+
+        const Vec4f &p = m_pixels[(int)tileV * TotalPtsCt + (int)tileU];
+        return p[3];
+    }
+
     inline float RandF()
     {
         static const float RM = 1.0f / RAND_MAX;
@@ -346,7 +514,7 @@ namespace sam
     void Board::Square::ProceduralBuild(DrawContext& ctx)
     {
         int wx = m_l.m_x;
-        int wy = m_l.m_y;
+        int wy = m_l.m_z;
         float nx = wx * SquarePtsCt;
         float ny = wy * SquarePtsCt;
 
@@ -372,6 +540,20 @@ namespace sam
                 i == 0 ? m : nullptr
             );
         }
+        
+        m_rbTex = bgfx::createTexture2D(
+            TotalPtsCt, TotalPtsCt, false,
+            1,
+            bgfx::TextureFormat::Enum::RGBA32F,
+            BGFX_TEXTURE_BLIT_DST
+            | BGFX_TEXTURE_READ_BACK
+            | BGFX_SAMPLER_MIN_POINT
+            | BGFX_SAMPLER_MAG_POINT
+            | BGFX_SAMPLER_MIP_POINT
+            | BGFX_SAMPLER_U_CLAMP
+            | BGFX_SAMPLER_V_CLAMP);
+
+        m_pixels.resize(TotalPtsCt * TotalPtsCt);
 
         m_needRecalc = false;
     }
@@ -400,29 +582,40 @@ namespace sam
 
     void Board::Square::Draw(DrawContext& ctx)
     {
-        if (m_needErode)
-        {
-        }
         if (m_needRecalc)
         {
             ProceduralBuild(ctx);
-            m_texpingpong = 0;
-            for (int i = 0; i < 2000; ++i)
+            m_buildFrame = 0;
+        }
+        m_texpingpong = 0;
+        if (m_buildFrame == 0)
+        {
+            for (int i = 0; i < 5000; i++)
             {
                 bgfx::setTexture(0, ctx.m_texture, m_tex[m_texpingpong]);
                 bgfx::setImage(1, m_tex[1 - m_texpingpong], 0, bgfx::Access::Write, bgfx::TextureFormat::RGBA32F);
                 bgfx::dispatch(0, ctx.m_compute, TotalPtsCt / 16, TotalPtsCt / 16);
                 m_texpingpong = 1 - m_texpingpong;
             }
-            m_needErode = false;
+            m_buildFrame++;
+        }        
+        else if (m_buildFrame == 1)
+        {
+            bgfx::blit(0, m_rbTex, 0, 0, m_tex[1 - m_texpingpong]);
+            m_buildFrame = bgfx::readTexture(m_rbTex, m_pixels.data());
         }
-        float z = 2;// std::min(0.0f, -val * 4);
+        else if (ctx.m_frameIdx == m_buildFrame)
+        {
+            bgfx::destroy(m_rbTex);
+            m_dataready = true;
+        }
+        float y = 2;// std::min(0.0f, -val * 4);
 
         Matrix44f m =
             ctx.m_mat * CalcMat() *
             makeScale<Matrix44f>(Vec3f(
                 (float)(m_squareSize / 2), (float)(m_squareSize / 2), (float)(m_squareSize / 2))) *
-            gmtl::makeTrans<gmtl::Matrix44f>(Vec3f(0, 0, z));
+            gmtl::makeTrans<gmtl::Matrix44f>(Vec3f(0, y, 0));
 
 
         bgfx::setTransform(m.getData());
@@ -440,7 +633,7 @@ namespace sam
             | BGFX_STATE_DEPTH_TEST_LESS
             | BGFX_STATE_CULL_CCW
             | BGFX_STATE_MSAA;
-        // Set render states.
+        // Set render states.l
         bgfx::setState(state);
         bgfx::submit(0, ctx.m_pgm);
     }

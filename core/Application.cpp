@@ -9,7 +9,8 @@ namespace sam
         m_height(0),
         m_touchDownX(0),
         m_touchDownY(0),
-        m_width(0)
+        m_width(0),
+        m_frameIdx(0)
     {
         s_pInst = this;
     }
@@ -46,6 +47,16 @@ namespace sam
             m_board.TouchUp(touchId);
     }
 
+    void Application::KeyDown(int keyId)
+    {
+        m_board.KeyDown(keyId);
+    }
+
+    void Application::KeyUp(int keyId)
+    {
+        m_board.KeyUp(keyId);
+    }
+
     void Application::Resize(int w, int h)
     {
         m_width = w;
@@ -77,9 +88,9 @@ namespace sam
 
         bgfx::setViewTransform(0, view.getData(), proj.getData());
         bgfx::setViewRect(0, 0, 0, uint16_t(m_width), uint16_t(m_height));
-
+        nvg.m_frameIdx = m_frameIdx;
         m_engine.Draw(nvg);
-        bgfx::frame();
+        m_frameIdx = bgfx::frame() + 1;
     }
 
     void Application::LoadResources(DrawContext& nvg)

@@ -14,6 +14,7 @@
 #include <bgfx/bgfx.h>
 #include <bgfx/platform.h>
 #include "Application.h"
+#include <string>
 
 
 
@@ -29,6 +30,14 @@ ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+BYTE prevKeys[256];
+
+
+LRESULT KeyboardHookproc(
+    int code,
+    WPARAM wParam,
+    LPARAM lParam
+);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     _In_opt_ HINSTANCE hPrevInstance,
@@ -45,12 +54,15 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     LoadStringW(hInstance, IDC_MAP, szWindowClass, MAX_LOADSTRING);
     MyRegisterClass(hInstance);
 
+    memset(prevKeys, 0, sizeof(prevKeys));
+
     // Perform application initialization:
     if (!InitInstance(hInstance, nCmdShow))
     {
         return FALSE;
     }
-
+   
+    SetWindowsHookEx(WH_KEYBOARD_LL, KeyboardHookproc, hInstance, 0);
 
     HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_MAP));
 
@@ -58,6 +70,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     // Main message loop:
     while (GetMessage(&msg, nullptr, 0, 0))
     {
+
         if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
         {
             TranslateMessage(&msg);
@@ -190,6 +203,7 @@ static float tick = 0;
 //  WM_DESTROY  - post a quit message and return
 //
 //
+
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
@@ -219,7 +233,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_MOUSEMOVE:
         app.TouchDrag((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), 0);
         break;
-
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
@@ -253,4 +266,27 @@ void Tick()
 
     sam::DrawContext ctx;
     app.Draw(ctx);
+}
+
+LRESULT KeyboardHookproc(
+    int code,
+    WPARAM wParam,
+    LPARAM lParam
+)
+{
+    KBDLLHOOKSTRUCT* pKbb = (KBDLLHOOKSTRUCT*)lParam;
+    switch (wParam)
+    {
+    case WM_KEYDOWN:
+    case WM_SYSKEYDOWN:
+    {
+        app.KeyDown(pKbb->vkCode);
+        break;
+    }
+    case WM_KEYUP:
+    case WM_SYSKEYUP:
+        app.KeyUp(pKbb->vkCode);
+        break;
+    }
+    return 0;
 }

@@ -14,6 +14,7 @@ class Application
     int m_height;
     float m_touchDownX;
     float m_touchDownY;
+    int m_frameIdx;
 
 public:    
     UIManager& UIMgr();
@@ -22,6 +23,8 @@ public:
     void TouchDown(float x, float y, int touchId);
     void TouchDrag(float x, float y, int touchId);
     void TouchUp(int touchId);
+    void KeyDown(int keyId);
+    void KeyUp(int keyId);
     void Resize(int w, int h);
     void Tick(float time);
     void LoadResources(DrawContext & nvg);

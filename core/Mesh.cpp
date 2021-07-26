@@ -20,8 +20,8 @@ void Grid::init()
         {
             PosTexcoordVertex& v = vertices[y * size + x];
             v.m_x = ((float)(x) / (float)(size - 1)) * 2 - 1;
-            v.m_y = ((float)(y) / (float)(size - 1)) * 2 - 1;
-            v.m_z = 0;
+            v.m_z = ((float)(y) / (float)(size - 1)) * 2 - 1;
+            v.m_y = 0;
             v.m_u = ((float)(x) / (float)(size - 1));
             v.m_v = ((float)(y) / (float)(size - 1));
 

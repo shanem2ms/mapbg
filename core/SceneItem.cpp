@@ -140,20 +140,51 @@ namespace sam
     static const int boardSizeW = 32;
     static const int boardSizeH = 48;
 
-    Camera::Camera()
+    Camera::Camera() :
+        m_mode(0)
     {}
+
+
+    void Camera::Fly::GetDirs(Vec3f &right, Vec3f &up, Vec3f &forward) const
+    {
+        forward = make<gmtl::Quatf>(AxisAnglef(dir[1], 1.0f, 0.0f, 0.0f)) * Vec3f(0, 0, 1);
+        forward = make<gmtl::Quatf>(AxisAnglef(dir[0], 0.0f, 1.0f, 0.0f)) * forward;
+        normalize(forward);
+
+        cross(right, forward, Vec3f(0, -1, 0));
+        normalize(right);
+        cross(up, forward, right);
+        normalize(up);
+    }
 
     void Camera::Update(int w, int h)
     {
         Matrix44f rot, off, scl, perp;
-
         float aspect = (float)w / (float)h;
         setPerspective(m_proj, 60.0f, aspect, 0.1f, 10.0f);
-        setRot(rot, AxisAnglef(Math::PI + m_lookat.tilt, 1.0f, 0.0f, 0.0f));
-        Vec3f vec(0, 0, m_lookat.dist);
-        Quatf q = make<gmtl::Quatf>(AxisAnglef(Math::PI + m_lookat.tilt, 1.0f, 0.0f, 0.0f));
-        vec = q * vec;
-        setTrans(off, m_lookat.pos + vec);
+
+        if (m_mode == 0)
+        {
+            Vec3f rightDir, upDir, lookDir;
+            m_fly.GetDirs(rightDir, upDir, lookDir);
+            rot.set(
+                rightDir[0], rightDir[1], rightDir[2], 0,
+                upDir[0], upDir[1], upDir[2], 0,
+                lookDir[0], lookDir[1], lookDir[2], 0,
+                0, 0, 0, 1);
+
+            transpose(rot);
+            setTrans(off, m_fly.pos);
+        }
+        else
+        {
+            setRot(rot, AxisAnglef(Math::PI + m_lookat.tilt, 1.0f, 0.0f, 0.0f));
+            Vec3f vec(0, 0, m_lookat.dist);
+            Quatf q = make<gmtl::Quatf>(AxisAnglef(Math::PI + m_lookat.tilt, 1.0f, 0.0f, 0.0f));
+            vec = q * vec;
+            setTrans(off, m_lookat.pos + vec);
+
+        }
         m_view = off * rot;
         m_view = invert(m_view);
     }

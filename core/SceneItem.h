@@ -26,6 +26,7 @@ namespace sam
         bgfx::UniformHandle m_texture;
         bgfx::UniformHandle m_gradient;
         bgfx::ProgramHandle m_compute;
+        int m_frameIdx;
     };
 
 
@@ -48,7 +49,22 @@ namespace sam
             float dist;
         };
 
+        struct Fly
+        {
+            Fly() : pos(0, 0, 0),
+                dir(0, 0) {}
+
+            Point3f pos;
+            Vec2f dir;
+
+            void GetDirs(Vec3f& right, Vec3f& up, Vec3f& forward) const;
+        };
+
+        int m_mode;
         LookAt m_lookat;
+        Fly m_fly;
+
+
         Camera();
         void Update(int w, int h);
 
@@ -60,6 +76,13 @@ namespace sam
         }
 
         const LookAt& GetLookat() const { return m_lookat; }
+
+        void SetFly(const Fly& la)
+        {
+            m_fly = la;
+        }
+
+        const Fly& GetFly() const { return m_fly; }
 
         const gmtl::Matrix44f& PerspectiveMatrix() const
         {
