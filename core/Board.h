@@ -70,11 +70,12 @@ namespace sam
             Vec2f m_maxdh;
             Vec2f m_mindh;
             bgfx::TextureHandle m_tex[2];
+            bgfx::TextureHandle m_terrain;
             bgfx::TextureHandle m_rbTex;
             int m_texpingpong;
             int m_buildFrame;
             bool m_dataready;
-            std::vector<Vec4f> m_pixels;
+            std::vector<float> m_pixels;
 
         public:
             void Draw(DrawContext& ctx) override;

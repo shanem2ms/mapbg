@@ -33,9 +33,9 @@ void main()
 
 		vec2 ts = textureSize(s_terrain, 0);
         vec4 v2 = texture2DLod(s_terrain, v_texcoord0.xy, 0);
-		float val = v2.a;
-		float val0 = texture2DLod(s_terrain, v_texcoord0.xy - vec2(1.0 / ts.x, 0), 0).a;
-		float val1 = texture2DLod(s_terrain, v_texcoord0.xy - vec2(0, 1.0 / ts.y), 0).a;
+		float val = v2;
+		float val0 = texture2DLod(s_terrain, v_texcoord0.xy - vec2(1.0 / ts.x, 0), 0);
+		float val1 = texture2DLod(s_terrain, v_texcoord0.xy - vec2(0, 1.0 / ts.y), 0);
 		
 		vec3 nrm = normalize(vec3(val - val0, val - val1, 0.01));
 		

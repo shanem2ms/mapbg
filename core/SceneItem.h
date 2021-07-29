@@ -25,7 +25,6 @@ namespace sam
         Matrix44f m_mat;
         bgfx::UniformHandle m_texture;
         bgfx::UniformHandle m_gradient;
-        bgfx::ProgramHandle m_compute;
         int m_frameIdx;
     };
 

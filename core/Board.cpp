@@ -101,19 +101,9 @@ namespace sam
 
         m_activeTouch->m_initCamPos = la;
         m_activeTouch->SetInitialPos(Point2f(xb, yb));
-        /*
-
-        float speed = m_squareSize / 16.0f;
-        if (xb > 0.9f)
-            m_camVel[0] += speed;
-        else if (xb < 0.1f)
-            m_camVel[0] -= speed;
-        if (yb > 0.9f)
-            m_tiltVel -= 0.01f;
-        else if (yb < 0.1f)
-            m_tiltVel += 0.01f;*/
     }
 
+    constexpr float pi_over_two = 3.14159265358979323846f * 0.5f;
     void Board::TouchDrag(float x, float y, int touchId)
     {
         if (m_activeTouch != nullptr)
@@ -128,8 +118,9 @@ namespace sam
             Engine& e = Engine::Inst();
             Camera::Fly la = m_activeTouch->m_initCamPos;
 
-            la.dir[0] -= dragDiff[0];
-            la.dir[1] -= dragDiff[1];
+            la.dir[0] -= dragDiff[0] * 2;
+            la.dir[1] -= dragDiff[1] * 2;
+            la.dir[1] = std::max(la.dir[1], -pi_over_two);
             e.Cam().SetFly(la);
 
         }
@@ -173,7 +164,7 @@ namespace sam
 
     void Board::KeyDown(int k)
     {
-        float speed = 0.05f;
+        float speed = 0.005f;
         switch (k)
         {
         case LeftShift:
@@ -245,13 +236,6 @@ namespace sam
         }
 
         m_boardGroup->Clear();
-        {
-            float offsetY = -0.75f;
-            float offsetX = -0.5f;
-            //m_boardGroup->SetOffset(Point3f(offsetX  * m_squareSize, 
-            //	offsetY * m_squareSize, 0.5f));
-        }
-
         auto oldSquares = m_activeSquares;
         m_activeSquares.clear();
 
@@ -377,12 +361,12 @@ namespace sam
             m_boardGroup->AddItem(itSq->second);
         }
        
-
+        static float headHeight = 0.04f;
         auto itCamTile = m_squares.find(camLoc);
         if (itCamTile != m_squares.end())
         {
             fly.pos[1] = 
-                itCamTile->second->GetGroundHeight(fly.pos);
+                itCamTile->second->GetGroundHeight(fly.pos) + headHeight;
         }
 
         cam.SetFly(fly);
@@ -493,11 +477,8 @@ namespace sam
         float tileV = pt[2] - wz;
         tileU *= SquarePtsCt;
         tileV *= SquarePtsCt;
-        tileU += OverlapPtsCt;
-        tileV += OverlapPtsCt;
 
-        const Vec4f &p = m_pixels[(int)tileV * TotalPtsCt + (int)tileU];
-        return p[3];
+        return m_pixels[(int)tileV * SquarePtsCt + (int)tileU];
     }
 
     inline float RandF()
@@ -540,11 +521,19 @@ namespace sam
                 i == 0 ? m : nullptr
             );
         }
+
+        m_terrain = bgfx::createTexture2D(
+            SquarePtsCt, SquarePtsCt, false,
+            1,
+            bgfx::TextureFormat::Enum::R32F,
+            BGFX_TEXTURE_COMPUTE_WRITE | BGFX_TEXTURE_NONE,
+            nullptr
+            );
         
         m_rbTex = bgfx::createTexture2D(
-            TotalPtsCt, TotalPtsCt, false,
+            SquarePtsCt, SquarePtsCt, false,
             1,
-            bgfx::TextureFormat::Enum::RGBA32F,
+            bgfx::TextureFormat::Enum::R32F,
             BGFX_TEXTURE_BLIT_DST
             | BGFX_TEXTURE_READ_BACK
             | BGFX_SAMPLER_MIN_POINT
@@ -553,7 +542,7 @@ namespace sam
             | BGFX_SAMPLER_U_CLAMP
             | BGFX_SAMPLER_V_CLAMP);
 
-        m_pixels.resize(TotalPtsCt * TotalPtsCt);
+        m_pixels.resize(SquarePtsCt * SquarePtsCt);
 
         m_needRecalc = false;
     }
@@ -594,14 +583,18 @@ namespace sam
             {
                 bgfx::setTexture(0, ctx.m_texture, m_tex[m_texpingpong]);
                 bgfx::setImage(1, m_tex[1 - m_texpingpong], 0, bgfx::Access::Write, bgfx::TextureFormat::RGBA32F);
-                bgfx::dispatch(0, ctx.m_compute, TotalPtsCt / 16, TotalPtsCt / 16);
+                bgfx::dispatch(0, Engine::Inst().m_erosion, TotalPtsCt / 16, TotalPtsCt / 16);
                 m_texpingpong = 1 - m_texpingpong;
             }
+
+            bgfx::setTexture(0, ctx.m_texture, m_tex[m_texpingpong]);
+            bgfx::setImage(1, m_terrain, 0, bgfx::Access::Write, bgfx::TextureFormat::R32F);
+            bgfx::dispatch(0, Engine::Inst().m_copysect, SquarePtsCt / 16, SquarePtsCt / 16);
             m_buildFrame++;
         }        
         else if (m_buildFrame == 1)
         {
-            bgfx::blit(0, m_rbTex, 0, 0, m_tex[1 - m_texpingpong]);
+            bgfx::blit(0, m_rbTex, 0, 0, m_terrain);
             m_buildFrame = bgfx::readTexture(m_rbTex, m_pixels.data());
         }
         else if (ctx.m_frameIdx == m_buildFrame)
@@ -614,12 +607,12 @@ namespace sam
         Matrix44f m =
             ctx.m_mat * CalcMat() *
             makeScale<Matrix44f>(Vec3f(
-                (float)(m_squareSize / 2), (float)(m_squareSize / 2), (float)(m_squareSize / 2))) *
-            gmtl::makeTrans<gmtl::Matrix44f>(Vec3f(0, y, 0));
+                (float)(m_squareSize / 2), (float)(m_squareSize), (float)(m_squareSize / 2))) *
+            makeTrans<Matrix44f>(Vec3f(0, 0, 0));
 
 
         bgfx::setTransform(m.getData());
-        bgfx::setTexture(0, ctx.m_texture, m_tex[m_texpingpong]);
+        bgfx::setTexture(0, ctx.m_texture, m_terrain);
 
         Grid::init();
 

@@ -37,7 +37,6 @@ namespace sam
     {
         dc.m_pgm = m_program;
         dc.m_texture = m_texture;
-        dc.m_compute = m_erosion;
         dc.m_gradient = m_gradient;
         gmtl::identity(dc.m_mat);
         m_root->Draw(dc);
@@ -86,6 +85,8 @@ namespace sam
         m_gradient = bgfx::createUniform("s_gradient", bgfx::UniformType::Sampler);
         bgfx::ShaderHandle erosion = bgfx::createShader(loadMem(&fileReader, "cs_erosion.bin"));
         m_erosion = bgfx::createProgram(erosion, true);
+        bgfx::ShaderHandle cpys = bgfx::createShader(loadMem(&fileReader, "cs_copysect.bin"));
+        m_copysect = bgfx::createProgram(cpys, true);
     }
 
     Engine& Engine::Inst()

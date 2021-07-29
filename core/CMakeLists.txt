@@ -39,6 +39,14 @@ set(Source_Files
 
 source_group("Source Files" FILES ${Source_Files} ${Main_Files})
 
+set (CS_SHADERS cs_erosion.sc cs_copysect.sc)
+
+set (CS_BINS ${CS_SHADERS})
+list(TRANSFORM CS_BINS REPLACE ".sc" ".bin" )
+list(TRANSFORM CS_BINS PREPEND ${CMAKE_BINARY_DIR}/ )
+
+message("bin ${CS_BINS}")
+
 set(ALL_FILES
     
     ${Header_Files} 
@@ -46,7 +54,7 @@ set(ALL_FILES
     ${Main_Files}
     ${CMAKE_BINARY_DIR}/vs_cubes.bin
     ${CMAKE_BINARY_DIR}/fs_cubes.bin
-    ${CMAKE_BINARY_DIR}/cs_erosion.bin
+    ${CS_BINS}
 )
 
 if (MSVC)
@@ -79,13 +87,18 @@ add_custom_command(
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/fs_cubes.sc ${CMAKE_CURRENT_SOURCE_DIR}/varying.def.sc
   VERBATIM)
 
-add_custom_command(
-  OUTPUT ${CMAKE_BINARY_DIR}/cs_erosion.bin
-  COMMAND ${SHADERC} -f ${CMAKE_CURRENT_SOURCE_DIR}/cs_erosion.sc
-                     -o ${CMAKE_BINARY_DIR}/cs_erosion.bin --type c --platform ${SHADERC_PLATFORM} --profile ${SHADERC_CPROF} -i ${BGFX_INCLUDE}
-  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/cs_erosion.sc ${CMAKE_CURRENT_SOURCE_DIR}/uniforms.sh
-  VERBATIM)
+foreach (SHDR in ${CS_SHADERS})
 
+string(REPLACE ".sc" ".bin" SHDRBIN ${SHDR})
+
+add_custom_command(
+  OUTPUT ${CMAKE_BINARY_DIR}/${SHDRBIN}
+  COMMAND ${SHADERC} -f ${CMAKE_CURRENT_SOURCE_DIR}/${SHDR}
+                     -o ${CMAKE_BINARY_DIR}/${SHDRBIN} --type c --platform ${SHADERC_PLATFORM} --profile ${SHADERC_CPROF} -i ${BGFX_INCLUDE}
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${SHDR} ${CMAKE_CURRENT_SOURCE_DIR}/uniforms.sh
+  VERBATIM)
+  
+endforeach()
 add_library(core STATIC ${ALL_FILES})
 
 ################################################################################
