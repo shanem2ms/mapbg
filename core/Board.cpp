@@ -478,7 +478,7 @@ namespace sam
         tileU *= SquarePtsCt;
         tileV *= SquarePtsCt;
 
-        return m_pixels[(int)tileV * SquarePtsCt + (int)tileU];
+        return m_heightData[(int)tileV * SquarePtsCt + (int)tileU];
     }
 
     inline float RandF()
@@ -499,7 +499,7 @@ namespace sam
         float nx = wx * SquarePtsCt;
         float ny = wy * SquarePtsCt;
 
-        const bgfx::Memory* m = bgfx::alloc(TotalPtsCt * TotalPtsCt * sizeof(Vec4f));
+        const bgfx::Memory* m = bgfx::alloc(TotalPtsCt * TotalPtsCt * sizeof(Vec4f));        
         Vec4f* flData = (Vec4f*)m->data;
 
         for (int oy = 0; oy < TotalPtsCt; ++oy)
@@ -526,24 +526,14 @@ namespace sam
             SquarePtsCt, SquarePtsCt, false,
             1,
             bgfx::TextureFormat::Enum::R32F,
-            BGFX_TEXTURE_COMPUTE_WRITE | BGFX_TEXTURE_NONE,
-            nullptr
-            );
-        
-        m_rbTex = bgfx::createTexture2D(
-            SquarePtsCt, SquarePtsCt, false,
-            1,
-            bgfx::TextureFormat::Enum::R32F,
-            BGFX_TEXTURE_BLIT_DST
-            | BGFX_TEXTURE_READ_BACK
-            | BGFX_SAMPLER_MIN_POINT
+            BGFX_TEXTURE_COMPUTE_WRITE | BGFX_TEXTURE_NONE | BGFX_SAMPLER_MIN_POINT
             | BGFX_SAMPLER_MAG_POINT
             | BGFX_SAMPLER_MIP_POINT
             | BGFX_SAMPLER_U_CLAMP
-            | BGFX_SAMPLER_V_CLAMP);
-
-        m_pixels.resize(SquarePtsCt * SquarePtsCt);
-
+            | BGFX_SAMPLER_V_CLAMP,
+            nullptr
+            );             
+        
         m_needRecalc = false;
     }
 
@@ -594,13 +584,26 @@ namespace sam
         }        
         else if (m_buildFrame == 1)
         {
+            m_rbTex = bgfx::createTexture2D(
+                SquarePtsCt, SquarePtsCt, false,
+                1,
+                bgfx::TextureFormat::Enum::R32F,
+                BGFX_TEXTURE_BLIT_DST
+                | BGFX_TEXTURE_READ_BACK
+                | BGFX_SAMPLER_MIN_POINT
+                | BGFX_SAMPLER_MAG_POINT
+                | BGFX_SAMPLER_MIP_POINT
+                | BGFX_SAMPLER_U_CLAMP
+                | BGFX_SAMPLER_V_CLAMP);
             bgfx::blit(0, m_rbTex, 0, 0, m_terrain);
-            m_buildFrame = bgfx::readTexture(m_rbTex, m_pixels.data());
+            m_heightData.resize(SquarePtsCt * SquarePtsCt);
+            m_buildFrame = bgfx::readTexture(m_rbTex, m_heightData.data());
         }
         else if (ctx.m_frameIdx == m_buildFrame)
         {
             bgfx::destroy(m_rbTex);
             m_dataready = true;
+            m_buildFrame = -1;
         }
         float y = 2;// std::min(0.0f, -val * 4);
 
@@ -637,6 +640,8 @@ namespace sam
         {
             bgfx::destroy(m_tex[i]);
             m_tex[i] = BGFX_INVALID_HANDLE;
+            bgfx::destroy(m_terrain);
+            m_terrain = BGFX_INVALID_HANDLE;
         }
         m_needRecalc = true;
     }

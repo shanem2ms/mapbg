@@ -75,7 +75,7 @@ namespace sam
             int m_texpingpong;
             int m_buildFrame;
             bool m_dataready;
-            std::vector<float> m_pixels;
+            std::vector<float> m_heightData;
 
         public:
             void Draw(DrawContext& ctx) override;
