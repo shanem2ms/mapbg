@@ -274,19 +274,29 @@ LRESULT KeyboardHookproc(
     LPARAM lParam
 )
 {
+    static std::vector<char> keystate(256);
+
     KBDLLHOOKSTRUCT* pKbb = (KBDLLHOOKSTRUCT*)lParam;
     switch (wParam)
     {
     case WM_KEYDOWN:
     case WM_SYSKEYDOWN:
     {
-        app.KeyDown(pKbb->vkCode);
+        if (keystate[pKbb->vkCode] == 0)
+        {
+            app.KeyDown(pKbb->vkCode);
+            keystate[pKbb->vkCode] = 1;
+        }
         break;
     }
     case WM_KEYUP:
     case WM_SYSKEYUP:
-        app.KeyUp(pKbb->vkCode);
+        if (keystate[pKbb->vkCode] != 0)
+        {
+            app.KeyUp(pKbb->vkCode);
+            keystate[pKbb->vkCode] = 0;
+        }
         break;
     }
-    return 0;
+    return CallNextHookEx(nullptr, code, wParam, lParam);
 }
