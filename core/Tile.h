@@ -12,7 +12,7 @@ namespace sam
             m_x(x),
             m_y(y),
             m_z(z),
-            m_l(0) {}
+            m_l(8) {}
 
         int m_x;
         int m_y;
@@ -43,6 +43,13 @@ namespace sam
                 return false;
 
             return true;
+        }
+
+        float _d() const { return powf(2.0, m_l - 8); }
+
+        AABoxf GetBBox() const {
+            float dist = _d();
+            return AABoxf(Point3f(m_x * dist, m_y * dist, m_z * dist), Point3f((m_x + 1) * dist, (m_y + 1) * dist, (m_z + 1) * dist));
         }
     };
 

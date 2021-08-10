@@ -426,7 +426,20 @@ namespace sam
         bb.mMax = chkpos + startlen;
         GetBBoxes(locs, bb, viewFrust);
 
-        viewFrust.mPlanes[viewFrust.PLANE_NEAR];
+        Planef nearplane = viewFrust.mPlanes[viewFrust.PLANE_NEAR];
+        std::vector<float> lens;
+        for (Loc& loc : locs)
+        {            
+            Point3f pmin = loc.GetBBox().getMin();
+            Point3f pmax = loc.GetBBox().getMax();
+            Vec4f vmin, vmax;
+            xform(vmin, viewproj, Vec4f(pmin[0], pmin[1], pmin[2], 1));
+            xform(vmax, viewproj, Vec4f(pmax[0], pmax[1], pmax[2], 1));
+            vmin /= vmin[3];
+            vmax /= vmax[3];
+            float len = length(Vec3f(Vec3f(vmin[0], vmin[1], vmin[2]) - Vec3f(vmax[0], vmax[2], vmax[3])));
+            lens.push_back(len);
+        }
     }
 
     Vec3f FrustumCenter(Matrix44f viewproj)
