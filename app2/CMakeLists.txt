@@ -15,7 +15,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR})
 set (BGFX_INCLUDE_ROOT ${CMAKE_INSTALL_PREFIX}/include)
 set (BGFX_INCLUDE ${BGFX_INCLUDE_ROOT}/bgfx)
 set (BGFX_LIB ${CMAKE_INSTALL_PREFIX}/lib)
-message("BGFX_INCLUDE ${BGFX_INCLUDE}")
+
 ################################################################################
 # Source groups
 ################################################################################
@@ -40,16 +40,20 @@ set(Source_Files
 
 source_group("Source Files" FILES ${Source_Files})
 
+message(vsc2 ${CMAKE_BINARY_DIR}/vs_cubes.bin)
 set(S1 ${CMAKE_BINARY_DIR}/vs_cubes.bin)
 set(S2 ${CMAKE_BINARY_DIR}/fs_cubes.bin)
-set(S3 ${CMAKE_BINARY_DIR}/cs_erosion.bin)
+set(S3 ${CMAKE_BINARY_DIR}/cs_copysect.bin)
+set(S4 ${CMAKE_BINARY_DIR}/cs_erosion.bin)
 
+set_source_files_properties(${S1} ${S2} ${S3} PROPERTIES GENERATED true)
 set(ALL_FILES    
     ${Header_Files} 
     ${Source_Files}
     ${S1}
     ${S2}
     ${S3}
+    ${S4}
 )
 
 ################################################################################
@@ -84,6 +88,7 @@ set_target_properties(${IOSAPPNAME} PROPERTIES MACOSX_BUNDLE_GUI_IDENTIFIER ${BU
 set_source_files_properties(${S1} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 set_source_files_properties(${S2} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 set_source_files_properties(${S3} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+set_source_files_properties(${S4} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 
 target_include_directories(${IOSAPPNAME} PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/"

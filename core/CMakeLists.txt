@@ -77,6 +77,7 @@ endif()
 
 set (BGFX_SRC_DIR ${CMAKE_SOURCE_DIR}/bgfx.cmake/bgfx/src)
 
+message(vsc ${CMAKE_BINARY_DIR}/vs_cubes.bin)
 add_custom_command(
   OUTPUT ${CMAKE_BINARY_DIR}/vs_cubes.bin
   COMMAND ${SHADERC} -f ${CMAKE_CURRENT_SOURCE_DIR}/vs_cubes.sc
