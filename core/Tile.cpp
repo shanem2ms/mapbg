@@ -35,20 +35,20 @@ namespace sam
     {
         float avgn1 = 0;
         float avgn2 = 0;
-        int wx = m_l.m_x;
-        int wy = m_l.m_z;
-        float nx = wx * SquarePtsCt;
-        float ny = wy * SquarePtsCt;
-        float scale = 1 / (float)SquarePtsCt;
+        AABoxf box = m_l.GetBBox();
+        
+        float extents = m_l.GetExtent();
+        float scale =  extents / SquarePtsCt;
+        constexpr float ovfl = (float)OverlapPtsCt / (float)(SquarePtsCt);
+        float nx = box.mMin[0] - extents * ovfl;
+        float ny = box.mMin[2] - extents * ovfl;
 
         for (int oy = 0; oy < TotalPtsCt; ++oy)
         {
             for (int ox = 0; ox < TotalPtsCt; ++ox)
             {
-                int orx = ox - OverlapPtsCt;
-                int ory = oy - OverlapPtsCt;
-                float n1 = simplex.fractal(10, (float)(nx + orx) * scale, (float)(ny + ory) * scale) * 0.25f + 0.5f;
-                float n2 = simplex.fractal(5, (float)(nx + orx) * scale * 0.5f, (float)(ny + ory) * scale * 0.5f) * 0.25f + 0.5f;
+                float n1 = simplex.fractal(10, nx + ox * scale, ny + oy * scale) * 0.25f + 0.5f;
+                float n2 = simplex.fractal(5, (nx + ox * scale) * 0.5f, (ny + oy * scale) * 0.5f) * 0.25f + 0.5f;
                 avgn1 += n1;
                 avgn2 += n2;
                 m_pts[oy * TotalPtsCt + ox] = cHiehgt(n1, n2);
@@ -69,8 +69,8 @@ namespace sam
         float nz = wz * SquarePtsCt;
         float tileU = pt[0] - wx;
         float tileV = pt[2] - wz;
-        tileU *= SquarePtsCt;
-        tileV *= SquarePtsCt;
+        tileU *= (SquarePtsCt - 1);
+        tileV *= (SquarePtsCt - 1);
 
         return m_heightData[(int)tileV * SquarePtsCt + (int)tileU];
     }
@@ -156,7 +156,7 @@ namespace sam
         const int padding = 2;
         Matrix44f m = CalcMat() *
             makeScale<Matrix44f>(Vec3f(
-                (float)(m_squareSize / 2 - padding), (float)(m_squareSize / 2 - padding), 0));
+                (float)(1.0f / 2 - padding), (float)(1.0f / 2 - padding), 0));
 
         Point3f pts[4] = { Point3f(-1, -1, 0),
             Point3f(1, -1, 0) ,
@@ -204,7 +204,7 @@ namespace sam
         m_texpingpong = 0;
         if (m_buildFrame == 0)
         {
-            for (int i = 0; i < 5000; i++)
+            for (int i = 0; i < 1000; i++)
             {
                 bgfx::setTexture(0, ctx.m_texture, m_tex[m_texpingpong]);
                 bgfx::setImage(1, m_tex[1 - m_texpingpong], 0, bgfx::Access::Write, bgfx::TextureFormat::RGBA32F);
@@ -240,14 +240,17 @@ namespace sam
             m_dataready = true;
             m_buildFrame = -1;
         }
-        float y = 2;// std::min(0.0f, -val * 4);
-
         Matrix44f m =
-            ctx.m_mat * CalcMat() *
-            makeScale<Matrix44f>(Vec3f(
-                (float)(m_squareSize / 2), (float)(m_squareSize), (float)(m_squareSize / 2))) *
-            makeTrans<Matrix44f>(Vec3f(0, 0, 0));
+            ctx.m_mat * CalcMat();
 
+        /*
+        AABoxf bbox = m_l.GetBBox();
+        Point4f p[4];
+        xform(p[0], m, Point4f(-1, 0, -1, 1));
+        xform(p[1], m, Point4f(1, 0, -1, 1));
+        xform(p[2], m, Point4f(-1, 0, 1, 1));
+        xform(p[3], m, Point4f(1, 0, 1, 1));
+        */
 
         bgfx::setTransform(m.getData());
         bgfx::setTexture(0, ctx.m_texture, m_terrain);

@@ -9,15 +9,22 @@ namespace sam
     struct Loc
     {
         Loc(int x, int y, int z) :
+            Loc(x,y,z,8) {}
+
+        Loc(int x, int y, int z, int l) :
             m_x(x),
             m_y(y),
             m_z(z),
-            m_l(8) {}
+            m_l(l) {}
 
         int m_x;
         int m_y;
         int m_z;
         int m_l;
+        static const int lsize = 8;
+        static const int ox = -(1 << (lsize - 1));
+        static const int oy = -(1 << (lsize - 1));
+        static const int oz = -(1 << (lsize - 1));
 
         bool operator < (const Loc& rhs)
         {
@@ -45,11 +52,36 @@ namespace sam
             return true;
         }
 
-        float _d() const { return powf(2.0, m_l - 8); }
+        float GetExtent() const { return powf(2.0, lsize - m_l); }
 
         AABoxf GetBBox() const {
-            float dist = _d();
-            return AABoxf(Point3f(m_x * dist, m_y * dist, m_z * dist), Point3f((m_x + 1) * dist, (m_y + 1) * dist, (m_z + 1) * dist));
+            float dist = GetExtent();
+            return AABoxf(Point3f(ox + m_x * dist, oy + m_y * dist, oz + m_z * dist), Point3f(ox + (m_x + 1) * dist, oy + (m_y + 1) * dist, oz + (m_z + 1) * dist));
+        }
+
+        Point3f GetCenter() const
+        {
+            float dist = GetExtent();
+            return Point3f(ox + (m_x + 0.5f) * dist, oy + (m_y + 0.5f) * dist, oz + (m_z + 0.5f) * dist);
+        }
+
+        std::vector<Loc> GetChildren() const
+        {
+            return std::vector<Loc>{
+                        Loc(m_x * 2, m_y * 2, m_z * 2, m_l + 1),
+                        Loc(m_x * 2, m_y * 2, m_z * 2 + 1, m_l + 1),
+                        Loc(m_x * 2, m_y * 2 + 1, m_z * 2, m_l + 1),
+                        Loc(m_x * 2, m_y * 2 + 1, m_z * 2 + 1, m_l + 1),
+                        Loc(m_x * 2 + 1, m_y * 2, m_z * 2, m_l + 1),
+                        Loc(m_x * 2 + 1, m_y * 2, m_z * 2 + 1, m_l + 1),
+                        Loc(m_x * 2 + 1, m_y * 2 + 1, m_z * 2, m_l + 1),
+                        Loc(m_x * 2 + 1, m_y * 2 + 1, m_z * 2 + 1, m_l + 1)
+                };
+        }
+
+        Loc GetGroundLoc() const
+        {
+            return Loc(m_x, (1 << (m_l - 1)), m_z, m_l);
         }
     };
 
@@ -59,7 +91,6 @@ namespace sam
         static const int OverlapPtsCt = 64;
         static const int TotalPtsCt = SquarePtsCt + OverlapPtsCt * 2;
 
-        float m_squareSize;
         int m_image;
         Vec2f m_vals;
         std::weak_ptr<Tile> m_neighbors[9];
@@ -80,10 +111,6 @@ namespace sam
         void Draw(DrawContext& ctx) override;
         Tile(const Loc& l);
         ~Tile();
-        void SetSquareSize(float squareSize)
-        {
-            m_squareSize = squareSize;
-        }
 
         const float* Pts() const { return m_pts; }
         void SetImage(int image)
@@ -104,4 +131,18 @@ namespace sam
         void NoiseGen();
         void ProceduralBuild(DrawContext& ctx);
     };
+
+    inline bool operator < (const Loc& lhs, const Loc& rhs)
+    {
+        if (lhs.m_y != rhs.m_y)
+            return lhs.m_y < rhs.m_y;
+        if (lhs.m_x != rhs.m_x)
+            return lhs.m_x < rhs.m_x;
+        if (lhs.m_l != rhs.m_l)
+            return lhs.m_l < rhs.m_l;
+        if (lhs.m_z != rhs.m_z)
+            return lhs.m_z < rhs.m_z;
+
+        return false;
+    }
 }

@@ -62,7 +62,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         return FALSE;
     }
    
-    SetWindowsHookEx(WH_KEYBOARD_LL, KeyboardHookproc, hInstance, 0);
+    //SetWindowsHookEx(WH_KEYBOARD_LL, KeyboardHookproc, hInstance, 0);
 
     HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_MAP));
 
@@ -206,6 +206,8 @@ static float tick = 0;
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+    static std::vector<char> keystate(256);
+
     switch (message)
     {
     case WM_TIMER:
@@ -233,6 +235,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_MOUSEMOVE:
         app.TouchDrag((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), 0);
         break;
+    case WM_KEYDOWN:
+    case WM_SYSKEYDOWN:
+    {
+        if (keystate[wParam] == 0)
+        {
+            app.KeyDown(wParam);
+            keystate[wParam] = 1;
+        }
+        break;
+    }
+    case WM_KEYUP:
+    case WM_SYSKEYUP:
+        if (keystate[wParam] != 0)
+        {
+            app.KeyUp(wParam);
+            keystate[wParam] = 0;
+        }
+        break;
+
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
@@ -275,7 +296,6 @@ LRESULT KeyboardHookproc(
 )
 {
     static std::vector<char> keystate(256);
-
     KBDLLHOOKSTRUCT* pKbb = (KBDLLHOOKSTRUCT*)lParam;
     switch (wParam)
     {

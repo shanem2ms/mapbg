@@ -161,7 +161,7 @@ namespace sam
     {
         Matrix44f rot, off, scl, perp;
         float aspect = (float)w / (float)h;
-        setPerspective(m_proj, 60.0f, aspect, 0.002f, 2.0f);
+        setPerspective(m_proj, 60.0f, aspect, 0.002f, 5.0f);
 
         if (m_mode == 0)
         {
