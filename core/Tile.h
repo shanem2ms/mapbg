@@ -83,7 +83,44 @@ namespace sam
         {
             return Loc(m_x, (1 << (m_l - 1)), m_z, m_l);
         }
+
+        Loc Parent() const
+        {
+            return Loc(m_x >> 1, m_y >> 1, m_z >> 1, m_l - 1);
+        }
+
+        Loc ParentAtLevel(int l) const
+        {
+            int d = m_l - l;
+            return Loc(m_x >> d, m_y >> d, m_z >> d, l);
+        }
+
+        Loc GetLocal(const Loc& parent)
+        {
+            int d = m_l - parent.m_l;
+            return Loc(
+                m_x - (parent.m_x << d),
+                m_y - (parent.m_y << d),
+                m_z - (parent.m_z << d),
+                d);
+        }
+
+        Loc GetChild(const Loc& local)
+        {
+            return Loc(
+                (m_x << local.m_l) + local.m_x,
+                (m_y << local.m_l) + local.m_y,
+                (m_z << local.m_l) + local.m_z,
+                m_l + local.m_l);
+        }
+
     };
+
+    inline std::ostream& operator<<(std::ostream& os, const Loc& loc)
+    {
+        os << "[" << loc.m_l << ", " << loc.m_x << ", " << loc.m_y << ", " << loc.m_z << "]";
+        return os;
+    }
 
     class Tile : public SceneItem
     {

@@ -6,13 +6,84 @@
 #include <numeric>
 #include "Mesh.h"
 #include "gmtl/PlaneOps.h"
+#include <sstream>
 #define NOMINMAX
+#ifdef _WIN32
+#include <Windows.h>
+#endif
+
+
 
 
 using namespace gmtl;
 
 namespace sam
 {
+
+    struct LocNode
+    {
+        LocNode(const Loc &l) :
+            m_loc(l),
+            m_hit(false) {}
+
+        Loc m_loc;
+        std::vector<std::shared_ptr<LocNode>> m_children;
+        bool m_hit;
+
+        void Add(const Loc& l)
+        {
+            //std::ostringstream ss;
+            //ss << std::string(m_loc.m_l * 2, ' ') << m_loc << std::endl;
+            //OutputDebugStringA(ss.str().c_str());
+            if (l.m_l > m_loc.m_l && l.m_l < 9)
+            {
+                if (m_children.size() == 0)
+                    m_children.resize(4);
+                Loc cl = l.ParentAtLevel(m_loc.m_l + 1);
+                Loc offsetloc = cl.GetLocal(m_loc);
+                int idx = offsetloc.m_z * 2 + offsetloc.m_x;
+                if (m_children[idx] == nullptr)
+                    m_children[idx] = std::make_shared<LocNode>(cl);
+                m_children[idx]->Add(l);
+            }
+            else
+            {                
+                //std::ostringstream ss;
+                //OutputDebugStringA(ss.str().c_str());
+                m_hit = true;
+            }
+        }
+
+        void GetAllLocs(std::vector<Loc>& locs, bool ishit)
+        {
+            //std::ostringstream ss;
+            //ss << std::string(m_loc.m_l * 2, ' ') << m_loc << " -- " << (ishit || m_hit) << std::endl;
+            //OutputDebugStringA(ss.str().c_str());
+
+            if (m_children.size() == 0)
+            {
+                locs.push_back(m_loc);
+            }
+            else
+            {
+                for (size_t idx = 0; idx < 4; ++idx)
+                {
+                    if (m_children[idx] != nullptr)
+                    {
+                        m_children[idx]->GetAllLocs(locs, m_hit || ishit);
+                    }
+                    else if (m_hit || ishit)
+                    {
+                        locs.push_back(
+                            m_loc.GetChild(Loc(idx & 1, 0, idx / 2, 1)));
+                    }
+                }
+
+            }
+
+        }
+    };
+
     TileSelection::TileSelection()
     {
     }
@@ -29,22 +100,32 @@ namespace sam
 
         int tx = (int)floor(fly.pos[0]);
         int tz = (int)floor(fly.pos[2]);
-        Loc camLoc(tx, 0, tz);
 
         std::vector<Loc> locs;
         GetFrustumLocs(e.Cam(), locs, 0.5f);
 
         std::sort(locs.begin(), locs.end());
-        if (std::find(locs.begin(), locs.end(), camLoc) == locs.end())
-        {
-            locs.push_back(camLoc);
-        }
         std::set<Loc> groundLocs;
         for (const auto& l : locs)
         {
             groundLocs.insert(l.GetGroundLoc());
         }
+
+        LocNode ltree(Loc(0, 0, 0, 0));
         for (const auto& l : groundLocs)
+        {
+            ltree.Add(l);
+        }
+
+        std::vector<Loc> allLocs;
+        ltree.GetAllLocs(allLocs, false);
+
+        std::ostringstream ss;
+        ss << allLocs.size() << std::endl;
+        OutputDebugStringA(ss.str().c_str());
+
+
+        for (const auto& l : allLocs)
         {
             auto itSq = m_tiles.find(l);
             if (itSq == m_tiles.end())
@@ -255,10 +336,10 @@ namespace sam
         const Frustumf& f, const Matrix44f& viewProj, float pixelDist)
     {        
         AABoxf aabox = curLoc.GetBBox();
-        Point3f ptinc = (aabox.mMax - aabox.mMin) * 0.01f;
+        Point3f ptinc = (aabox.mMax - aabox.mMin) * 0.2f;
         Point3f c[8];
         GetCorners(aabox, c);
-        float incdist = 0;
+        float avgdist = 0;
         for (int idx = 0; idx < 8; ++idx)
         {
             Point4f pt0(c[idx][0], c[idx][1], c[idx][2], 1);
@@ -272,10 +353,10 @@ namespace sam
             ppt1 /= ppt1[3];
 
             float dist = length(Vec4f(ppt1 - ppt0));
-            incdist = std::max(incdist, dist);
+            avgdist += dist;
         }
 
-        if (curLoc.m_l > 4 && incdist < pixelDist)
+        if (curLoc.m_l > 4 && avgdist < pixelDist)
         {
             locs.push_back(curLoc);
             return;

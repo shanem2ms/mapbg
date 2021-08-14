@@ -48,6 +48,7 @@ void main()
 
         float waterSlowness = 1./(v2.z/fastWaterSpeed+1.);
         vec3 water = mix( fastWaterColour, slowWaterColour, waterSlowness );
-        gl_FragColor.rgb = mix(palette[pIdx].gba * m, water, clamp(v2.x*waterOpacityScale,0.,1.) );
+        //gl_FragColor.rgb = mix(palette[pIdx].gba * m, water, clamp(v2.x*waterOpacityScale,0.,1.) );
+		gl_FragColor.rgb = vec3(v_texcoord0.xy,0);
 		gl_FragColor.a = 1;
 } 
