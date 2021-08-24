@@ -315,7 +315,8 @@ void Tile::Draw(DrawContext& ctx)
         | BGFX_STATE_WRITE_Z
         | BGFX_STATE_DEPTH_TEST_LESS
         | BGFX_STATE_CULL_CCW
-        | BGFX_STATE_MSAA;
+        | BGFX_STATE_MSAA
+        | BGFX_STATE_BLEND_ALPHA;
     // Set render states.l
     bgfx::setState(state);
     bgfx::submit(0, ctx.m_pgm);

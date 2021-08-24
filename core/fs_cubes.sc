@@ -14,6 +14,6 @@ void main()
 	float yv = v_texcoord0.y * (1 - v_texcoord0.y);
 	//if (xv > 0.02 && yv > 0.02)
 	//	discard;
-	gl_FragColor.rgb = u_color.xyz;
-	gl_FragColor.a = 1;
+	gl_FragColor.rgb = vec3(v_texcoord0.xy,0);
+	gl_FragColor.a = .5;
 } 

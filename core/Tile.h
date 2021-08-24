@@ -34,8 +34,7 @@ namespace sam
                 return m_y < rhs.m_y;
             if (m_z != rhs.m_z)
                 return m_z < rhs.m_z;
-            if (m_l != rhs.m_l)
-                return m_l < rhs.m_l;
+            return m_l < rhs.m_l;
         }
 
         bool operator == (const Loc& rhs)
@@ -77,6 +76,11 @@ namespace sam
                         Loc(m_x * 2 + 1, m_y * 2 + 1, m_z * 2, m_l + 1),
                         Loc(m_x * 2 + 1, m_y * 2 + 1, m_z * 2 + 1, m_l + 1)
                 };
+        }
+
+        bool IsGroundLoc() const
+        {
+            return m_y == (1 << (m_l - 1));
         }
 
         Loc GetGroundLoc() const
@@ -145,6 +149,8 @@ namespace sam
         std::vector<float> m_heightData;
         bgfx::UniformHandle m_uparams;
 
+    public:
+        float distFromCam;
     public:
         void Draw(DrawContext& ctx) override;
         Tile(const Loc& l);

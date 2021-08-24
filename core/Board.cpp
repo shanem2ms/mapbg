@@ -129,13 +129,16 @@ namespace sam
     const int DButton = 'D';
     const int WButton = 'W';
     const int SButton = 'S';
-
+    bool isPaused = false;
 
     void Board::KeyDown(int k)
     {
         float speed = 0.005f;
         switch (k)
         {
+        case 'P':
+            isPaused = !isPaused;
+            break;
         case LeftShift:
             m_camVel[1] -= speed;
             break;
@@ -202,7 +205,6 @@ namespace sam
             e.Cam().SetFly(fly);
         }
 
-        m_boardGroup->Clear();
 
         Matrix44f viewProj = e.Cam().PerspectiveMatrix() * e.Cam().ViewMatrix();
         invert(viewProj);
@@ -242,10 +244,13 @@ namespace sam
             m_camVel[1] * up +
             m_camVel[2] * forward;
 
+        if (!isPaused)
+        {
+            m_boardGroup->Clear();
+            m_tileSelection.Update(e, ctx);
+            m_tileSelection.AddTilesToGroup(m_boardGroup);
+        }
 
-        m_tileSelection.Update(e, ctx);
-        m_tileSelection.AddTilesToGroup(m_boardGroup);
-       
         fly.pos[1] = std::max(m_tileSelection.GetGroundHeight(fly.pos), fly.pos[1]);
 
         cam.SetFly(fly);
