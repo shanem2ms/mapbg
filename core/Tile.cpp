@@ -14,9 +14,10 @@ namespace sam
     Tile::Tile(const Loc& l) : m_image(-1), m_l(l), m_needRecalc(true),
         m_buildFrame(0),
         m_dataready(false),
-        m_terrain()
+        m_terrain(BGFX_INVALID_HANDLE),
+        m_uparams(BGFX_INVALID_HANDLE)
     {
-        NoiseGen();
+        m_tex[0] = m_tex[1] = BGFX_INVALID_HANDLE;
     }
 
     void Tile::SetNeighbor(int dx, int dy, std::weak_ptr<Tile> sq)
@@ -88,6 +89,8 @@ namespace sam
 
     void Tile::ProceduralBuild(DrawContext& ctx)
     {
+        NoiseGen();
+
         int wx = m_l.m_x;
         int wy = m_l.m_z;
         float nx = wx * SquarePtsCt;
@@ -173,8 +176,10 @@ namespace sam
         return aab;
     }
 
+#if 0
     void Tile::Draw(DrawContext& ctx)
     {
+        return;
         if (m_needRecalc)
         {
             if (m_heightData.size() == 0)
@@ -255,11 +260,11 @@ namespace sam
         bgfx::setTransform(m.getData());
         bgfx::setTexture(0, ctx.m_texture, m_terrain);
 
-        Grid::init();
+        Cube::init();
 
         // Set vertex and index buffer.
-        bgfx::setVertexBuffer(0, Grid::vbh);
-        bgfx::setIndexBuffer(Grid::ibh);
+        bgfx::setVertexBuffer(0, Cube::vbh);
+        bgfx::setIndexBuffer(Cube::ibh);
         uint64_t state = 0
             | BGFX_STATE_WRITE_RGB
             | BGFX_STATE_WRITE_A
@@ -271,6 +276,51 @@ namespace sam
         bgfx::setState(state);
         bgfx::submit(0, ctx.m_pgm);
     }
+#else
+void Tile::Draw(DrawContext& ctx)
+{
+    if (!bgfx::isValid(m_uparams))
+    {
+        m_uparams = bgfx::createUniform("u_params", bgfx::UniformType::Vec4, 1);        
+    }
+
+    int t = m_l.m_l;
+    
+    Vec4f color((std::min(t, 93) + 1) * 0.1f,
+        (std::max(t - 10, 0) + 1) * 0.1f,
+        1,
+        1);
+    bgfx::setUniform(m_uparams, &color, 1);
+    Matrix44f m =
+        ctx.m_mat * CalcMat();
+
+    /*
+    AABoxf bbox = m_l.GetBBox();
+    Point4f p[4];
+    xform(p[0], m, Point4f(-1, 0, -1, 1));
+    xform(p[1], m, Point4f(1, 0, -1, 1));
+    xform(p[2], m, Point4f(-1, 0, 1, 1));
+    xform(p[3], m, Point4f(1, 0, 1, 1));
+    */
+
+    bgfx::setTransform(m.getData());
+    Cube::init();
+
+    // Set vertex and index buffer.
+    bgfx::setVertexBuffer(0, Cube::vbh);
+    bgfx::setIndexBuffer(Cube::ibh);
+    uint64_t state = 0
+        | BGFX_STATE_WRITE_RGB
+        | BGFX_STATE_WRITE_A
+        | BGFX_STATE_WRITE_Z
+        | BGFX_STATE_DEPTH_TEST_LESS
+        | BGFX_STATE_CULL_CCW
+        | BGFX_STATE_MSAA;
+    // Set render states.l
+    bgfx::setState(state);
+    bgfx::submit(0, ctx.m_pgm);
+}
+#endif
 
     void Tile::Decomission()
     {
@@ -286,6 +336,12 @@ namespace sam
         {
             bgfx::destroy(m_terrain);
             m_terrain = BGFX_INVALID_HANDLE;
+        }
+
+        if (bgfx::isValid(m_uparams))
+        {
+            bgfx::destroy(m_uparams);
+            m_uparams = BGFX_INVALID_HANDLE;
         }
         m_needRecalc = true;
     }

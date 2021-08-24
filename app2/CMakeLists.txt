@@ -40,13 +40,13 @@ set(Source_Files
 
 source_group("Source Files" FILES ${Source_Files})
 
-message(vsc2 ${CMAKE_BINARY_DIR}/vs_cubes.bin)
 set(S1 ${CMAKE_BINARY_DIR}/vs_cubes.bin)
 set(S2 ${CMAKE_BINARY_DIR}/fs_cubes.bin)
 set(S3 ${CMAKE_BINARY_DIR}/cs_copysect.bin)
 set(S4 ${CMAKE_BINARY_DIR}/cs_erosion.bin)
+set(S5 ${CMAKE_BINARY_DIR}/vs_terrain.bin)
 
-set_source_files_properties(${S1} ${S2} ${S3} PROPERTIES GENERATED true)
+set_source_files_properties(${S1} ${S2} ${S3} ${S4} ${S5} PROPERTIES GENERATED true)
 set(ALL_FILES    
     ${Header_Files} 
     ${Source_Files}
@@ -54,6 +54,7 @@ set(ALL_FILES
     ${S2}
     ${S3}
     ${S4}
+    ${S5}
 )
 
 ################################################################################

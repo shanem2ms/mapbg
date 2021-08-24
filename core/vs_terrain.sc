@@ -8,12 +8,16 @@ $output v_texcoord0
  */ 
 
 
-#include <bgfx_shader.sh>
+#include <bgfx_shader.sh> 
+
+SAMPLER2D(s_terrain, 0);
 
 void main()
 {
 	vec2 tx = a_texcoord0;
+	float val = texture2DLod(s_terrain, tx.xy, 0);
 	v_texcoord0 = tx;
-	gl_Position = mul(u_modelViewProj, vec4(a_position.x, a_position.y, a_position.z, 1.0) );
+	val = 0;//max(val, 0);
+	gl_Position = mul(u_modelViewProj, vec4(a_position.x, a_position.y + val, a_position.z, 1.0) );
 }
  

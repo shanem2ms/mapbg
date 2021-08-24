@@ -102,9 +102,10 @@ namespace sam
         int tz = (int)floor(fly.pos[2]);
 
         std::vector<Loc> locs;
-        GetFrustumLocs(e.Cam(), locs, 0.5f);
+        GetFrustumLocs(e.Cam(), locs, 10.0f);
 
         std::sort(locs.begin(), locs.end());
+        /*
         std::set<Loc> groundLocs;
         for (const auto& l : locs)
         {
@@ -119,7 +120,9 @@ namespace sam
 
         std::vector<Loc> allLocs;
         ltree.GetAllLocs(allLocs, false);
+        */
 
+        std::vector<Loc> &allLocs = locs;
         std::ostringstream ss;
         ss << allLocs.size() << std::endl;
         OutputDebugStringA(ss.str().c_str());
@@ -136,10 +139,9 @@ namespace sam
                     float sy = l.m_z;
                     
                     Point3f pos = l.GetCenter();
-                    pos[1] = 0.5f;
                     sq->SetOffset(pos);
-                    float s = l.GetExtent() * 0.5f;                    
-                    sq->SetScale(Vec3f(s, 1, s));
+                    float s = l.GetExtent() * 0.125f;                    
+                    sq->SetScale(Vec3f(s, s, s));
                 }
                 m_tiles.insert(std::make_pair(l, sq));
                 for (int dx = -1; dx <= 1; ++dx) {
@@ -302,20 +304,6 @@ namespace sam
             children[i].mMin[2] = s[zoff][2];
             children[i].mMax[2] = s[zoff + 1][2];
         }
-    }
-
-    float LocScreenDist(const Matrix44f &viewproj, const Loc& loc)
-    {
-        std::vector<std::pair<float, Loc>> locdists;
-        Point3f pmin = loc.GetBBox().getMin();
-        Point3f pmax = loc.GetBBox().getMax();
-        Vec4f vmin, vmax;
-        xform(vmin, viewproj, Vec4f(pmin[0], pmin[1], pmin[2], 1));
-        xform(vmax, viewproj,
-            Vec4f(pmax[0], pmax[1], pmax[2], 1));
-        vmin /= vmin[3];
-        vmax /= vmax[3];
-        return length(Vec3f(Vec3f(vmin[0], vmin[1], vmin[2]) - Vec3f(vmax[0], vmax[2], vmax[3])));
     }
 
     inline void GetCorners(const AABoxf& box, Point3f pts[8])

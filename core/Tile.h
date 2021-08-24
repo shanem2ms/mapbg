@@ -143,6 +143,7 @@ namespace sam
         int m_buildFrame;
         bool m_dataready;
         std::vector<float> m_heightData;
+        bgfx::UniformHandle m_uparams;
 
     public:
         void Draw(DrawContext& ctx) override;
