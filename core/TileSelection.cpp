@@ -193,8 +193,6 @@ namespace sam
 
         for (const auto& l : allLocs)
         {
-            if (!l.IsGroundLoc())
-                continue;
             auto itSq = m_tiles.find(l);
             if (itSq == m_tiles.end())
             {
@@ -215,8 +213,6 @@ namespace sam
                         auto itNeightborSq = m_tiles.find(Loc(l.m_x + dx, 0, l.m_z + dy));
                         if (itNeightborSq == m_tiles.end())
                             continue;
-                        sq->SetNeighbor(dx, dy, itNeightborSq->second);
-                        itNeightborSq->second->SetNeighbor(-dx, -dy, sq);
                     }
                 }
             }

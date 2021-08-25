@@ -20,14 +20,6 @@ namespace sam
         m_tex[0] = m_tex[1] = BGFX_INVALID_HANDLE;
     }
 
-    void Tile::SetNeighbor(int dx, int dy, std::weak_ptr<Tile> sq)
-    {
-        m_neighbors[(dy + 1) * 3 + (dx + 1)] = sq;
-        if ((dx == -1 && dy == 0) ||
-            (dy == -1 && dx == 0))
-            m_needRecalc = true;
-    }
-
 
     inline float cHiehgt(float n1, float n2) { return std::max(0.0f, (n2 + n1 * 1.5f) / 2.5f - 0.2f); }
     const SimplexNoise simplex;

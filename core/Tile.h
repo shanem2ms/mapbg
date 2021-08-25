@@ -134,7 +134,6 @@ namespace sam
 
         int m_image;
         Vec2f m_vals;
-        std::weak_ptr<Tile> m_neighbors[9];
         Loc m_l;
         bool m_needRecalc;
         float m_pts[TotalPtsCt * TotalPtsCt];
@@ -166,7 +165,6 @@ namespace sam
         {
             m_vals = v;
         }
-        void SetNeighbor(int dx, int dy, std::weak_ptr<Tile> sq);
         void Decomission();
 
         float GetGroundHeight(const gmtl::Point3f& pt) const;
