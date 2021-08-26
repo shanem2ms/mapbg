@@ -9,6 +9,8 @@ elseif (APPLE)
 set(BX_INC_DIR_COMPAT ${BGFX_INCLUDE_ROOT}/compat/osx)
 endif()
 
+add_subdirectory(shaders)
+
 ################################################################################
 # Source groups
 ################################################################################
@@ -43,8 +45,6 @@ set(Source_Files
 
 source_group("Source Files" FILES ${Source_Files} ${Main_Files})
 
-add_subdirectory(shaders)
-
 set(ALL_FILES
     
     ${Header_Files} 
@@ -52,9 +52,9 @@ set(ALL_FILES
     ${Main_Files}
 )
 
-add_library(core STATIC ${ALL_FILES} shaders)
+add_library(core STATIC ${ALL_FILES})
 
-
+add_dependencies(core shaders)
 ################################################################################
 # Include directories
 ################################################################################
