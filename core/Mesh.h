@@ -104,7 +104,7 @@ struct Cube
 };
 
 
-struct Grid
+template <int N> struct Grid
 {
     static void init();
 
@@ -115,3 +115,43 @@ struct Grid
     static bool isInit;
 };
 
+
+struct Quad
+{
+    static void init()
+    {
+        if (isInit)
+            return;
+        PosTexcoordVertex::init();
+
+
+        static PosTexcoordVertex s_quadVertices[] =
+        {
+            {-1.0f,  1.0f,  0.0f,  0.0f,  1.0f},
+            { 1.0f,  1.0f,  0.0f,  1.0f,  1.0f},
+            {-1.0f, -1.0f,  0.0f,  0.0f,  0.0f},
+            { 1.0f, -1.0f,  0.0f,  1.0f,  0.0f}
+        };
+
+        static const uint16_t s_quadIndices[] =
+        {
+             0,  1,  2, // 0
+             1,  3,  2
+        };
+
+        vbh = bgfx::createVertexBuffer(
+            bgfx::makeRef(s_quadVertices, sizeof(s_quadVertices))
+            , PosTexcoordVertex::ms_layout
+        );
+
+        ibh = bgfx::createIndexBuffer(
+            bgfx::makeRef(s_quadIndices, sizeof(s_quadIndices))
+        );
+
+        isInit = true;
+    }
+
+    static bgfx::VertexBufferHandle vbh;
+    static bgfx::IndexBufferHandle ibh;
+    static bool isInit;
+};

@@ -7,12 +7,12 @@ bgfx::VertexBufferHandle Cube::vbh;
 bgfx::IndexBufferHandle Cube::ibh;
 
 
-void Grid::init()
+template <int N> void Grid<N>::init()
 {
     if (isInit)
         return;
     PosTexcoordVertex::init();
-    const int size = 128;
+    const int size = 16;
     vertices.resize(size * size);
     for (int x = 0; x < size; ++x)
     {
@@ -52,9 +52,9 @@ void Grid::init()
     isInit = true;
 }
 
-bool Grid::isInit = false;
-bgfx::VertexBufferHandle Grid::vbh;
-bgfx::IndexBufferHandle Grid::ibh;
-
-std::vector<PosTexcoordVertex> Grid::vertices;
-std::vector<uint16_t> Grid::indices;
+template <int N> bool Grid<N>::isInit = false;
+template <int N> bgfx::VertexBufferHandle Grid<N>::vbh;
+template <int N> bgfx::IndexBufferHandle Grid<N>::ibh;
+template <int N> std::vector<PosTexcoordVertex> Grid<N>::vertices;
+template <int N> std::vector<uint16_t> Grid<N>::indices;
+template class Grid<16>;

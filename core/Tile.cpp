@@ -296,17 +296,16 @@ void Tile::Draw(DrawContext& ctx)
     */
 
     bgfx::setTransform(m.getData());
-    Cube::init();
+    Grid<16>::init();
 
     // Set vertex and index buffer.
-    bgfx::setVertexBuffer(0, Cube::vbh);
-    bgfx::setIndexBuffer(Cube::ibh);
+    bgfx::setVertexBuffer(0, Grid<16>::vbh);
+    bgfx::setIndexBuffer(Grid<16>::ibh);
     uint64_t state = 0
         | BGFX_STATE_WRITE_RGB
         | BGFX_STATE_WRITE_A
         | BGFX_STATE_WRITE_Z
         | BGFX_STATE_DEPTH_TEST_LESS
-        | BGFX_STATE_CULL_CCW
         | BGFX_STATE_MSAA
         | BGFX_STATE_BLEND_ALPHA;
     // Set render states.l
