@@ -11,6 +11,7 @@ typedef struct NVGcontext NVGcontext;
 #include <gmtl/PlaneOps.h>
 #include <gmtl/Frustum.h>
 #include <bgfx/bgfx.h>
+#include <functional>
 #include "HSLColor.h"
 
 using namespace gmtl;
@@ -103,6 +104,7 @@ namespace sam
         Vec4f m_color;
         Vec4f m_strokeColor;
         float m_strokeWidth;
+        bool m_isInitialized;
 
         SceneItem();
 
@@ -143,9 +145,14 @@ namespace sam
         {
             m_color = col;
         }
-        virtual void Draw(DrawContext& ctx) = 0;
+        
+        void DoDraw(DrawContext& ctx);
 
         virtual AABoxf GetBounds() const = 0;
+    protected:
+
+        virtual void Initialize(DrawContext& nvg) {}
+        virtual void Draw(DrawContext& ctx) = 0;
     };
 
 
@@ -153,12 +160,20 @@ namespace sam
     {
     protected:
         std::vector<std::shared_ptr<SceneItem>> m_sceneItems;
+        std::function<bool(DrawContext& ctx)> m_beforeDraw;
+        std::function<void(DrawContext& ctx)> m_afterDraw;
 
     public:
         void AddItem(const std::shared_ptr<SceneItem>& item)
         {
             m_sceneItems.push_back(item);
         }
+
+        void BeforeDraw(std::function<bool(DrawContext& ctx)> f)
+        { m_beforeDraw = f; }
+
+        void AfterDraw(std::function<void(DrawContext& ctx)> f)
+        { m_afterDraw = f; }
 
         void Clear()
         {

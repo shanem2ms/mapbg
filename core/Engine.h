@@ -1,6 +1,7 @@
 #pragma once
 
 #include "SceneItem.h"
+#include <map>
 
 namespace sam
 {
@@ -17,20 +18,21 @@ public:
     bool ProcessTick(float fullTime);
 };
 
+class Hud;
 class Engine
 {
     int m_w;
     int m_h;
     Camera m_camera;
-
+    
     std::shared_ptr<SceneGroup> m_root;
+    std::shared_ptr<Hud> m_hud;
     std::vector<std::shared_ptr<Animation>> m_animations;
     bgfx::UniformHandle m_texture;
-    bgfx::UniformHandle m_gradient;
-    bgfx::ProgramHandle m_program;
-public:
-    bgfx::ProgramHandle m_erosion;
-    bgfx::ProgramHandle m_copysect;
+    bgfx::UniformHandle m_gradient;   
+
+    std::map<std::string, bgfx::ProgramHandle> m_shaders;
+
 
 public:
     Engine();
@@ -39,6 +41,7 @@ public:
     Camera& Cam() { return m_camera; }
     void Tick(float time);
 
+    bgfx::ProgramHandle LoadShader(const std::string& vtx, const std::string& px);
     static DrawContext & Ctx();
     void Resize(int w, int h);
     void Draw(DrawContext & nvg);

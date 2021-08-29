@@ -7,6 +7,10 @@ bgfx::VertexBufferHandle Cube::vbh;
 bgfx::IndexBufferHandle Cube::ibh;
 
 
+bool Quad::isInit = false;
+bgfx::VertexBufferHandle Quad::vbh;
+bgfx::IndexBufferHandle Quad::ibh;
+
 template <int N> void Grid<N>::init()
 {
     if (isInit)

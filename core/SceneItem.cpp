@@ -9,8 +9,19 @@ namespace sam
     SceneItem::SceneItem() :
         m_offset(0, 0, 0),
         m_scale(1, 1, 1),
-        m_rotate()
+        m_rotate(),
+        m_isInitialized(false)
     {
+    }
+
+    void SceneItem::DoDraw(DrawContext& ctx)
+    {
+        if (!m_isInitialized)
+        {
+            Initialize(ctx);
+            m_isInitialized = true;
+        }
+        Draw(ctx);
     }
 
     Matrix44f SceneItem::CalcMat() const
@@ -65,13 +76,21 @@ namespace sam
 
     void SceneGroup::Draw(DrawContext& ctx)
     {
+        if (m_beforeDraw != nullptr)
+        {
+            if (!m_beforeDraw(ctx))
+                return;
+        }
         Matrix44f prevMat = ctx.m_mat;
         for (auto item : m_sceneItems)
         {
             ctx.m_mat *= CalcMat();
-            item->Draw(ctx);
+            item->DoDraw(ctx);
             ctx.m_mat = prevMat;
         }
+
+        if (m_afterDraw != nullptr)
+            m_afterDraw(ctx);
     }
 
     void SceneText::SetText(const std::string& text)

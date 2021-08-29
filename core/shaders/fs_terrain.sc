@@ -14,7 +14,7 @@ static const vec3 fastWaterColour = vec3(.6,.9,.8);
 static const float fastWaterSpeed = .13;
 static const float waterOpacityScale = .03; // looks really cool with lower values here
 
-void main()
+void main() 
 {
 		vec4 palette[] =
 			{

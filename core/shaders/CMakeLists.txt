@@ -1,20 +1,25 @@
 set (CS_SHADERS cs_erosion.sc cs_copysect.sc)
-set (VS_SHADERS vs_cubes.sc vs_terrain.sc)
+set (VS_SHADERS vs_cubes.sc vs_terrain.sc vs_hud.sc)
+set (FS_SHADERS fs_cubes.sc fs_terrain.sc fs_hud.sc)
 
 set (CS_BINS ${CS_SHADERS})
 list(TRANSFORM CS_BINS REPLACE ".sc" ".bin" )
 list(TRANSFORM CS_BINS PREPEND ${CMAKE_BINARY_DIR}/ )
+
+set (FS_BINS ${FS_SHADERS})
+list(TRANSFORM FS_BINS REPLACE ".sc" ".bin" )
+list(TRANSFORM FS_BINS PREPEND ${CMAKE_BINARY_DIR}/ )
 
 set (VS_BINS ${VS_SHADERS})
 list(TRANSFORM VS_BINS REPLACE ".sc" ".bin" )
 list(TRANSFORM VS_BINS PREPEND ${CMAKE_BINARY_DIR}/ )
 
 
-message("bin ${CS_BINS}")
 
 set(ALL_FILES
     
     ${CMAKE_BINARY_DIR}/fs_cubes.bin
+    ${FS_BINS}
     ${CS_BINS}
     ${VS_BINS}
 )
@@ -36,15 +41,20 @@ endif()
 set (BGFX_SRC_DIR ${CMAKE_SOURCE_DIR}/bgfx.cmake/bgfx/src)
 
 
-message("ct ${ALL_FILES}")
 add_custom_target(shaders ALL DEPENDS ${ALL_FILES})
 
+foreach (SHDR ${FS_SHADERS})
+
+string(REPLACE ".sc" ".bin" SHDRBIN ${SHDR})
+
 add_custom_command(
-  OUTPUT ${CMAKE_BINARY_DIR}/fs_cubes.bin
-  COMMAND ${SHADERC} -f ${CMAKE_CURRENT_SOURCE_DIR}/fs_cubes.sc
-                     -o ${CMAKE_BINARY_DIR}/fs_cubes.bin --type f --platform ${SHADERC_PLATFORM} --profile ${SHADERC_FPROF} -i ${BGFX_INCLUDE}
-  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/fs_cubes.sc ${CMAKE_CURRENT_SOURCE_DIR}/varying.def.sc
+  OUTPUT ${CMAKE_BINARY_DIR}/${SHDRBIN}
+  COMMAND ${SHADERC} -f ${CMAKE_CURRENT_SOURCE_DIR}/${SHDR}
+                     -o ${CMAKE_BINARY_DIR}/${SHDRBIN} --type f --platform ${SHADERC_PLATFORM} --profile ${SHADERC_FPROF} -i ${BGFX_INCLUDE}
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${SHDR} ${CMAKE_CURRENT_SOURCE_DIR}/uniforms.sh
   VERBATIM)
+  
+endforeach()
 
 foreach (SHDR ${CS_SHADERS})
 

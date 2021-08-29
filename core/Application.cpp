@@ -32,29 +32,29 @@ namespace sam
         m_touchDownY = y;
 
         if (!m_uiMgr.TouchDown(x, y, touchId))
-            m_board.TouchDown(x, y, touchId);
+            m_world.TouchDown(x, y, touchId);
     }
 
     void Application::TouchDrag(float x, float y, int touchId)
     {
         if (!m_uiMgr.TouchDrag(x, y, touchId))
-            m_board.TouchDrag(x, y, touchId);
+            m_world.TouchDrag(x, y, touchId);
     }
 
     void Application::TouchUp(int touchId)
     {
         if (!m_uiMgr.TouchUp(touchId))
-            m_board.TouchUp(touchId);
+            m_world.TouchUp(touchId);
     }
 
     void Application::KeyDown(int keyId)
     {
-        m_board.KeyDown(keyId);
+        m_world.KeyDown(keyId);
     }
 
     void Application::KeyUp(int keyId)
     {
-        m_board.KeyUp(keyId);
+        m_world.KeyUp(keyId);
     }
 
     void Application::Resize(int w, int h)
@@ -62,7 +62,7 @@ namespace sam
         m_width = w;
         m_height = h;
         m_engine.Resize(w, h);
-        m_board.Layout(w, h);
+        m_world.Layout(w, h);
     }
     void Application::Tick(float time)
     {
@@ -74,7 +74,7 @@ namespace sam
     void Application::Draw(DrawContext& nvg)
     {
         m_uiMgr.Update(m_engine, m_width, m_height, nvg);
-        m_board.Update(m_engine, nvg);
+        m_world.Update(m_engine, nvg);
 
         bgfx::setViewClear(0
             , BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH
@@ -83,10 +83,6 @@ namespace sam
             , 0
         );
 
-        gmtl::Matrix44f proj = m_engine.Cam().PerspectiveMatrix();
-        gmtl::Matrix44f view = m_engine.Cam().ViewMatrix();
-
-        bgfx::setViewTransform(0, view.getData(), proj.getData());
         bgfx::setViewRect(0, 0, 0, uint16_t(m_width), uint16_t(m_height));
         nvg.m_frameIdx = m_frameIdx;
         m_engine.Draw(nvg);

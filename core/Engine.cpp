@@ -1,6 +1,7 @@
 #include "Engine.h"
 #include <bx/readerwriter.h>
 #include <bx/file.h>
+#include "Hud.h"
 
 namespace sam
 {
@@ -11,6 +12,7 @@ namespace sam
         m_root(std::make_shared<SceneGroup>())
     {
         sEngine = this;
+        m_hud = std::make_shared<Hud>();
     }
 
     void Engine::Resize(int w, int h)
@@ -35,11 +37,16 @@ namespace sam
 
     void Engine::Draw(DrawContext& dc)
     {
-        dc.m_pgm = m_program;
         dc.m_texture = m_texture;
         dc.m_gradient = m_gradient;
         gmtl::identity(dc.m_mat);
-        m_root->Draw(dc);
+        gmtl::Matrix44f proj = Cam().PerspectiveMatrix();
+        gmtl::Matrix44f view = Cam().ViewMatrix();
+
+        bgfx::setViewTransform(0, view.getData(), proj.getData());
+
+        m_root->DoDraw(dc);
+        m_hud->DoDraw(dc);
     }
 
 
@@ -75,18 +82,22 @@ namespace sam
         return NULL;
     }
 
+    bgfx::ProgramHandle Engine::LoadShader(const std::string& vtx, const std::string& px)
+    {
+        std::string key = vtx + ":" + px;
+        auto itshd = m_shaders.find(key);
+        if (itshd != m_shaders.end())
+            return itshd->second;
+        bx::FileReader fileReader;
+        bgfx::ShaderHandle vtxShader = bgfx::createShader(loadMem(&fileReader, vtx.c_str()));
+        bgfx::ShaderHandle fragShader = bgfx::createShader(loadMem(&fileReader, px.c_str()));
+        bgfx::ProgramHandle pgm = bgfx::createProgram(vtxShader, fragShader, true);
+        m_shaders.insert(std::make_pair(key, pgm));
+        return pgm;
+    }
+
     void Engine::LoadResources(DrawContext& nvg)
     {
-        bx::FileReader fileReader;
-        bgfx::ShaderHandle vtxShader = bgfx::createShader(loadMem(&fileReader, "vs_cubes.bin"));
-        bgfx::ShaderHandle fragShader = bgfx::createShader(loadMem(&fileReader, "fs_cubes.bin"));
-        m_program = bgfx::createProgram(vtxShader, fragShader, true);
-        m_texture = bgfx::createUniform("s_terrain", bgfx::UniformType::Sampler);
-        m_gradient = bgfx::createUniform("s_gradient", bgfx::UniformType::Sampler);
-        bgfx::ShaderHandle erosion = bgfx::createShader(loadMem(&fileReader, "cs_erosion.bin"));
-        m_erosion = bgfx::createProgram(erosion, true);
-        bgfx::ShaderHandle cpys = bgfx::createShader(loadMem(&fileReader, "cs_copysect.bin"));
-        m_copysect = bgfx::createProgram(cpys, true);
     }
 
     Engine& Engine::Inst()

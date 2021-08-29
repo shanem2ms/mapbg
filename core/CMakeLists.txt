@@ -16,11 +16,12 @@ add_subdirectory(shaders)
 ################################################################################
 set(Header_Files
     "Application.h"
-    "Board.h"
+    "World.h"
     "Engine.h"
     "HSLColor.h"
     "Resource.h"
     "Tile.h"
+    "Hud.h"
     "TileSelection.h"
     "SceneItem.h"
     "Mesh.h"
@@ -32,9 +33,10 @@ source_group("Header Files" FILES ${Header_Files})
 set(Source_Files
     "Application.cpp"
     "biomegen.cpp"
-    "Board.cpp"
+    "World.cpp"
     "Engine.cpp"
     "Tile.cpp"
+    "Hud.cpp"
     "TileSelection.cpp"
     "HSLColor.cpp"
     "SceneItem.cpp"

@@ -1,4 +1,4 @@
-#include "Board.h"
+#include "World.h"
 #include "Application.h"
 #include "Engine.h"
 #include "HSLColor.h"
@@ -13,7 +13,7 @@ using namespace gmtl;
 
 namespace sam
 {
-    Board::Board() :
+    World::World() :
         m_width(-1),
         m_height(-1),
         m_currentTool(0)
@@ -28,7 +28,7 @@ namespace sam
         bool m_isDragging;
     public:
 
-        Camera::Fly m_initCamPos;
+        Vec2f m_initCamDir;
 
         Touch() : m_isInit(false),
             m_isDragging(false) {}
@@ -60,7 +60,7 @@ namespace sam
     //https://shanetest-cos-earth.s3.us-east.cloud-object-storage.appdomain.cloud/world9m_whqt/Q1/L3/R1/Q1_L3_R1_C0.png
 
     bool cursormode = false;
-    void Board::TouchDown(float x, float y, int touchId)
+    void World::TouchDown(float x, float y, int touchId)
     {
         m_activeTouch = std::make_shared<Touch>();
         float xb = x / m_width;
@@ -68,13 +68,13 @@ namespace sam
 
         Engine& e = Engine::Inst();
         Camera::Fly la = e.Cam().GetFly();
-
-        m_activeTouch->m_initCamPos = la;
+        
+        m_activeTouch->m_initCamDir = la.dir;
         m_activeTouch->SetInitialPos(Point2f(xb, yb));
     }
 
     constexpr float pi_over_two = 3.14159265358979323846f * 0.5f;
-    void Board::TouchDrag(float x, float y, int touchId)
+    void World::TouchDrag(float x, float y, int touchId)
     {
         if (m_activeTouch != nullptr)
         {
@@ -86,39 +86,18 @@ namespace sam
             Vec2f dragDiff = Point2f(xb, yb) - m_activeTouch->TouchPos();
 
             Engine& e = Engine::Inst();
-            Camera::Fly la = m_activeTouch->m_initCamPos;
+            Camera::Fly la = e.Cam().GetFly();
 
-            la.dir[0] -= dragDiff[0] * 2;
-            la.dir[1] -= dragDiff[1] * 2;
+            la.dir[0] = m_activeTouch->m_initCamDir[0] - dragDiff[0] * 2;
+            la.dir[1] = m_activeTouch->m_initCamDir[1] - dragDiff[1] * 2;
             la.dir[1] = std::max(la.dir[1], -pi_over_two);
             e.Cam().SetFly(la);
 
         }
     }
 
-    void Board::TouchUp(int touchId)
-    {
-        if (m_activeTouch != nullptr &&
-            !m_activeTouch->IsDragging())
-        {
-            
-            Engine& e = Engine::Inst();
-            Matrix44f viewProj = e.Cam().PerspectiveMatrix() * e.Cam().ViewMatrix();
-            invert(viewProj);
-            Point2f p = m_activeTouch->TouchPos() * 2.0f - Vec2f(1, 1);
-            p[1] *= -1;
-            Point4f screenPt(p[0], p[1], 0.9f, 1), objpt;
-            xform(objpt, viewProj, screenPt);
-            objpt /= objpt[3];
-
-            Camera::LookAt la = e.Cam().GetLookat();
-            la.pos = Point3f(objpt[0], objpt[1], objpt[2]);
-            la.pos[2] = 0.5f;
-            la.tilt = std::max(la.tilt + m_tiltVel, 0.0f);
-            la.dist *= 0.5f;
-            e.Cam().SetLookat(la);
-
-        }
+    void World::TouchUp(int touchId)
+    {        
         m_activeTouch = nullptr;
         m_tiltVel = 0;
     }
@@ -131,7 +110,7 @@ namespace sam
     const int SButton = 'S';
     bool isPaused = false;
 
-    void Board::KeyDown(int k)
+    void World::KeyDown(int k)
     {
         float speed = 0.005f;
         switch (k)
@@ -160,7 +139,7 @@ namespace sam
         }
     }
 
-    void Board::KeyUp(int k)
+    void World::KeyUp(int k)
     {
         switch (k)
         {
@@ -179,9 +158,9 @@ namespace sam
         }
     }
 
-    void Board::Update(Engine& e, DrawContext& ctx)
+    void World::Update(Engine& e, DrawContext& ctx)
     {
-        if (m_boardGroup == nullptr)
+        if (m_worldGroup == nullptr)
         {
             /*
             std::shared_ptr<UIButton> btn1 = std::make_shared<UIButton>("Zoom", 100.0f, 10.0f, 100.0f, 50.0f);
@@ -196,13 +175,17 @@ namespace sam
                 });
             Application::Inst().UIMgr().AddControl(btn2);
             */
-            m_boardGroup = std::make_shared<SceneGroup>();
-            e.Root()->AddItem(m_boardGroup);
+            m_worldGroup = std::make_shared<SceneGroup>();
+            e.Root()->AddItem(m_worldGroup);
 
             Camera::Fly fly;
             fly.pos = Point3f(0.1f, 1.0f, 0.1f);
             fly.dir = Vec2f(0, 0.0f);
             e.Cam().SetFly(fly);
+
+            m_shader = e.LoadShader("vs_cubes.bin", "fs_cubes.bin");
+            m_worldGroup->BeforeDraw([this](DrawContext& ctx) { ctx.m_pgm = m_shader; return true; });
+
         }
 
 
@@ -246,9 +229,9 @@ namespace sam
 
         if (!isPaused)
         {
-            m_boardGroup->Clear();
+            m_worldGroup->Clear();
             m_tileSelection.Update(e, ctx);
-            m_tileSelection.AddTilesToGroup(m_boardGroup);
+            m_tileSelection.AddTilesToGroup(m_worldGroup);
         }
 
         fly.pos[1] = std::max(m_tileSelection.GetGroundHeight(fly.pos), fly.pos[1]);
@@ -257,7 +240,7 @@ namespace sam
     }
 
 
-    void Board::Layout(int w, int h)
+    void World::Layout(int w, int h)
     {
         m_width = w;
         m_height = h;
@@ -281,7 +264,7 @@ namespace sam
 
     
 
-    Board::~Board()
+    World::~World()
     {
 
     }

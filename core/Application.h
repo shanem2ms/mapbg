@@ -1,13 +1,13 @@
 #pragma once
 #include "Engine.h"
 #include "UIControl.h"
-#include "Board.h"
+#include "World.h"
 
 namespace sam
 {
 class Application
 {
-    Board m_board;
+    World m_world;
     Engine m_engine;
     UIManager m_uiMgr;
     int m_width;
