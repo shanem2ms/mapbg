@@ -5,13 +5,13 @@
 #include "SimplexNoise/SimplexNoise.h"
 #include <numeric>
 #include "Mesh.h"
-#include "Tile.h"
+#include "TerrainTile.h"
 #define NOMINMAX
 
 namespace sam
 {
 
-    Tile::Tile(const Loc& l) : m_image(-1), m_l(l), m_needRecalc(true),
+    TerrainTile::TerrainTile(const Loc& l) : m_image(-1), m_l(l), m_needRecalc(true),
         m_buildFrame(0),
         m_dataready(false),
         m_terrain(BGFX_INVALID_HANDLE),
@@ -24,7 +24,7 @@ namespace sam
     inline float cHiehgt(float n1, float n2) { return std::max(0.0f, (n2 + n1 * 1.5f) / 2.5f - 0.2f); }
     const SimplexNoise simplex;
 
-    void Tile::NoiseGen()
+    void TerrainTile::NoiseGen()
     {
         float avgn1 = 0;
         float avgn2 = 0;
@@ -52,7 +52,7 @@ namespace sam
         SetVals(Vec2f(avgn1, avgn2));
     }
 
-    float Tile::GetGroundHeight(const Point3f& pt) const
+    float TerrainTile::GetGroundHeight(const Point3f& pt) const
     {
         if (!m_dataready)
             return 0;
@@ -79,7 +79,7 @@ namespace sam
         return l * (1 - t) + r * t;
     }
 
-    void Tile::ProceduralBuild(DrawContext& ctx)
+    void TerrainTile::ProceduralBuild(DrawContext& ctx)
     {
         NoiseGen();
 
@@ -146,7 +146,7 @@ namespace sam
         }
     }
 
-    AABoxf Tile::GetBounds() const
+    AABoxf TerrainTile::GetBounds() const
     {
         const int padding = 2;
         Matrix44f m = CalcMat() *
@@ -169,7 +169,7 @@ namespace sam
     }
 
 #if 0
-    void Tile::Draw(DrawContext& ctx)
+    void TerrainTile::Draw(DrawContext& ctx)
     {
         return;
         if (m_needRecalc)
@@ -269,7 +269,7 @@ namespace sam
         bgfx::submit(0, ctx.m_pgm);
     }
 #else
-void Tile::Draw(DrawContext& ctx)
+void TerrainTile::Draw(DrawContext& ctx)
 {
     if (!bgfx::isValid(m_uparams))
     {
@@ -314,7 +314,7 @@ void Tile::Draw(DrawContext& ctx)
 }
 #endif
 
-    void Tile::Decomission()
+    void TerrainTile::Decomission()
     {
         for (int i = 0; i < 2; ++i)
         {
@@ -338,7 +338,7 @@ void Tile::Draw(DrawContext& ctx)
         m_needRecalc = true;
     }
 
-    Tile::~Tile()
+    TerrainTile::~TerrainTile()
     {
         if (m_image >= 0)
         {

@@ -1,7 +1,7 @@
 #pragma once
 #include <map>
 #include <set>
-#include "Tile.h"
+#include "OctTile.h"
 #include "TileSelection.h"
 
 class SimplexNoise;

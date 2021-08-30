@@ -126,7 +126,7 @@ namespace sam
         return os;
     }
 
-    class Tile : public SceneItem
+    class OctTile : public SceneItem
     {
         static const int SquarePtsCt = 256;
         static const int OverlapPtsCt = 64;
@@ -139,21 +139,17 @@ namespace sam
         float m_pts[TotalPtsCt * TotalPtsCt];
         Vec2f m_maxdh;
         Vec2f m_mindh;
-        bgfx::TextureHandle m_tex[2];
-        bgfx::TextureHandle m_terrain;
-        bgfx::TextureHandle m_rbTex;
         int m_texpingpong;
         int m_buildFrame;
         bool m_dataready;
-        std::vector<float> m_heightData;
         bgfx::UniformHandle m_uparams;
 
     public:
         float distFromCam;
     public:
         void Draw(DrawContext& ctx) override;
-        Tile(const Loc& l);
-        ~Tile();
+        OctTile(const Loc& l);
+        ~OctTile();
 
         const float* Pts() const { return m_pts; }
         void SetImage(int image)
@@ -166,12 +162,6 @@ namespace sam
             m_vals = v;
         }
         void Decomission();
-
-        float GetGroundHeight(const gmtl::Point3f& pt) const;
-
-    private:
-        void NoiseGen();
-        void ProceduralBuild(DrawContext& ctx);
     };
 
     inline bool operator < (const Loc& lhs, const Loc& rhs)

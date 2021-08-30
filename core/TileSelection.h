@@ -1,7 +1,7 @@
 #pragma once
 #include <map>
 #include <set>
-#include "Tile.h"
+#include "OctTile.h"
 
 class SimplexNoise;
 namespace sam
@@ -14,7 +14,7 @@ namespace sam
     {
     public:
 
-        std::map<Loc, std::shared_ptr<Tile>> m_tiles;
+        std::map<Loc, std::shared_ptr<OctTile>> m_tiles;
         std::set<Loc> m_activeTiles;
 
         void Update(Engine& e, DrawContext& ctx);

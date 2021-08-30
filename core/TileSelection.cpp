@@ -196,8 +196,8 @@ namespace sam
             auto itSq = m_tiles.find(l);
             if (itSq == m_tiles.end())
             {
-                std::shared_ptr<Tile> sq = std::make_shared<Tile>(l);
-                { // Init Tile
+                std::shared_ptr<OctTile> sq = std::make_shared<OctTile>(l);
+                { // Init OctTile
                     float sx = l.m_x;
                     float sy = l.m_z;
                     
@@ -236,7 +236,7 @@ namespace sam
 
     void TileSelection::AddTilesToGroup(std::shared_ptr<SceneGroup> grp)
     {
-        std::vector<std::shared_ptr<Tile>> tiles;
+        std::vector<std::shared_ptr<OctTile>> tiles;
         for (auto sqPair : m_activeTiles)
         {
             auto itSq = m_tiles.find(sqPair);
@@ -261,7 +261,7 @@ namespace sam
         auto itCamTile = m_tiles.find(queryLoc);
         if (itCamTile != m_tiles.end())
         {
-            return itCamTile->second->GetGroundHeight(pt) + headHeight;
+            return 0;// itCamTile->second->GetGroundHeight(pt) + headHeight;
         }
     }
 
