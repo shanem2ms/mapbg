@@ -11,31 +11,47 @@
 namespace sam
 {
 
-    TerrainTile::TerrainTile(const Loc& l) : m_image(-1), m_l(l), m_needRecalc(true),
+    TerrainTile::TerrainTile(const Loc& l, std::shared_ptr<TerrainTile> parent) : 
+        m_image(-1), m_l(l), 
+        m_needRecalc(true),
         m_buildFrame(0),
         m_dataready(false),
         m_terrain(BGFX_INVALID_HANDLE),
-        m_uparams(BGFX_INVALID_HANDLE)
+        m_uparams(BGFX_INVALID_HANDLE),
+        m_parent(parent)
     {
         m_tex[0] = m_tex[1] = BGFX_INVALID_HANDLE;
     }
 
 
-    inline float cHiehgt(float n1, float n2) { return std::max(0.0f, (n2 + n1 * 1.5f) / 2.5f - 0.2f); }
+    inline float cHiehgt(float n1, float n2) { return (n2 + n1 * 1.5f) / 2.5f - 0.5f; }
     const SimplexNoise simplex;
 
     void TerrainTile::NoiseGen()
     {
+        const float maxTerrainHeight = 2.0f;
         float avgn1 = 0;
         float avgn2 = 0;
         AABoxf box = m_l.GetBBox();
         
         float extents = m_l.GetExtent();
+        
+        float terrainHeight = maxTerrainHeight / (1 << m_l.m_l);
+
         float scale =  extents / SquarePtsCt;
         constexpr float ovfl = (float)OverlapPtsCt / (float)(SquarePtsCt);
         float nx = box.mMin[0] - extents * ovfl;
         float ny = box.mMin[2] - extents * ovfl;
 
+        int pX = 0, pZ = 0;
+        if (m_parent != nullptr) 
+        {
+            Loc ll = m_l.GetLocal(m_parent->m_l);
+            pX = ll.m_x;
+            pZ = ll.m_z;
+        }
+        float minheight = std::numeric_limits<float>::max();
+        float maxheight = -minheight;
         for (int oy = 0; oy < TotalPtsCt; ++oy)
         {
             for (int ox = 0; ox < TotalPtsCt; ++ox)
@@ -44,9 +60,20 @@ namespace sam
                 float n2 = simplex.fractal(5, (nx + ox * scale) * 0.5f, (ny + oy * scale) * 0.5f) * 0.25f + 0.5f;
                 avgn1 += n1;
                 avgn2 += n2;
-                m_pts[oy * TotalPtsCt + ox] = cHiehgt(n1, n2);
+                float h = cHiehgt(n1, n2);
+                if (ox > OverlapPtsCt && ox < (SquarePtsCt + OverlapPtsCt) &&
+                    oy > OverlapPtsCt && oy < (SquarePtsCt + OverlapPtsCt))
+                {
+                    minheight = std::min(minheight, h);
+                    maxheight = std::max(maxheight, h);
+                }
+                m_pts[oy * TotalPtsCt + ox] = h;
             }
         }
+        box.mMin[1] = minheight;
+        box.mMax[1] = maxheight;
+        std::cout << minheight << " " << maxheight << std::endl;
+        m_heightBbox = box;
         avgn1 /= (float)(SquarePtsCt * SquarePtsCt);
         avgn2 /= (float)(SquarePtsCt * SquarePtsCt);
         SetVals(Vec2f(avgn1, avgn2));
@@ -77,6 +104,11 @@ namespace sam
     inline float Lerp(float l, float r, float t)
     {
         return l * (1 - t) + r * t;
+    }
+
+    void TerrainTile::Build()
+    {
+        NoiseGen();
     }
 
     void TerrainTile::ProceduralBuild(DrawContext& ctx)
@@ -146,27 +178,6 @@ namespace sam
         }
     }
 
-    AABoxf TerrainTile::GetBounds() const
-    {
-        const int padding = 2;
-        Matrix44f m = CalcMat() *
-            makeScale<Matrix44f>(Vec3f(
-                (float)(1.0f / 2 - padding), (float)(1.0f / 2 - padding), 0));
-
-        Point3f pts[4] = { Point3f(-1, -1, 0),
-            Point3f(1, -1, 0) ,
-            Point3f(1, 1, 0) ,
-                Point3f(-1, -1, 0) };
-
-        AABoxf aab;
-        for (int idx = 0; idx < 4; ++idx)
-        {
-            Point3f p1;
-            xform(p1, m, Point3f(-1, -1, 0));
-            AABoxAdd(aab, p1);
-        }
-        return aab;
-    }
 
 #if 0
     void TerrainTile::Draw(DrawContext& ctx)
@@ -268,50 +279,7 @@ namespace sam
         bgfx::setState(state);
         bgfx::submit(0, ctx.m_pgm);
     }
-#else
-void TerrainTile::Draw(DrawContext& ctx)
-{
-    if (!bgfx::isValid(m_uparams))
-    {
-        m_uparams = bgfx::createUniform("u_params", bgfx::UniformType::Vec4, 1);        
-    }
 
-    int t = m_l.m_l;
-    
-    Vec4f color((std::min(t, 93) + 1) * 0.1f,
-        (std::max(t - 10, 0) + 1) * 0.1f,
-        1,
-        1);
-    bgfx::setUniform(m_uparams, &color, 1);
-    Matrix44f m =
-        ctx.m_mat * CalcMat();
-
-    /*
-    AABoxf bbox = m_l.GetBBox();
-    Point4f p[4];
-    xform(p[0], m, Point4f(-1, 0, -1, 1));
-    xform(p[1], m, Point4f(1, 0, -1, 1));
-    xform(p[2], m, Point4f(-1, 0, 1, 1));
-    xform(p[3], m, Point4f(1, 0, 1, 1));
-    */
-
-    bgfx::setTransform(m.getData());
-    Grid<16>::init();
-
-    // Set vertex and index buffer.
-    bgfx::setVertexBuffer(0, Grid<16>::vbh);
-    bgfx::setIndexBuffer(Grid<16>::ibh);
-    uint64_t state = 0
-        | BGFX_STATE_WRITE_RGB
-        | BGFX_STATE_WRITE_A
-        | BGFX_STATE_WRITE_Z
-        | BGFX_STATE_DEPTH_TEST_LESS
-        | BGFX_STATE_MSAA
-        | BGFX_STATE_BLEND_ALPHA;
-    // Set render states.l
-    bgfx::setState(state);
-    bgfx::submit(0, ctx.m_pgm);
-}
 #endif
 
     void TerrainTile::Decomission()

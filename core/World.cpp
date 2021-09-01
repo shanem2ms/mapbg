@@ -230,11 +230,11 @@ namespace sam
         if (!isPaused)
         {
             m_worldGroup->Clear();
-            m_tileSelection.Update(e, ctx);
-            m_tileSelection.AddTilesToGroup(m_worldGroup);
+            m_octTileSelection.Update(e, ctx);
+            m_octTileSelection.AddTilesToGroup(m_worldGroup);
         }
 
-        fly.pos[1] = std::max(m_tileSelection.GetGroundHeight(fly.pos), fly.pos[1]);
+        fly.pos[1] = std::max(m_octTileSelection.GetGroundHeight(fly.pos), fly.pos[1]);
 
         cam.SetFly(fly);
     }

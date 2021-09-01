@@ -3,8 +3,10 @@
 #include <map>
 #include <set>
 #include "SceneItem.h"
+struct CubeList;
 namespace sam
 {
+    class TerrainTile;
 
     struct Loc
     {
@@ -28,13 +30,13 @@ namespace sam
 
         bool operator < (const Loc& rhs)
         {
+            if (m_l != rhs.m_l)
+                return m_l < rhs.m_l;
             if (m_x != rhs.m_x)
                 return m_x < rhs.m_x;
             if (m_y != rhs.m_y)
                 return m_y < rhs.m_y;
-            if (m_z != rhs.m_z)
-                return m_z < rhs.m_z;
-            return m_l < rhs.m_l;
+            return m_z < rhs.m_z;
         }
 
         bool operator == (const Loc& rhs)
@@ -125,7 +127,6 @@ namespace sam
         os << "[" << loc.m_l << ", " << loc.m_x << ", " << loc.m_y << ", " << loc.m_z << "]";
         return os;
     }
-
     class OctTile : public SceneItem
     {
         static const int SquarePtsCt = 256;
@@ -143,13 +144,19 @@ namespace sam
         int m_buildFrame;
         bool m_dataready;
         bgfx::UniformHandle m_uparams;
-
+        std::shared_ptr<TerrainTile> m_terrainTile;
+        std::shared_ptr<CubeList> m_cubeList;
     public:
         float distFromCam;
     public:
         void Draw(DrawContext& ctx) override;
         OctTile(const Loc& l);
         ~OctTile();
+
+        void SetTerrainTile(std::shared_ptr<TerrainTile> terrainTile)
+        {
+            m_terrainTile = terrainTile;
+        }
 
         const float* Pts() const { return m_pts; }
         void SetImage(int image)

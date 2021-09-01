@@ -7,12 +7,13 @@
 
 namespace sam
 {
-    class TerrainTile : public SceneItem
+    class TerrainTile
     {
+    public:
         static const int SquarePtsCt = 256;
         static const int OverlapPtsCt = 64;
         static const int TotalPtsCt = SquarePtsCt + OverlapPtsCt * 2;
-
+    private:
         int m_image;
         Vec2f m_vals;
         Loc m_l;
@@ -27,26 +28,31 @@ namespace sam
         int m_buildFrame;
         bool m_dataready;
         std::vector<float> m_heightData;
+        AABoxf m_heightBbox;
         bgfx::UniformHandle m_uparams;
+        std::shared_ptr<TerrainTile> m_parent;
 
     public:
         float distFromCam;
     public:
-        void Draw(DrawContext& ctx) override;
-        TerrainTile(const Loc& l);
+        TerrainTile(const Loc& l, std::shared_ptr<TerrainTile> parent);
         ~TerrainTile();
+
+        const AABoxf& GetBounds() const {
+            return m_heightBbox;
+        }
 
         const float* Pts() const { return m_pts; }
         void SetImage(int image)
         {
             m_image = image;
         }
-        gmtl::AABoxf GetBounds() const override;
         void SetVals(const Vec2f& v)
         {
             m_vals = v;
         }
         void Decomission();
+        void Build();
 
         float GetGroundHeight(const gmtl::Point3f& pt) const;
 

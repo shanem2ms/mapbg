@@ -2,7 +2,7 @@
 #include <map>
 #include <set>
 #include "OctTile.h"
-#include "TileSelection.h"
+#include "OctTileSelection.h"
 
 class SimplexNoise;
 namespace sam
@@ -16,7 +16,7 @@ namespace sam
     {
     public:
 
-        TileSelection m_tileSelection;
+        OctTileSelection m_octTileSelection;
 
         int m_width;
         int m_height;

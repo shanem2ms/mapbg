@@ -1,8 +1,8 @@
-#include "TileSelection.h"
+#include "OctTileSelection.h"
 #include "Application.h"
 #include "Engine.h"
 #include "HSLColor.h"
-#include "SimplexNoise/SimplexNoise.h"
+#include "TerrainTileSelection.h"
 #include <numeric>
 #include "Mesh.h"
 #include "gmtl/PlaneOps.h"
@@ -31,7 +31,7 @@ namespace sam
 
 
             Vec3f chkpos(floorf(ctr[0]), floorf(ctr[1]), floorf(ctr[2]));
-            GetBBoxes(locs, Loc(0, 0, 0, 0), viewFrust, viewproj, pixelDist);
+            GetLocsInView(locs, Loc(0, 0, 0, 0), viewFrust, viewproj, pixelDist);
         }
 
     private:
@@ -123,7 +123,7 @@ namespace sam
             pts[7] = Point3f(u[0], u[1], u[2]);
         }
 
-        static void GetBBoxes(std::vector<Loc>& locs, const Loc& curLoc,
+        static void GetLocsInView(std::vector<Loc>& locs, const Loc& curLoc,
             const Frustumf& f, const Matrix44f& viewProj, float pixelDist)
         {
             AABoxf aabox = curLoc.GetBBox();
@@ -160,17 +160,18 @@ namespace sam
                 ContainmentType res = Contains(f, cbox);
                 if (res != ContainmentType::Disjoint)
                 {
-                    GetBBoxes(locs, childLoc, f, viewProj, pixelDist);
+                    GetLocsInView(locs, childLoc, f, viewProj, pixelDist);
                 }
             }
         }
     };
 
-    TileSelection::TileSelection()
+    OctTileSelection::OctTileSelection()
     {
+        m_terrainSelection = std::make_unique<TerrainTileSelection>();
     }
 
-    void TileSelection::Update(Engine& e, DrawContext& ctx)
+    void OctTileSelection::Update(Engine& e, DrawContext& ctx)
     {
         auto oldTiles = m_activeTiles;
         m_activeTiles.clear();
@@ -183,15 +184,9 @@ namespace sam
         std::vector<Loc> locs;
         FrustumTiles::Get(e.Cam(), locs, 10.0f);
 
-        std::sort(locs.begin(), locs.end());
+        std::sort(locs.begin(), locs.end());        
 
-        std::vector<Loc> &allLocs = locs;
-        std::ostringstream ss;
-        ss << allLocs.size() << std::endl;
-        OutputDebugStringA(ss.str().c_str());
-
-
-        for (const auto& l : allLocs)
+        for (const auto& l : locs)
         {
             auto itSq = m_tiles.find(l);
             if (itSq == m_tiles.end())
@@ -219,6 +214,8 @@ namespace sam
             m_activeTiles.insert(l);
         }
 
+        m_terrainSelection->SelectTiles(locs);
+
         for (auto loc : oldTiles)
         {
             if (m_activeTiles.find(loc) == m_activeTiles.end())
@@ -227,14 +224,22 @@ namespace sam
             }
         }
 
+        auto terrainTiles = m_terrainSelection->Tiles();
         for (auto sqPair : m_activeTiles)
         {
             auto itSq = m_tiles.find(sqPair);
+            Loc tloc = itSq->first;
+            tloc.m_y = 0;
+            auto itTerrainTile = terrainTiles.find(tloc);
+            if (itTerrainTile != terrainTiles.end())
+            {
+                itSq->second->SetTerrainTile(itTerrainTile->second);
+            }
             itSq->second->distFromCam = lengthSquared(Vec3f(fly.pos - sqPair.GetCenter()));
         }
     }
 
-    void TileSelection::AddTilesToGroup(std::shared_ptr<SceneGroup> grp)
+    void OctTileSelection::AddTilesToGroup(std::shared_ptr<SceneGroup> grp)
     {
         std::vector<std::shared_ptr<OctTile>> tiles;
         for (auto sqPair : m_activeTiles)
@@ -251,7 +256,7 @@ namespace sam
 
     }
 
-    float TileSelection::GetGroundHeight(const Point3f& pt)
+    float OctTileSelection::GetGroundHeight(const Point3f& pt)
     {
         int tx = (int)floor(pt[0]);
         int tz = (int)floor(pt[2]);
@@ -267,7 +272,7 @@ namespace sam
 
 
 
-    TileSelection::~TileSelection()
+    OctTileSelection::~OctTileSelection()
     {
 
     }

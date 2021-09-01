@@ -103,6 +103,16 @@ struct Cube
     static bool isInit;
 };
 
+struct CubeList
+{
+    void Create(const std::vector<Vec3f>& pts, float cubeSize);
+
+    std::vector<PosTexcoordVertex> vertices;
+    std::vector<uint32_t> indices;
+
+    bgfx::VertexBufferHandle vbh;
+    bgfx::IndexBufferHandle ibh;
+};
 
 template <int N> struct Grid
 {

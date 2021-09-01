@@ -33,7 +33,7 @@ ExternalProject_Add(
   UPDATE_COMMAND ""
   GIT_REPOSITORY "https://github.com/bkaradzic/bgfx.cmake.git"
   CMAKE_ARGS 
-   -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -DBGFX_BUILD_EXAMPLES=off -DBGFX_CUSTOM_TARGETS=off
+   -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -DBGFX_BUILD_EXAMPLES=off -DBGFX_CUSTOM_TARGETS=off -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
    BUILD_BYPRODUCTS (
     ${BGFX_LIB}/bx${CMAKE_STATIC_LIBRARY_SUFFIX}
     ${BGFX_LIB}/bimg${CMAKE_STATIC_LIBRARY_SUFFIX}
@@ -68,6 +68,7 @@ add_subdirectory(app2)
 add_dependencies(app2 core)
 endif()
 add_dependencies(core Bgfx)
+add_dependencies(shaders Bgfx)
 
 
 ################################################################################
