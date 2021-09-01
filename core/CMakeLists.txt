@@ -1,6 +1,3 @@
-cmake_minimum_required(VERSION 3.8)
-set (CMAKE_USER_MAKE_RULES_OVERRIDE "${CMAKE_CURRENT_LIST_DIR}/CompilerOptions.cmake")
-
 set (BGFX_INCLUDE_ROOT ${CMAKE_INSTALL_PREFIX}/include)
 set (BGFX_INCLUDE ${BGFX_INCLUDE_ROOT}/bgfx)
 set (BGFX_LIB ${CMAKE_INSTALL_PREFIX}/lib)
@@ -10,6 +7,9 @@ set(BX_INC_DIR_COMPAT ${BGFX_INCLUDE_ROOT}/compat/msvc)
 elseif (APPLE)
 set(BX_INC_DIR_COMPAT ${BGFX_INCLUDE_ROOT}/compat/osx)
 endif()
+
+add_compile_options(/await:strict)
+
 
 add_subdirectory(shaders)
 
