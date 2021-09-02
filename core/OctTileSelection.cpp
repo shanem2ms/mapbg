@@ -1,7 +1,7 @@
+#include "StdIncludes.h"
 #include "OctTileSelection.h"
 #include "Application.h"
 #include "Engine.h"
-#include "HSLColor.h"
 #include "TerrainTileSelection.h"
 #include <numeric>
 #include "Mesh.h"

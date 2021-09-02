@@ -1,7 +1,7 @@
+#include "StdIncludes.h"
 #include "TerrainTileSelection.h"
 #include "Application.h"
 #include "Engine.h"
-#include "HSLColor.h"
 #include "SimplexNoise/SimplexNoise.h"
 #include <numeric>
 #include "Mesh.h"
@@ -11,6 +11,7 @@
 #ifdef _WIN32
 #include <Windows.h>
 #endif
+
 #include <coroutine>
 #include "cppcoro/sync_wait.hpp"
 #include "cppcoro/when_all.hpp"

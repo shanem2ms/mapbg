@@ -1,3 +1,4 @@
+#include "StdIncludes.h"
 #include "SceneItem.h"
 #include <bgfx/bgfx.h>
 #include <gmtl/FrustumOps.h>

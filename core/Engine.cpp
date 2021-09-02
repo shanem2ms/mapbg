@@ -1,3 +1,4 @@
+#include "StdIncludes.h"
 #include "Engine.h"
 #include <bx/readerwriter.h>
 #include <bx/file.h>
@@ -94,10 +95,6 @@ namespace sam
         bgfx::ProgramHandle pgm = bgfx::createProgram(vtxShader, fragShader, true);
         m_shaders.insert(std::make_pair(key, pgm));
         return pgm;
-    }
-
-    void Engine::LoadResources(DrawContext& nvg)
-    {
     }
 
     Engine& Engine::Inst()

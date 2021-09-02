@@ -1,15 +1,19 @@
 #pragma once
-#include "Engine.h"
-#include "UIControl.h"
-#include "World.h"
+
+#include <memory>
 
 namespace sam
 {
+
+class World;
+class Engine;
+class UIManager;
+struct DrawContext;
 class Application
 {
-    World m_world;
-    Engine m_engine;
-    UIManager m_uiMgr;
+    std::unique_ptr<World> m_world;
+    std::unique_ptr<Engine> m_engine;
+    std::unique_ptr<UIManager> m_uiMgr;
     int m_width;
     int m_height;
     float m_touchDownX;
@@ -19,6 +23,7 @@ class Application
 public:    
     UIManager& UIMgr();
     Application();
+    ~Application();
     static Application& Inst();
     void TouchDown(float x, float y, int touchId);
     void TouchDrag(float x, float y, int touchId);
@@ -27,8 +32,7 @@ public:
     void KeyUp(int keyId);
     void Resize(int w, int h);
     void Tick(float time);
-    void LoadResources(DrawContext & nvg);
-    void Draw(DrawContext & nvg);
+    void Draw();
 };
 
 }

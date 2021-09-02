@@ -1,7 +1,7 @@
+#include "StdIncludes.h"
 #include "World.h"
 #include "Application.h"
 #include "Engine.h"
-#include "HSLColor.h"
 #include "SimplexNoise/SimplexNoise.h"
 #include <numeric>
 #include "Mesh.h"

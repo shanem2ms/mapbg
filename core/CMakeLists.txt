@@ -17,11 +17,10 @@ add_subdirectory(shaders)
 # Source groups
 ################################################################################
 set(Header_Files
+    "StdIncludes.h"
     "Application.h"
     "World.h"
     "Engine.h"
-    "HSLColor.h"
-    "Resource.h"
     "OctTile.h"
     "TerrainTile.h"
     "Hud.h"
@@ -36,7 +35,6 @@ source_group("Header Files" FILES ${Header_Files})
 
 set(Source_Files
     "Application.cpp"
-    "biomegen.cpp"
     "World.cpp"
     "Engine.cpp"
     "OctTile.cpp"
@@ -44,11 +42,16 @@ set(Source_Files
     "Hud.cpp"
     "OctTileSelection.cpp"
     "TerrainTileSelection.cpp"
-    "HSLColor.cpp"
     "SceneItem.cpp"
     "UIControl.cpp"
     "Mesh.cpp"
     "SimplexNoise/SimplexNoise.cpp"
+    "cppcoro/lib/auto_reset_event.cpp"
+    "cppcoro/lib/lightweight_manual_reset_event.cpp"
+    "cppcoro/lib/spin_mutex.cpp"
+    "cppcoro/lib/spin_wait.cpp"
+    "cppcoro/lib/static_thread_pool.cpp"
+    "cppcoro/lib/win32.cpp"
     )
 
 source_group("Source Files" FILES ${Source_Files} ${Main_Files})
@@ -61,6 +64,8 @@ set(ALL_FILES
 )
 
 add_library(core STATIC ${ALL_FILES})
+
+target_precompile_headers(core PRIVATE "StdIncludes.h")
 
 add_dependencies(core shaders)
 ################################################################################

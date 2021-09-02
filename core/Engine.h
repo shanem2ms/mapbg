@@ -1,7 +1,6 @@
 #pragma once
 
 #include "SceneItem.h"
-#include <map>
 
 namespace sam
 {
@@ -45,7 +44,6 @@ public:
     static DrawContext & Ctx();
     void Resize(int w, int h);
     void Draw(DrawContext & nvg);
-    void LoadResources(DrawContext & nvg);
     void AddAnimation(const std::shared_ptr<Animation>& anim);
     const std::shared_ptr<SceneGroup> &Root() { return m_root; }
 };

@@ -1,3 +1,4 @@
+#include "StdIncludes.h"
 #include "Mesh.h"
 
 bgfx::VertexLayout PosTexcoordVertex::ms_layout;

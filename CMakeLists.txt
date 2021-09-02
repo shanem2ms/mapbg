@@ -76,6 +76,7 @@ add_dependencies(shaders Bgfx)
 ################################################################################
 set(Main_Files
 "map.cpp"
+"Resource.h"
 "map.h"
 "map.rc"
 )

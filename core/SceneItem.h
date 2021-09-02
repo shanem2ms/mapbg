@@ -12,7 +12,6 @@ typedef struct NVGcontext NVGcontext;
 #include <gmtl/Frustum.h>
 #include <bgfx/bgfx.h>
 #include <functional>
-#include "HSLColor.h"
 
 using namespace gmtl;
 
