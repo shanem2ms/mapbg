@@ -17,66 +17,14 @@ namespace sam
         m_buildFrame(0),
         m_buildStep(0),
         m_dataready(false),
-        m_terrain(BGFX_INVALID_HANDLE),
-        m_rbTex(BGFX_INVALID_HANDLE),
-        m_parent(parent),
+        m_parent(nullptr),
         m_lastUsedframeIdx(0)
     {
-        m_tex[0] = m_tex[1] = BGFX_INVALID_HANDLE;
     }
 
 
     inline float cHiehgt(float n1, float n2) { return (n2 + n1 * 1.5f) / 2.5f - 0.5f; }
     const SimplexNoise simplex;
-
-    void TerrainTile::NoiseGen()
-    {
-        const float maxTerrainHeight = 2.0f;
-        float avgn1 = 0;
-        float avgn2 = 0;
-        AABoxf box = m_l.GetBBox();
-
-        float extents = m_l.GetExtent();
-
-        float terrainHeight = maxTerrainHeight / (1 << m_l.m_l);
-
-        float scale = extents / SquarePtsCt;
-        constexpr float ovfl = (float)OverlapPtsCt / (float)(SquarePtsCt);
-        float nx = box.mMin[0] - extents * ovfl;
-        float ny = box.mMin[2] - extents * ovfl;
-
-        int pX = 0, pZ = 0;
-        if (m_parent != nullptr)
-        {
-            Loc ll = m_l.GetLocal(m_parent->m_l);
-            pX = ll.m_x;
-            pZ = ll.m_z;
-        }
-        float minheight = std::numeric_limits<float>::max();
-        float maxheight = -minheight;
-        m_pts.resize(TotalPtsCt * TotalPtsCt);
-        for (int oy = 0; oy < TotalPtsCt; ++oy)
-        {
-            for (int ox = 0; ox < TotalPtsCt; ++ox)
-            {
-                float n1 = simplex.fractal(10, nx + ox * scale, ny + oy * scale) * 0.25f + 0.5f;
-                float n2 = simplex.fractal(5, (nx + ox * scale) * 0.5f, (ny + oy * scale) * 0.5f) * 0.25f + 0.5f;
-                avgn1 += n1;
-                avgn2 += n2;
-                float h = cHiehgt(n1, n2);
-                if (ox > OverlapPtsCt && ox < (SquarePtsCt + OverlapPtsCt) &&
-                    oy > OverlapPtsCt && oy < (SquarePtsCt + OverlapPtsCt))
-                {
-                    minheight = std::min(minheight, h);
-                    maxheight = std::max(maxheight, h);
-                }
-                m_pts[oy * TotalPtsCt + ox] = h;
-            }
-        }
-        avgn1 /= (float)(SquarePtsCt * SquarePtsCt);
-        avgn2 /= (float)(SquarePtsCt * SquarePtsCt);
-        SetVals(Vec2f(avgn1, avgn2));
-    }
 
     float TerrainTile::GetGroundHeight(const Point3f& pt) const
     {
@@ -107,8 +55,6 @@ namespace sam
 
     bool TerrainTile::Build()
     {
-        //if (m_buildStep == 0)
-            //NoiseGen();
         return GpuErosion();
     }
 
@@ -159,18 +105,6 @@ namespace sam
             int wy = m_l.m_z;
             float nx = wx * SquarePtsCt;
             float ny = wy * SquarePtsCt;
-            /*
-            const bgfx::Memory* m = bgfx::alloc(TotalPtsCt * TotalPtsCt * sizeof(Vec4f));
-            Vec4f* flData = (Vec4f*)m->data;
-
-            for (int oy = 0; oy < TotalPtsCt; ++oy)
-            {
-                for (int ox = 0; ox < TotalPtsCt; ++ox)
-                {
-                    float val = m_pts[oy * TotalPtsCt + ox];
-                    flData[oy * TotalPtsCt + ox] = Vec4f(0, 0, 0, val);
-                }
-            }*/
 
             for (int i = 0; i < 2; ++i)
             {
@@ -208,7 +142,7 @@ namespace sam
             bgfx::setUniform(m_uparams, &tileScaleOffset, 1);
             bgfx::setImage(0, m_tex[0], 0, bgfx::Access::Write, bgfx::TextureFormat::RGBA32F);
             bgfx::dispatch(0, m_csnoise, TotalPtsCt / 16, TotalPtsCt / 16);
-            /*
+            
             for (int i = 0; i < 1000; i++)
             {
                 bgfx::setTexture(0, m_texture, m_tex[m_texpingpong]);
@@ -216,7 +150,7 @@ namespace sam
                 bgfx::dispatch(0, m_erosion, TotalPtsCt / 16, TotalPtsCt / 16);
                 m_texpingpong = 1 - m_texpingpong;
             }
-            */
+            
             bgfx::setTexture(0, m_texture, m_tex[m_texpingpong]);
             bgfx::setImage(1, m_terrain, 0, bgfx::Access::Write, bgfx::TextureFormat::R32F);
             bgfx::dispatch(0, m_copysect, TotalPtsCt / 16, TotalPtsCt / 16);
@@ -264,39 +198,8 @@ namespace sam
     }
 
 
-    void TerrainTile::Decomission()
-    {
-        for (int i = 0; i < 2; ++i)
-        {
-            if (bgfx::isValid(m_tex[i]))
-            {
-                bgfx::destroy(m_tex[i]);
-                m_tex[i] = BGFX_INVALID_HANDLE;
-            }
-        }
-        if (bgfx::isValid(m_terrain))
-        {
-            bgfx::destroy(m_terrain);
-            m_terrain = BGFX_INVALID_HANDLE;
-        }
-
-        if (bgfx::isValid(m_uparams))
-        {
-            bgfx::destroy(m_uparams);
-            m_uparams = BGFX_INVALID_HANDLE;
-        }
-        if (bgfx::isValid(m_rbTex))
-        {
-            bgfx::destroy(m_rbTex);
-            m_rbTex = BGFX_INVALID_HANDLE;
-        }
-        m_needRecalc = true;
-    }
 
     TerrainTile::~TerrainTile()
     {
-        if (m_image >= 0)
-        {
-        }
     }
 }

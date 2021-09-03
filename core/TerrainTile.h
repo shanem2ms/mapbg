@@ -22,9 +22,9 @@ namespace sam
         std::vector<float> m_heightData;
         Vec2f m_maxdh;
         Vec2f m_mindh;
-        bgfx::TextureHandle m_tex[2];
-        bgfx::TextureHandle m_terrain;
-        bgfx::TextureHandle m_rbTex;
+        bgfxh<bgfx::TextureHandle> m_tex[2];
+        bgfxh<bgfx::TextureHandle> m_terrain;
+        bgfxh<bgfx::TextureHandle> m_rbTex;
         int m_texpingpong;
         int m_buildFrame;
         int m_buildStep;
@@ -64,14 +64,12 @@ namespace sam
         {
             m_vals = v;
         }
-        void Decomission();
         bool Build();
 
         float GetGroundHeight(const gmtl::Point3f& pt) const;
 
     private:
         bool GpuErosion();
-        void NoiseGen();
     };
 
 

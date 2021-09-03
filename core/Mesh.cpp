@@ -153,20 +153,3 @@ void CubeList::Create(const std::vector<Vec3f>& pts, float cubeSize)
     );    
 }
 
-CubeList::CubeList() :
-    vbh(BGFX_INVALID_HANDLE),
-    ibh(BGFX_INVALID_HANDLE)
-{
-}
-
-CubeList::~CubeList()
-{
-    if (bgfx::isValid(vbh))
-    {
-        bgfx::destroy(vbh);
-    }
-    if (bgfx::isValid(ibh))
-    {
-        bgfx::destroy(ibh);
-    }
-}

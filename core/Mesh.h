@@ -1,3 +1,4 @@
+#include "StdIncludes.h"
 #include "SceneItem.h"
 #include <bgfx/bgfx.h>
 
@@ -107,13 +108,11 @@ struct CubeList
 {
     void Create(const std::vector<Vec3f>& pts, float cubeSize);
 
-    CubeList();
-    ~CubeList();
     std::vector<PosTexcoordVertex> vertices;
     std::vector<uint32_t> indices;
 
-    bgfx::VertexBufferHandle vbh;
-    bgfx::IndexBufferHandle ibh;
+    bgfxh<bgfx::VertexBufferHandle> vbh;
+    bgfxh<bgfx::IndexBufferHandle> ibh;
 };
 
 template <int N> struct Grid

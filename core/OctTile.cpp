@@ -15,8 +15,7 @@ namespace sam
 
     OctTile::OctTile(const Loc& l) : m_image(-1), m_l(l), m_needRebuild(true),
         m_buildFrame(0),
-        m_dataready(false),
-        m_uparams(BGFX_INVALID_HANDLE)
+        m_dataready(false)
     {
     }
 
@@ -148,12 +147,6 @@ namespace sam
 
     void OctTile::Decomission()
     {
-
-        if (bgfx::isValid(m_uparams))
-        {
-            bgfx::destroy(m_uparams);
-            m_uparams = BGFX_INVALID_HANDLE;
-        }
         m_needRebuild = true;
     }
 

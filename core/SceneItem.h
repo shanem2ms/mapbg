@@ -1,5 +1,6 @@
 #pragma once
 typedef struct NVGcontext NVGcontext;
+#include "StdIncludes.h"
 #include <gmtl/gmtl.h>
 #include <gmtl/Matrix.h>
 #include <gmtl/Point.h>
@@ -10,7 +11,6 @@ typedef struct NVGcontext NVGcontext;
 #include <gmtl/Plane.h>
 #include <gmtl/PlaneOps.h>
 #include <gmtl/Frustum.h>
-#include <bgfx/bgfx.h>
 #include <functional>
 
 using namespace gmtl;

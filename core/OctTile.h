@@ -138,7 +138,7 @@ namespace sam
         int m_texpingpong;
         int m_buildFrame;
         bool m_dataready;
-        bgfx::UniformHandle m_uparams;
+        bgfxh<bgfx::UniformHandle> m_uparams;
         std::shared_ptr<TerrainTile> m_terrainTile;
         std::shared_ptr<CubeList> m_cubeList;
     public:
