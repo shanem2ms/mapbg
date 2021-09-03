@@ -28,7 +28,7 @@ class Engine
     std::shared_ptr<Hud> m_hud;
     std::vector<std::shared_ptr<Animation>> m_animations;
     bgfx::UniformHandle m_texture;
-    bgfx::UniformHandle m_gradient;   
+    bgfx::UniformHandle m_gradient;
 
     std::map<std::string, bgfx::ProgramHandle> m_shaders;
 
@@ -41,6 +41,7 @@ public:
     void Tick(float time);
 
     bgfx::ProgramHandle LoadShader(const std::string& vtx, const std::string& px);
+    bgfx::ProgramHandle LoadShader(const std::string& cs);
     static DrawContext & Ctx();
     void Resize(int w, int h);
     void Draw(DrawContext & nvg);

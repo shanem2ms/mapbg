@@ -29,6 +29,7 @@ set(Header_Files
     "SceneItem.h"
     "Mesh.h"
     "SimplexNoise/SimplexNoise.h"
+    "imgui/imgui.h"
 )  
 
 source_group("Header Files" FILES ${Header_Files})
@@ -52,6 +53,7 @@ set(Source_Files
     "cppcoro/lib/spin_wait.cpp"
     "cppcoro/lib/static_thread_pool.cpp"
     "cppcoro/lib/win32.cpp"
+    "imgui/imgui.cpp"
     )
 
 source_group("Source Files" FILES ${Source_Files} ${Main_Files})
@@ -76,6 +78,7 @@ message("BGFX_INC_DIR = ${BGFX_INC_DIR}")
 
 target_include_directories(core PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/."
+    "${CMAKE_CURRENT_SOURCE_DIR}/imgui/."
     ${BGFX_INCLUDE_ROOT}
     ${BX_INC_DIR_COMPAT}
     )

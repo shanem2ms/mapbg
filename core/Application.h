@@ -25,6 +25,7 @@ public:
     Application();
     ~Application();
     static Application& Inst();
+    int FrameIdx() const { return m_frameIdx; }
     void TouchDown(float x, float y, int touchId);
     void TouchDrag(float x, float y, int touchId);
     void TouchUp(int touchId);

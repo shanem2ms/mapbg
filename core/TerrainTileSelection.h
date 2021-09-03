@@ -13,9 +13,12 @@ namespace sam
     class TerrainTileSelection
     {
     public:
+        static std::atomic<size_t> sNumTiles;
 
         std::map<Loc, std::shared_ptr<TerrainTile>> m_tiles;
         std::set<Loc> m_activeTiles;
+
+        std::vector<std::shared_ptr<TerrainTile>> m_buildingTiles;
 
         void Update(Engine& e, DrawContext& ctx);
 

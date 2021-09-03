@@ -150,5 +150,23 @@ void CubeList::Create(const std::vector<Vec3f>& pts, float cubeSize)
     ibh = bgfx::createIndexBuffer(
         bgfx::makeRef(indices.data(), indices.size() * sizeof(uint32_t)),
         BGFX_BUFFER_INDEX32
-    );
+    );    
+}
+
+CubeList::CubeList() :
+    vbh(BGFX_INVALID_HANDLE),
+    ibh(BGFX_INVALID_HANDLE)
+{
+}
+
+CubeList::~CubeList()
+{
+    if (bgfx::isValid(vbh))
+    {
+        bgfx::destroy(vbh);
+    }
+    if (bgfx::isValid(ibh))
+    {
+        bgfx::destroy(ibh);
+    }
 }

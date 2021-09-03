@@ -166,6 +166,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
     init.resolution.reset = BGFX_RESET_VSYNC;
     if (!bgfx::init(init))
         return 1;
+    bgfx::setDebug(BGFX_DEBUG_TEXT);
     // Set view 0 to the same dimensions as the window and to clear the color buffer.
     const bgfx::ViewId kClearView = 0;
     bgfx::setViewClear(kClearView, BGFX_CLEAR_COLOR);
@@ -268,7 +269,6 @@ void Tick()
     float elapsedTime = (float)(cur.QuadPart - startTime.QuadPart) * timePeriod;
     app.Tick(elapsedTime);
 
-    const bgfx::ViewId kClearView = 0;
     RECT r;
     GetClientRect(hWnd, &r);
 
@@ -278,9 +278,11 @@ void Tick()
         curWindowRect = r;
         bgfx::reset((uint32_t)r.right, (uint32_t)r.bottom, BGFX_RESET_VSYNC);
         bgfx::setViewRect(0, 0, 0, bgfx::BackbufferRatio::Equal);
+        bgfx::setViewRect(1, 0, 0, bgfx::BackbufferRatio::Equal);
     }
     // This dummy draw call is here to make sure that view 0 is cleared if no other draw calls are submitted to view 0.
-    bgfx::touch(kClearView);
+    bgfx::touch(0);
+    bgfx::touch(1);
     app.Draw();
 }
 

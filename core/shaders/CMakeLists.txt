@@ -1,4 +1,4 @@
-set (CS_SHADERS cs_erosion.sc cs_copysect.sc)
+set (CS_SHADERS cs_erosion.sc cs_copysect.sc cs_noise.sc)
 set (VS_SHADERS vs_cubes.sc vs_terrain.sc vs_hud.sc)
 set (FS_SHADERS fs_cubes.sc fs_terrain.sc fs_hud.sc)
 

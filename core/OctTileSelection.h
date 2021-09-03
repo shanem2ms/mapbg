@@ -15,6 +15,8 @@ namespace sam
     {
     public:
 
+        static std::atomic<size_t> sNumTiles;
+
         std::map<Loc, std::shared_ptr<OctTile>> m_tiles;
         std::set<Loc> m_activeTiles;
         std::unique_ptr<TerrainTileSelection> m_terrainSelection;
@@ -23,10 +25,12 @@ namespace sam
 
         void AddTilesToGroup(std::shared_ptr<SceneGroup> grp);
         float GetGroundHeight(const Point3f& pt);
+        void GetNearFarMidDist(float nearfarmidsq[3]);
 
     public:
         OctTileSelection();
         ~OctTileSelection();
+        float m_nearfarmidsq[3];
     };
  
 

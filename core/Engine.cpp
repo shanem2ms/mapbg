@@ -38,15 +38,41 @@ namespace sam
 
     void Engine::Draw(DrawContext& dc)
     {
+        bgfx::setViewName(0, "farstuff");
+        bgfx::setViewName(1, "nearstuff");
+        bgfx::setViewFrameBuffer(0, BGFX_INVALID_HANDLE);
+        bgfx::setViewFrameBuffer(1, BGFX_INVALID_HANDLE);
         dc.m_texture = m_texture;
         dc.m_gradient = m_gradient;
         gmtl::identity(dc.m_mat);
-        gmtl::Matrix44f proj = Cam().PerspectiveMatrix();
+        float near = sqrt(dc.m_nearfar[0]);
+        float mid = sqrt(dc.m_nearfar[1]);
+        float far = sqrt(dc.m_nearfar[2]);
         gmtl::Matrix44f view = Cam().ViewMatrix();
-
-        bgfx::setViewTransform(0, view.getData(), proj.getData());
-
+        
+        bgfx::setViewClear(0,
+            BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH,
+            0x000000ff,
+            1.0f,
+            0
+        );
+        gmtl::Matrix44f proj0 = Cam().GetPerspectiveMatrix(mid, far);
+        bgfx::setViewTransform(0, view.getData(), proj0.getData());
+        dc.m_curviewIdx = 0;
+        dc.m_nearfarpassIdx = 0;
         m_root->DoDraw(dc);
+        bgfx::setViewClear(1,
+            BGFX_CLEAR_DEPTH,
+            0x0,
+            1.0f,
+            0
+        );
+        gmtl::Matrix44f proj1 = Cam().GetPerspectiveMatrix(near, mid);
+        bgfx::setViewTransform(1, view.getData(), proj1.getData());
+        dc.m_curviewIdx = 1;
+        dc.m_nearfarpassIdx = 1;
+        m_root->DoDraw(dc);
+
         m_hud->DoDraw(dc);
     }
 
@@ -94,6 +120,18 @@ namespace sam
         bgfx::ShaderHandle fragShader = bgfx::createShader(loadMem(&fileReader, px.c_str()));
         bgfx::ProgramHandle pgm = bgfx::createProgram(vtxShader, fragShader, true);
         m_shaders.insert(std::make_pair(key, pgm));
+        return pgm;
+    }
+
+    bgfx::ProgramHandle Engine::LoadShader(const std::string& cs)
+    {
+        auto itshd = m_shaders.find(cs);
+        if (itshd != m_shaders.end())
+            return itshd->second;
+        bx::FileReader fileReader;
+        bgfx::ShaderHandle csShader = bgfx::createShader(loadMem(&fileReader, cs.c_str()));
+        bgfx::ProgramHandle pgm = bgfx::createProgram(csShader, true);
+        m_shaders.insert(std::make_pair(cs, pgm));
         return pgm;
     }
 

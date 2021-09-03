@@ -11,14 +11,16 @@
 namespace sam
 {
 
-    TerrainTile::TerrainTile(const Loc& l, std::shared_ptr<TerrainTile> parent) : 
-        m_image(-1), m_l(l), 
+    TerrainTile::TerrainTile(const Loc& l, std::shared_ptr<TerrainTile> parent) :
+        m_image(-1), m_l(l),
         m_needRecalc(true),
         m_buildFrame(0),
+        m_buildStep(0),
         m_dataready(false),
         m_terrain(BGFX_INVALID_HANDLE),
-        m_uparams(BGFX_INVALID_HANDLE),
-        m_parent(parent)
+        m_rbTex(BGFX_INVALID_HANDLE),
+        m_parent(parent),
+        m_lastUsedframeIdx(0)
     {
         m_tex[0] = m_tex[1] = BGFX_INVALID_HANDLE;
     }
@@ -33,18 +35,18 @@ namespace sam
         float avgn1 = 0;
         float avgn2 = 0;
         AABoxf box = m_l.GetBBox();
-        
+
         float extents = m_l.GetExtent();
-        
+
         float terrainHeight = maxTerrainHeight / (1 << m_l.m_l);
 
-        float scale =  extents / SquarePtsCt;
+        float scale = extents / SquarePtsCt;
         constexpr float ovfl = (float)OverlapPtsCt / (float)(SquarePtsCt);
         float nx = box.mMin[0] - extents * ovfl;
         float ny = box.mMin[2] - extents * ovfl;
 
         int pX = 0, pZ = 0;
-        if (m_parent != nullptr) 
+        if (m_parent != nullptr)
         {
             Loc ll = m_l.GetLocal(m_parent->m_l);
             pX = ll.m_x;
@@ -52,6 +54,7 @@ namespace sam
         }
         float minheight = std::numeric_limits<float>::max();
         float maxheight = -minheight;
+        m_pts.resize(TotalPtsCt * TotalPtsCt);
         for (int oy = 0; oy < TotalPtsCt; ++oy)
         {
             for (int ox = 0; ox < TotalPtsCt; ++ox)
@@ -70,10 +73,6 @@ namespace sam
                 m_pts[oy * TotalPtsCt + ox] = h;
             }
         }
-        box.mMin[1] = minheight;
-        box.mMax[1] = maxheight;
-        std::cout << minheight << " " << maxheight << std::endl;
-        m_heightBbox = box;
         avgn1 /= (float)(SquarePtsCt * SquarePtsCt);
         avgn2 /= (float)(SquarePtsCt * SquarePtsCt);
         SetVals(Vec2f(avgn1, avgn2));
@@ -106,55 +105,13 @@ namespace sam
         return l * (1 - t) + r * t;
     }
 
-    void TerrainTile::Build()
+    bool TerrainTile::Build()
     {
-        NoiseGen();
+        //if (m_buildStep == 0)
+            //NoiseGen();
+        return GpuErosion();
     }
 
-    void TerrainTile::ProceduralBuild(DrawContext& ctx)
-    {
-        NoiseGen();
-
-        int wx = m_l.m_x;
-        int wy = m_l.m_z;
-        float nx = wx * SquarePtsCt;
-        float ny = wy * SquarePtsCt;
-
-        const bgfx::Memory* m = bgfx::alloc(TotalPtsCt * TotalPtsCt * sizeof(Vec4f));
-        Vec4f* flData = (Vec4f*)m->data;
-
-        for (int oy = 0; oy < TotalPtsCt; ++oy)
-        {
-            for (int ox = 0; ox < TotalPtsCt; ++ox)
-            {
-                float val = m_pts[oy * TotalPtsCt + ox];
-                flData[oy * TotalPtsCt + ox] = Vec4f(0, 0, 0, val);
-            }
-        }
-
-        for (int i = 0; i < 2; ++i)
-        {
-            m_tex[i] = bgfx::createTexture2D(
-                TotalPtsCt, TotalPtsCt, false,
-                1,
-                bgfx::TextureFormat::Enum::RGBA32F,
-                BGFX_TEXTURE_COMPUTE_WRITE | BGFX_TEXTURE_NONE,
-                i == 0 ? m : nullptr
-            );
-        }
-
-        m_terrain = bgfx::createTexture2D(
-            SquarePtsCt, SquarePtsCt, false,
-            1,
-            bgfx::TextureFormat::Enum::R32F,
-            BGFX_TEXTURE_COMPUTE_WRITE | BGFX_TEXTURE_NONE | BGFX_SAMPLER_MIN_POINT
-            | BGFX_SAMPLER_MAG_POINT
-            | BGFX_SAMPLER_MIP_POINT
-            | BGFX_SAMPLER_U_CLAMP
-            | BGFX_SAMPLER_V_CLAMP,
-            nullptr
-        );
-    }
 
     inline void AABoxAdd(AABoxf& aab, const Point3f& pt)
     {
@@ -178,57 +135,98 @@ namespace sam
         }
     }
 
+    bgfx::UniformHandle TerrainTile::m_texture = BGFX_INVALID_HANDLE;
+    bgfx::ProgramHandle TerrainTile::m_erosion = BGFX_INVALID_HANDLE;
+    bgfx::ProgramHandle TerrainTile::m_copysect = BGFX_INVALID_HANDLE;
+    bgfx::ProgramHandle TerrainTile::m_csnoise = BGFX_INVALID_HANDLE;
+    bgfx::UniformHandle TerrainTile::m_uparams = BGFX_INVALID_HANDLE;
 
-#if 0
-    void TerrainTile::Draw(DrawContext& ctx)
+    bool TerrainTile::GpuErosion()
     {
-        return;
-        if (m_needRecalc)
+        int frameIdx = Application::Inst().FrameIdx();
+        m_texpingpong = 0;
+        if (m_buildStep == 0)
         {
-            if (m_heightData.size() == 0)
-            {
-                ProceduralBuild(ctx);
-                m_buildFrame = 0;
+            if (!bgfx::isValid(m_texture)) {
+                m_texture = bgfx::createUniform("s_terrain", bgfx::UniformType::Sampler);
+                m_erosion = Engine::Inst().LoadShader("cs_erosion.bin");
+                m_copysect = Engine::Inst().LoadShader("cs_copysect.bin");
+                m_csnoise = Engine::Inst().LoadShader("cs_noise.bin");
+                m_uparams = bgfx::createUniform("u_params", bgfx::UniformType::Vec4, 1);
             }
-            else
-            {
-                const bgfx::Memory* m = bgfx::alloc(SquarePtsCt * SquarePtsCt * sizeof(float));
-                memcpy(m->data, m_heightData.data(), m_heightData.size() * sizeof(float));
 
-                m_terrain = bgfx::createTexture2D(
-                    SquarePtsCt, SquarePtsCt, false,
+            int wx = m_l.m_x;
+            int wy = m_l.m_z;
+            float nx = wx * SquarePtsCt;
+            float ny = wy * SquarePtsCt;
+            /*
+            const bgfx::Memory* m = bgfx::alloc(TotalPtsCt * TotalPtsCt * sizeof(Vec4f));
+            Vec4f* flData = (Vec4f*)m->data;
+
+            for (int oy = 0; oy < TotalPtsCt; ++oy)
+            {
+                for (int ox = 0; ox < TotalPtsCt; ++ox)
+                {
+                    float val = m_pts[oy * TotalPtsCt + ox];
+                    flData[oy * TotalPtsCt + ox] = Vec4f(0, 0, 0, val);
+                }
+            }*/
+
+            for (int i = 0; i < 2; ++i)
+            {
+                m_tex[i] = bgfx::createTexture2D(
+                    TotalPtsCt, TotalPtsCt, false,
                     1,
-                    bgfx::TextureFormat::Enum::R32F,
-                    BGFX_TEXTURE_COMPUTE_WRITE | BGFX_TEXTURE_NONE | BGFX_SAMPLER_MIN_POINT
-                    | BGFX_SAMPLER_MAG_POINT
-                    | BGFX_SAMPLER_MIP_POINT
-                    | BGFX_SAMPLER_U_CLAMP
-                    | BGFX_SAMPLER_V_CLAMP,
-                    m
+                    bgfx::TextureFormat::Enum::RGBA32F,
+                    BGFX_TEXTURE_COMPUTE_WRITE | BGFX_TEXTURE_NONE,
+                    nullptr
                 );
             }
-            m_needRecalc = false;
-        }
-        m_texpingpong = 0;
-        if (m_buildFrame == 0)
-        {
+
+            m_terrain = bgfx::createTexture2D(
+                TotalPtsCt, TotalPtsCt, false,
+                1,
+                bgfx::TextureFormat::Enum::R32F,
+                BGFX_TEXTURE_COMPUTE_WRITE | BGFX_TEXTURE_NONE | BGFX_SAMPLER_MIN_POINT
+                | BGFX_SAMPLER_MAG_POINT
+                | BGFX_SAMPLER_MIP_POINT
+                | BGFX_SAMPLER_U_CLAMP
+                | BGFX_SAMPLER_V_CLAMP,
+                nullptr
+            );
+
+            AABoxf box = m_l.GetBBox();
+            float extents = m_l.GetExtent();
+
+            float overlap = (float)OverlapPtsCt / (float)SquarePtsCt;
+            overlap *= extents;
+            Vec4f tileScaleOffset(
+                (extents + overlap * 2), 
+                (extents + overlap * 2),
+                (box.mMin[0] - overlap), 
+                (box.mMin[2] - overlap));
+            bgfx::setUniform(m_uparams, &tileScaleOffset, 1);
+            bgfx::setImage(0, m_tex[0], 0, bgfx::Access::Write, bgfx::TextureFormat::RGBA32F);
+            bgfx::dispatch(0, m_csnoise, TotalPtsCt / 16, TotalPtsCt / 16);
+            /*
             for (int i = 0; i < 1000; i++)
             {
-                bgfx::setTexture(0, ctx.m_texture, m_tex[m_texpingpong]);
+                bgfx::setTexture(0, m_texture, m_tex[m_texpingpong]);
                 bgfx::setImage(1, m_tex[1 - m_texpingpong], 0, bgfx::Access::Write, bgfx::TextureFormat::RGBA32F);
-                bgfx::dispatch(0, Engine::Inst().m_erosion, TotalPtsCt / 16, TotalPtsCt / 16);
+                bgfx::dispatch(0, m_erosion, TotalPtsCt / 16, TotalPtsCt / 16);
                 m_texpingpong = 1 - m_texpingpong;
             }
-
-            bgfx::setTexture(0, ctx.m_texture, m_tex[m_texpingpong]);
+            */
+            bgfx::setTexture(0, m_texture, m_tex[m_texpingpong]);
             bgfx::setImage(1, m_terrain, 0, bgfx::Access::Write, bgfx::TextureFormat::R32F);
-            bgfx::dispatch(0, Engine::Inst().m_copysect, SquarePtsCt / 16, SquarePtsCt / 16);
-            m_buildFrame++;
+            bgfx::dispatch(0, m_copysect, TotalPtsCt / 16, TotalPtsCt / 16);
+            m_buildStep = 1;
+            m_buildFrame = frameIdx + 1;
         }
-        else if (m_buildFrame == 1)
+        else if (m_buildStep == 1 && frameIdx >= m_buildFrame)
         {
             m_rbTex = bgfx::createTexture2D(
-                SquarePtsCt, SquarePtsCt, false,
+                TotalPtsCt, TotalPtsCt, false,
                 1,
                 bgfx::TextureFormat::Enum::R32F,
                 BGFX_TEXTURE_BLIT_DST
@@ -239,48 +237,32 @@ namespace sam
                 | BGFX_SAMPLER_U_CLAMP
                 | BGFX_SAMPLER_V_CLAMP);
             bgfx::blit(0, m_rbTex, 0, 0, m_terrain);
-            m_heightData.resize(SquarePtsCt * SquarePtsCt);
+            m_heightData.resize(TotalPtsCt * TotalPtsCt);
             m_buildFrame = bgfx::readTexture(m_rbTex, m_heightData.data());
+            m_buildStep = 2;
         }
-        else if (ctx.m_frameIdx == m_buildFrame)
+        else if (m_buildStep == 2 && frameIdx >= m_buildFrame)
         {
+            float minheight = std::numeric_limits<float>::max();
+            float maxheight = -minheight;
+            for (float val : m_heightData)
+            {
+                minheight = std::min(minheight, val);
+                maxheight = std::max(maxheight, val);
+            }
+            m_heightBbox = m_l.GetBBox();
+            m_heightBbox.mMin[1] = minheight;
+            m_heightBbox.mMax[1] = maxheight;
+
             bgfx::destroy(m_rbTex);
+            m_rbTex = BGFX_INVALID_HANDLE;
             m_dataready = true;
-            m_buildFrame = -1;
+            m_buildStep = -1;
         }
-        Matrix44f m =
-            ctx.m_mat * CalcMat();
 
-        /*
-        AABoxf bbox = m_l.GetBBox();
-        Point4f p[4];
-        xform(p[0], m, Point4f(-1, 0, -1, 1));
-        xform(p[1], m, Point4f(1, 0, -1, 1));
-        xform(p[2], m, Point4f(-1, 0, 1, 1));
-        xform(p[3], m, Point4f(1, 0, 1, 1));
-        */
-
-        bgfx::setTransform(m.getData());
-        bgfx::setTexture(0, ctx.m_texture, m_terrain);
-
-        Cube::init();
-
-        // Set vertex and index buffer.
-        bgfx::setVertexBuffer(0, Cube::vbh);
-        bgfx::setIndexBuffer(Cube::ibh);
-        uint64_t state = 0
-            | BGFX_STATE_WRITE_RGB
-            | BGFX_STATE_WRITE_A
-            | BGFX_STATE_WRITE_Z
-            | BGFX_STATE_DEPTH_TEST_LESS
-            | BGFX_STATE_CULL_CCW
-            | BGFX_STATE_MSAA;
-        // Set render states.l
-        bgfx::setState(state);
-        bgfx::submit(0, ctx.m_pgm);
+        return m_dataready;
     }
 
-#endif
 
     void TerrainTile::Decomission()
     {
@@ -302,6 +284,11 @@ namespace sam
         {
             bgfx::destroy(m_uparams);
             m_uparams = BGFX_INVALID_HANDLE;
+        }
+        if (bgfx::isValid(m_rbTex))
+        {
+            bgfx::destroy(m_rbTex);
+            m_rbTex = BGFX_INVALID_HANDLE;
         }
         m_needRecalc = true;
     }

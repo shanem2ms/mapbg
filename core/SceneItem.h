@@ -25,6 +25,9 @@ namespace sam
         Matrix44f m_mat;
         bgfx::UniformHandle m_texture;
         bgfx::UniformHandle m_gradient;
+        int m_nearfarpassIdx;
+        float m_nearfar[3];
+        int m_curviewIdx;
         int m_frameIdx;
     };
 
@@ -33,7 +36,7 @@ namespace sam
     {
         gmtl::Matrix44f m_proj;
         gmtl::Matrix44f m_view;
-
+        float m_aspect;
 
     public:
 
@@ -82,6 +85,8 @@ namespace sam
         }
 
         const Fly& GetFly() const { return m_fly; }
+
+        gmtl::Matrix44f GetPerspectiveMatrix(float near, float far) const;
 
         const gmtl::Matrix44f& PerspectiveMatrix() const
         {

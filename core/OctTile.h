@@ -129,15 +129,10 @@ namespace sam
     }
     class OctTile : public SceneItem
     {
-        static const int SquarePtsCt = 256;
-        static const int OverlapPtsCt = 64;
-        static const int TotalPtsCt = SquarePtsCt + OverlapPtsCt * 2;
-
         int m_image;
         Vec2f m_vals;
         Loc m_l;
-        bool m_needRecalc;
-        float m_pts[TotalPtsCt * TotalPtsCt];
+        bool m_needRebuild;
         Vec2f m_maxdh;
         Vec2f m_mindh;
         int m_texpingpong;
@@ -147,6 +142,8 @@ namespace sam
         std::shared_ptr<TerrainTile> m_terrainTile;
         std::shared_ptr<CubeList> m_cubeList;
     public:
+        float nearDistSq;
+        float farDistSq;
         float distFromCam;
     public:
         void Draw(DrawContext& ctx) override;
@@ -158,7 +155,6 @@ namespace sam
             m_terrainTile = terrainTile;
         }
 
-        const float* Pts() const { return m_pts; }
         void SetImage(int image)
         {
             m_image = image;

@@ -177,12 +177,19 @@ namespace sam
         normalize(up);
     }
 
+    gmtl::Matrix44f Camera::GetPerspectiveMatrix(float near, float far) const
+    {
+        Matrix44f proj;
+        setPerspective(proj, 60.0f, m_aspect, near, far);
+        return proj;
+    }
+
     void Camera::Update(int w, int h)
     {
         Matrix44f rot, off, scl, perp;
         float aspect = (float)w / (float)h;
-        setPerspective(m_proj, 60.0f, aspect, 0.002f, 5.0f);
-
+        setPerspective(m_proj, 60.0f, aspect, 0.002f, 25.0f);
+        m_aspect = aspect;
         if (m_mode == 0)
         {
             Vec3f rightDir, upDir, lookDir;

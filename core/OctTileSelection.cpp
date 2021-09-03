@@ -19,6 +19,7 @@ using namespace gmtl;
 
 namespace sam
 {
+    std::atomic<size_t> OctTileSelection::sNumTiles = 0;
 
     class FrustumTiles
     {
@@ -202,14 +203,7 @@ namespace sam
                     sq->SetScale(Vec3f(s, s, s));
                 }
                 m_tiles.insert(std::make_pair(l, sq));
-                for (int dx = -1; dx <= 1; ++dx) {
-                    for (int dy = -1; dy <= 1; ++dy)
-                    {
-                        auto itNeightborSq = m_tiles.find(Loc(l.m_x + dx, 0, l.m_z + dy));
-                        if (itNeightborSq == m_tiles.end())
-                            continue;
-                    }
-                }
+                sNumTiles++;
             }
             m_activeTiles.insert(l);
         }
@@ -220,7 +214,8 @@ namespace sam
         {
             if (m_activeTiles.find(loc) == m_activeTiles.end())
             {
-                m_tiles[loc]->Decomission();
+                m_tiles.erase(loc);
+                sNumTiles--;
             }
         }
 
@@ -233,9 +228,33 @@ namespace sam
             auto itTerrainTile = terrainTiles.find(tloc);
             if (itTerrainTile != terrainTiles.end())
             {
+                itTerrainTile->second->SetLastUseFrame(ctx.m_frameIdx);
                 itSq->second->SetTerrainTile(itTerrainTile->second);
             }
-            itSq->second->distFromCam = lengthSquared(Vec3f(fly.pos - sqPair.GetCenter()));
+            AABoxf box = sqPair.GetBBox();
+            const Point3f& m0 = box.mMin;
+            const Point3f& m1 = box.mMax;
+            Point3f pts[9] = {
+                Point3f(m0[0], m0[1], m0[2]),
+                Point3f(m0[0], m0[1], m1[2]),
+                Point3f(m0[0], m1[1], m0[2]),
+                Point3f(m0[0], m1[1], m1[2]),
+                Point3f(m1[0], m0[1], m0[2]),
+                Point3f(m1[0], m0[1], m1[2]),
+                Point3f(m1[0], m1[1], m0[2]),
+                Point3f(m1[0], m1[1], m1[2])
+            };
+            float minlen = std::numeric_limits<float>::max();
+            float maxlen = 0;
+            for (int i = 0; i < 8; ++i)
+            {
+                float l = lengthSquared(Vec3f(fly.pos - pts[i]));
+                minlen = std::min(minlen, l);
+                maxlen = std::max(maxlen, l);
+            }
+            itSq->second->nearDistSq = minlen;
+            itSq->second->farDistSq = maxlen;
+            itSq->second->distFromCam = (minlen + maxlen) * 0.5f;
         }
     }
 
@@ -249,11 +268,41 @@ namespace sam
         }
 
         std::sort(tiles.begin(), tiles.end(), [](auto& t1, auto& t2) { return t1->distFromCam > t2->distFromCam;  });
+        
+
+        float splitdistsq = tiles[tiles.size() / 2]->distFromCam;
+        float neardistsq = std::numeric_limits<float>::max();
+        float fardistsq = 0;
+        for (auto& t : tiles)
+        {
+//            splitdistsq += t->nearDistSq;
+            neardistsq = std::min(neardistsq, t->nearDistSq);
+            fardistsq = std::max(fardistsq, t->farDistSq);
+        }
+
+        m_nearfarmidsq[0] = neardistsq;
+        m_nearfarmidsq[1] = splitdistsq;
+        m_nearfarmidsq[2] = fardistsq;
+        int nearCt = 0;
+        int farCt = 0;
+        for (auto& t : tiles)
+        {
+            if (t->nearDistSq < splitdistsq)
+                nearCt++;
+            if (t->farDistSq > splitdistsq)
+                farCt++;
+        }
+        
         for (auto& t : tiles)
         {
             grp->AddItem(t);
         }
 
+    }
+
+    void OctTileSelection::GetNearFarMidDist(float nearfarmidsq[3])
+    {
+        memcpy(nearfarmidsq, m_nearfarmidsq, sizeof(float) * 3);
     }
 
     float OctTileSelection::GetGroundHeight(const Point3f& pt)

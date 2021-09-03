@@ -24,15 +24,31 @@ using namespace gmtl;
 namespace sam
 {
 
+    std::atomic<size_t> TerrainTileSelection::sNumTiles = 0;
     TerrainTileSelection::TerrainTileSelection()
     {
     }
 
     void TerrainTileSelection::SelectTiles(const std::vector<Loc>& locs)
     {        
-        for (const Loc& oloc : locs)
+        if (m_tiles.size() > 100)
         {
-            
+            std::vector<std::pair<Loc, TerrainTile*>> alltiles;
+            for (auto& pair : m_tiles)
+            {
+                alltiles.push_back(std::make_pair(pair.first, pair.second.get()));
+            }
+            std::sort(alltiles.begin(), alltiles.end(), [](const  std::pair<Loc, TerrainTile*>& l, const std::pair<Loc, TerrainTile*>& r)
+                { return l.second->GetLastUsedFrame() < r.second->GetLastUsedFrame(); });
+            for (auto itTile = alltiles.begin(); itTile != alltiles.begin() + 20; ++itTile)
+            {
+                m_tiles.erase(itTile->first);
+                sNumTiles--;
+            }
+        }
+        std::vector<std::shared_ptr<TerrainTile>> nextBuildingTiles;
+        for (const Loc& oloc : locs)
+        {            
             std::vector<Loc> locsParents;
             Loc p = oloc;
             p.m_y = 0;
@@ -48,13 +64,25 @@ namespace sam
                 if (itTile == m_tiles.end())
                 {
                     auto newTile = std::make_shared<TerrainTile>(loc, nullptr);
-                    newTile->Build();
+                    if (!newTile->Build())
+                    {
+                        nextBuildingTiles.push_back(newTile);
+                    }
                     itTile = m_tiles.insert(std::make_pair(loc, newTile)).first;
+                    sNumTiles++;
                 }
                 if (!intersect(itTile->second->GetBounds(), oloc.GetBBox()))
                     break;
             }
+        }  
+
+        for (std::shared_ptr<TerrainTile>& tile : m_buildingTiles)
+        {
+            if (!tile->Build())
+                nextBuildingTiles.push_back(tile);
         }
+
+        m_buildingTiles.swap(nextBuildingTiles);
     }
 
     void TerrainTileSelection::Update(Engine& e, DrawContext& ctx)

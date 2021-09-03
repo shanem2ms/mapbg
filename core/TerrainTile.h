@@ -18,7 +18,8 @@ namespace sam
         Vec2f m_vals;
         Loc m_l;
         bool m_needRecalc;
-        float m_pts[TotalPtsCt * TotalPtsCt];
+        std::vector<float> m_pts;
+        std::vector<float> m_heightData;
         Vec2f m_maxdh;
         Vec2f m_mindh;
         bgfx::TextureHandle m_tex[2];
@@ -26,23 +27,35 @@ namespace sam
         bgfx::TextureHandle m_rbTex;
         int m_texpingpong;
         int m_buildFrame;
+        int m_buildStep;
         bool m_dataready;
-        std::vector<float> m_heightData;
         AABoxf m_heightBbox;
-        bgfx::UniformHandle m_uparams;
         std::shared_ptr<TerrainTile> m_parent;
-
+        int m_lastUsedframeIdx;
+        
+        static bgfx::UniformHandle m_texture;
+        static bgfx::UniformHandle m_uparams;
+        static bgfx::ProgramHandle m_erosion;
+        static bgfx::ProgramHandle m_copysect;
+        static bgfx::ProgramHandle m_csnoise;
     public:
         float distFromCam;
     public:
         TerrainTile(const Loc& l, std::shared_ptr<TerrainTile> parent);
         ~TerrainTile();
 
+        void SetLastUseFrame(int frameIdx)
+        { m_lastUsedframeIdx = frameIdx; }
+
+        int GetLastUsedFrame() const {
+            return m_lastUsedframeIdx; }
+
         const AABoxf& GetBounds() const {
             return m_heightBbox;
         }
 
-        const float* Pts() const { return m_pts; }
+        bool IsDataReady() const { return m_dataready; }
+        const float* Pts() const { return m_heightData.data(); }
         void SetImage(int image)
         {
             m_image = image;
@@ -52,13 +65,13 @@ namespace sam
             m_vals = v;
         }
         void Decomission();
-        void Build();
+        bool Build();
 
         float GetGroundHeight(const gmtl::Point3f& pt) const;
 
     private:
+        bool GpuErosion();
         void NoiseGen();
-        void ProceduralBuild(DrawContext& ctx);
     };
 
 

@@ -179,7 +179,7 @@ namespace sam
             e.Root()->AddItem(m_worldGroup);
 
             Camera::Fly fly;
-            fly.pos = Point3f(0.1f, 1.0f, 0.1f);
+            fly.pos = Point3f(0.1f, 0.15f, 0.1f);
             fly.dir = Vec2f(0, 0.0f);
             e.Cam().SetFly(fly);
 
@@ -232,11 +232,13 @@ namespace sam
             m_worldGroup->Clear();
             m_octTileSelection.Update(e, ctx);
             m_octTileSelection.AddTilesToGroup(m_worldGroup);
+            m_octTileSelection.GetNearFarMidDist(ctx.m_nearfar);
         }
 
-        fly.pos[1] = std::max(m_octTileSelection.GetGroundHeight(fly.pos), fly.pos[1]);
+        //fly.pos[1] = std::max(m_octTileSelection.GetGroundHeight(fly.pos), fly.pos[1]);
 
         cam.SetFly(fly);
+
     }
 
 

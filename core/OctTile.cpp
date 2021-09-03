@@ -13,7 +13,7 @@
 namespace sam
 {
 
-    OctTile::OctTile(const Loc& l) : m_image(-1), m_l(l), m_needRecalc(true),
+    OctTile::OctTile(const Loc& l) : m_image(-1), m_l(l), m_needRebuild(true),
         m_buildFrame(0),
         m_dataready(false),
         m_uparams(BGFX_INVALID_HANDLE)
@@ -68,7 +68,11 @@ namespace sam
 
     void OctTile::Draw(DrawContext& ctx)
     {
-        if (m_terrainTile == nullptr)
+        if (m_terrainTile == nullptr || !m_terrainTile->IsDataReady())
+            return;
+        if (ctx.m_nearfarpassIdx == 0 && farDistSq < ctx.m_nearfar[1])
+            return;
+        if (ctx.m_nearfarpassIdx == 1 && nearDistSq > ctx.m_nearfar[1])
             return;
 
         AABoxf bboxterrain = m_terrainTile->GetBounds();
@@ -82,7 +86,7 @@ namespace sam
             m_uparams = bgfx::createUniform("u_params", bgfx::UniformType::Vec4, 1);
         }
 
-        if (m_cubeList == nullptr)
+        if (m_needRebuild)
         {
             std::vector<Vec3f> octPts;
             float minY = bboxoct.mMin[1];
@@ -107,9 +111,16 @@ namespace sam
                 }
             }
 
-            m_cubeList = std::make_shared<CubeList>();
-            m_cubeList->Create(octPts, len * 0.5f);
+            if (octPts.size() > 0)
+            {
+                m_cubeList = std::make_shared<CubeList>();
+                m_cubeList->Create(octPts, len * 0.5f);
+            }
+            m_needRebuild = false;
         }
+
+        if (m_cubeList == nullptr)
+            return;
 
         int t = m_l.m_l;
         Vec4f color((std::min(t, 93) + 1) * 0.1f,
@@ -132,7 +143,7 @@ namespace sam
             | BGFX_STATE_BLEND_ALPHA;
         // Set render states.l
         bgfx::setState(state);
-        bgfx::submit(0, ctx.m_pgm);
+        bgfx::submit(ctx.m_curviewIdx, ctx.m_pgm);
     }
 
     void OctTile::Decomission()
@@ -143,13 +154,11 @@ namespace sam
             bgfx::destroy(m_uparams);
             m_uparams = BGFX_INVALID_HANDLE;
         }
-        m_needRecalc = true;
+        m_needRebuild = true;
     }
 
     OctTile::~OctTile()
     {
-        if (m_image >= 0)
-        {
-        }
+        Decomission();
     }
 }
