@@ -150,6 +150,8 @@ namespace sam
         OctTile(const Loc& l);
         ~OctTile();
 
+        bool IsEmpty() const { return m_terrainTile == nullptr;  }
+
         void SetTerrainTile(std::shared_ptr<TerrainTile> terrainTile)
         {
             m_terrainTile = terrainTile;

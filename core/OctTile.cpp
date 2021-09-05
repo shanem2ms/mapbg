@@ -65,10 +65,15 @@ namespace sam
     }
 
 
+    int nOctTilesTotal;
+    int nOctTilesDrawn;
+
     void OctTile::Draw(DrawContext& ctx)
     {
+        nOctTilesTotal++;
         if (m_terrainTile == nullptr || !m_terrainTile->IsDataReady())
             return;
+        nOctTilesDrawn++;
         if (ctx.m_nearfarpassIdx == 0 && farDistSq < ctx.m_nearfar[1])
             return;
         if (ctx.m_nearfarpassIdx == 1 && nearDistSq > ctx.m_nearfar[1])
@@ -113,7 +118,7 @@ namespace sam
             if (octPts.size() > 0)
             {
                 m_cubeList = std::make_shared<CubeList>();
-                m_cubeList->Create(octPts, len * 0.5f);
+                m_cubeList->Create(octPts, len * 1.0f);
             }
             m_needRebuild = false;
         }

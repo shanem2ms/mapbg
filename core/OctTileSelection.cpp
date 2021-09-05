@@ -169,6 +169,9 @@ namespace sam
 
     OctTileSelection::OctTileSelection()
     {
+        m_nearfarmidsq[0] = 0.1f;
+        m_nearfarmidsq[1] = 25.0f;
+        m_nearfarmidsq[2] = 100.0f;
         m_terrainSelection = std::make_unique<TerrainTileSelection>();
     }
 
@@ -258,14 +261,21 @@ namespace sam
         }
     }
 
+    int g_nearTiles;
+    int g_farTiles;
+
     void OctTileSelection::AddTilesToGroup(std::shared_ptr<SceneGroup> grp)
     {
         std::vector<std::shared_ptr<OctTile>> tiles;
         for (auto sqPair : m_activeTiles)
         {
             auto itSq = m_tiles.find(sqPair);
-            tiles.push_back(itSq->second);
+            if (!itSq->second->IsEmpty())
+                tiles.push_back(itSq->second);
         }
+
+        if (tiles.size() == 0)
+            return;
 
         std::sort(tiles.begin(), tiles.end(), [](auto& t1, auto& t2) { return t1->distFromCam > t2->distFromCam;  });
         
@@ -292,7 +302,9 @@ namespace sam
             if (t->farDistSq > splitdistsq)
                 farCt++;
         }
-        
+        g_nearTiles = nearCt;
+        g_farTiles = farCt;
+
         for (auto& t : tiles)
         {
             grp->AddItem(t);

@@ -680,8 +680,8 @@ namespace gmtl
     *   The aspect ratio is the ratio of x (width) to y (height).
     * @param zNear
     *   The distance from the viewer to the near clipping plane (always positive).
-    * @param zFar
     *   The distance from the viewer to the far clipping plane (always positive).
+    * @param zFar
     * @result Set matrix to perspective transform
     */
    template <typename T>

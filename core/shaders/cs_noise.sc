@@ -97,5 +97,5 @@ void main()
     vec2 uv = gl_GlobalInvocationID.xy / 384.0;
     vec2 offset = uv * u_params[0].xy + u_params[0].zw;
     float val = noise_octaves(offset *0.1);
-	imageStore(s_target, ivec2(gl_GlobalInvocationID.xy), float4(0, 0, 0, val));
+	imageStore(s_target, ivec2(gl_GlobalInvocationID.xy), float4(0, 0, 0, val + 1));
 }

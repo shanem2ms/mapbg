@@ -82,6 +82,9 @@ namespace sam
     void Application::Draw()
     {
         sam::DrawContext ctx;
+        ctx.m_nearfar[0] = 0.1f;
+        ctx.m_nearfar[1] = 25.0f;
+        ctx.m_nearfar[2] = 100.0f;
         ctx.m_frameIdx = m_frameIdx;
         m_uiMgr->Update(*m_engine, m_width, m_height, ctx);
         m_world->Update(*m_engine, ctx);

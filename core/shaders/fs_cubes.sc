@@ -15,5 +15,5 @@ void main()
 	//if (xv > 0.02 && yv > 0.02)
 	//	discard;
 	gl_FragColor.rgb = vec3(v_texcoord0.xy,0);
-	gl_FragColor.a = .5;
+	gl_FragColor.a = 1;
 } 
