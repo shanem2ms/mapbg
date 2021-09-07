@@ -58,12 +58,13 @@ namespace sam
                 p = p.Parent();
             }
             std::reverse(locsParents.begin(), locsParents.end());
+            std::shared_ptr<TerrainTile> parentTile;
             for (const Loc& loc : locsParents)
             {
                 auto itTile = m_tiles.find(loc);
                 if (itTile == m_tiles.end())
                 {
-                    auto newTile = std::make_shared<TerrainTile>(loc, nullptr);
+                    auto newTile = std::make_shared<TerrainTile>(loc, parentTile);
                     if (!newTile->Build())
                     {
                         nextBuildingTiles.push_back(newTile);
@@ -73,6 +74,7 @@ namespace sam
                 }
                 if (!intersect(itTile->second->GetBounds(), oloc.GetBBox()))
                     break;
+                parentTile = itTile->second;
             }
         }  
 

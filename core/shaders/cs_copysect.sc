@@ -9,5 +9,5 @@ NUM_THREADS(16, 16, 1)
 void main()
 {    
     vec4 outpixel = texelFetch(s_texColor,gl_GlobalInvocationID.xy,0);  
-	imageStore(s_target, ivec2(gl_GlobalInvocationID.xy), outpixel.aaaa);
+	imageStore(s_target, ivec2(gl_GlobalInvocationID.xy), outpixel.aaaa - vec4(1,1,1,1));
 }

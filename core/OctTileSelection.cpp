@@ -24,7 +24,7 @@ namespace sam
     class FrustumTiles
     {
     public:
-        static void Get(Camera& cam, std::vector<Loc>& locs, float pixelDist)
+        static void Get(Camera& cam, std::vector<Loc>& locs, float pixelDist, int maxlod)
         {
             Frustumf viewFrust = cam.GetFrustum();
             Matrix44f viewproj = cam.PerspectiveMatrix() * cam.ViewMatrix();
@@ -32,7 +32,7 @@ namespace sam
 
 
             Vec3f chkpos(floorf(ctr[0]), floorf(ctr[1]), floorf(ctr[2]));
-            GetLocsInView(locs, Loc(0, 0, 0, 0), viewFrust, viewproj, pixelDist);
+            GetLocsInView(locs, Loc(0, 0, 0, 0), viewFrust, viewproj, pixelDist, maxlod);
         }
 
     private:
@@ -125,7 +125,7 @@ namespace sam
         }
 
         static void GetLocsInView(std::vector<Loc>& locs, const Loc& curLoc,
-            const Frustumf& f, const Matrix44f& viewProj, float pixelDist)
+            const Frustumf& f, const Matrix44f& viewProj, float pixelDist, int maxlod)
         {
             AABoxf aabox = curLoc.GetBBox();
             Point3f ptinc = (aabox.mMax - aabox.mMin) * 0.2f;
@@ -148,7 +148,7 @@ namespace sam
                 avgdist += dist;
             }
 
-            if (curLoc.m_l > 4 && avgdist < pixelDist)
+            if (curLoc.m_l > 1 && (avgdist < pixelDist || curLoc.m_l >= maxlod))
             {
                 locs.push_back(curLoc);
                 return;
@@ -161,7 +161,7 @@ namespace sam
                 ContainmentType res = Contains(f, cbox);
                 if (res != ContainmentType::Disjoint)
                 {
-                    GetLocsInView(locs, childLoc, f, viewProj, pixelDist);
+                    GetLocsInView(locs, childLoc, f, viewProj, pixelDist, maxlod);
                 }
             }
         }
@@ -175,6 +175,7 @@ namespace sam
         m_terrainSelection = std::make_unique<TerrainTileSelection>();
     }
 
+    extern int g_maxTileLod;
     void OctTileSelection::Update(Engine& e, DrawContext& ctx)
     {
         auto oldTiles = m_activeTiles;
@@ -186,7 +187,7 @@ namespace sam
         int tz = (int)floor(fly.pos[2]);
 
         std::vector<Loc> locs;
-        FrustumTiles::Get(e.Cam(), locs, 10.0f);
+        FrustumTiles::Get(e.Cam(), locs, 10.0f, g_maxTileLod);
 
         std::sort(locs.begin(), locs.end());        
 

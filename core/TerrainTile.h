@@ -35,15 +35,18 @@ namespace sam
         
         static bgfx::UniformHandle m_texture;
         static bgfx::UniformHandle m_uparams;
+        static bgfx::UniformHandle m_vparams;
         static bgfx::ProgramHandle m_erosion;
         static bgfx::ProgramHandle m_copysect;
         static bgfx::ProgramHandle m_csnoise;
+        static bgfx::ProgramHandle m_cscopyparent;
     public:
         float distFromCam;
     public:
         TerrainTile(const Loc& l, std::shared_ptr<TerrainTile> parent);
         ~TerrainTile();
 
+        const bgfxh<bgfx::TextureHandle> &GetTerrain() const { return m_terrain; }
         void SetLastUseFrame(int frameIdx)
         { m_lastUsedframeIdx = frameIdx; }
 

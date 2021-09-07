@@ -110,6 +110,7 @@ namespace sam
     const int SButton = 'S';
     bool isPaused = false;
 
+    int g_maxTileLod = 9;
     void World::KeyDown(int k)
     {
         float speed = 0.005f;
@@ -136,6 +137,10 @@ namespace sam
         case SButton:
             m_camVel[2] += speed;
             break;
+        }
+        if (k >= '1' && k <= '9')
+        {
+            g_maxTileLod = k - '0';
         }
     }
 
