@@ -7,7 +7,9 @@
 
 namespace sam
 {
+#ifdef SAM_COROUTINES
     co::static_thread_pool g_threadPool(8);
+#endif
     static Application* s_pInst = nullptr;
 
     Application::Application() :

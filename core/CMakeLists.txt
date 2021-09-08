@@ -33,6 +33,17 @@ set(Header_Files
 
 source_group("Header Files" FILES ${Header_Files})
 
+if (SAM_COROUTINE)
+set(Coroutine_Files
+    "cppcoro/lib/auto_reset_event.cpp"
+    "cppcoro/lib/lightweight_manual_reset_event.cpp"
+    "cppcoro/lib/spin_mutex.cpp"
+    "cppcoro/lib/spin_wait.cpp"
+    "cppcoro/lib/static_thread_pool.cpp"
+    "cppcoro/lib/win32.cpp"
+)
+endif()
+
 set(Source_Files
     "Application.cpp"
     "World.cpp"
@@ -46,12 +57,6 @@ set(Source_Files
     "UIControl.cpp"
     "Mesh.cpp"
     "SimplexNoise/SimplexNoise.cpp"
-    "cppcoro/lib/auto_reset_event.cpp"
-    "cppcoro/lib/lightweight_manual_reset_event.cpp"
-    "cppcoro/lib/spin_mutex.cpp"
-    "cppcoro/lib/spin_wait.cpp"
-    "cppcoro/lib/static_thread_pool.cpp"
-    "cppcoro/lib/win32.cpp"
     )
 
 source_group("Source Files" FILES ${Source_Files} ${Main_Files})
@@ -60,6 +65,7 @@ set(ALL_FILES
     
     ${Header_Files} 
     ${Source_Files}
+    ${Coroutine_Files}
     ${Main_Files}
 )
 

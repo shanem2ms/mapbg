@@ -3,6 +3,9 @@
 #include <vector>
 #include <map>
 
+#include <bgfx/bgfx.h>
+
+#ifdef SAM_COROUTINES
 #include <coroutine>
 
 #include <cppcoro/sync_wait.hpp>
@@ -10,9 +13,8 @@
 #include <cppcoro/static_thread_pool.hpp>
 #include <cppcoro/when_all.hpp>
 
-#include <bgfx/bgfx.h>
-
 extern cppcoro::static_thread_pool g_threadPool;
+
 
 namespace cppcoro
 {
@@ -22,6 +24,9 @@ namespace cppcoro
         co_await func();
     }
 }
+
+namespace co = cppcoro; 
+#endif
 
 template <class T> class bgfxh
 {
@@ -62,6 +67,6 @@ private:
 };
 
 typedef unsigned char byte;
-namespace co = cppcoro;
+
 
 
