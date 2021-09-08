@@ -167,6 +167,8 @@ namespace sam
             m_vals = v;
         }
         void Decomission();
+    private:
+        void LoadTerrainData();
     };
 
     inline bool operator < (const Loc& lhs, const Loc& rhs)

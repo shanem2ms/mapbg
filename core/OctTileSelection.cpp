@@ -291,7 +291,7 @@ namespace sam
             fardistsq = std::max(fardistsq, t->farDistSq);
         }
 
-        m_nearfarmidsq[0] = neardistsq;
+        m_nearfarmidsq[0] = pow(0.002, 2);
         m_nearfarmidsq[1] = splitdistsq;
         m_nearfarmidsq[2] = fardistsq;
         int nearCt = 0;
@@ -333,6 +333,18 @@ namespace sam
     }
 
 
+    std::shared_ptr<OctTile> OctTileSelection::TileFromPos(const Point3f& pos)
+    {
+        for (auto& pair : m_tiles)
+        {
+            if (intersect(pair.first.GetBBox(), pos))
+            {
+                return pair.second;
+            }
+        }
+
+        return nullptr;
+    }
 
     OctTileSelection::~OctTileSelection()
     {

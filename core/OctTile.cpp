@@ -68,6 +68,45 @@ namespace sam
     int nOctTilesTotal;
     int nOctTilesDrawn;
 
+    void OctTile::LoadTerrainData()
+    {
+        m_needRebuild = false;
+        AABoxf bboxterrain = m_terrainTile->GetBounds();
+        AABoxf bboxoct = m_l.GetBBox();
+
+        if (!intersect(bboxterrain, bboxoct))
+            return;
+
+        std::vector<Vec3f> octPts;
+        float minY = bboxoct.mMin[1];
+        float maxY = bboxoct.mMax[1];
+        float minX = bboxoct.mMin[0];
+        float minZ = bboxoct.mMin[2];
+
+
+        const float* tpts = m_terrainTile->Pts();
+        float len = (bboxoct.mMax[0] - bboxoct.mMin[0]) / TerrainTile::SquarePtsCt;
+
+        for (int z = 0; z < TerrainTile::SquarePtsCt; ++z)
+        {
+            for (int x = 0; x < TerrainTile::SquarePtsCt; ++x)
+            {
+                int offset = (z + TerrainTile::OverlapPtsCt) * TerrainTile::TotalPtsCt + (x + TerrainTile::OverlapPtsCt);
+                float h = tpts[offset];
+                if (h > minY && h < maxY)
+                {
+                    octPts.push_back(Vec3f(minX + x * len, h, minZ + z * len));
+                }
+            }
+        }
+
+        if (octPts.size() > 0)
+        {
+            m_cubeList = std::make_shared<CubeList>();
+            m_cubeList->Create(octPts, len * 1.0f);
+        }        
+    }
+
     void OctTile::Draw(DrawContext& ctx)
     {
         nOctTilesTotal++;
@@ -79,52 +118,18 @@ namespace sam
         if (ctx.m_nearfarpassIdx == 1 && nearDistSq > ctx.m_nearfar[1])
             return;
 
-        AABoxf bboxterrain = m_terrainTile->GetBounds();
-        AABoxf bboxoct = m_l.GetBBox();
+        if (m_needRebuild)
+        {
+            LoadTerrainData();
+        }
 
-        if (!intersect(bboxterrain, bboxoct))
+        if (m_cubeList == nullptr)
             return;
 
         if (!bgfx::isValid(m_uparams))
         {
             m_uparams = bgfx::createUniform("u_params", bgfx::UniformType::Vec4, 1);
         }
-
-        if (m_needRebuild)
-        {
-            std::vector<Vec3f> octPts;
-            float minY = bboxoct.mMin[1];
-            float maxY = bboxoct.mMax[1];
-            float minX = bboxoct.mMin[0];
-            float minZ = bboxoct.mMin[2];
-
-
-            const float* tpts = m_terrainTile->Pts();
-            float len = (bboxoct.mMax[0] - bboxoct.mMin[0]) / TerrainTile::SquarePtsCt;
-
-            for (int z = 0; z < TerrainTile::SquarePtsCt; ++z)
-            {
-                for (int x = 0; x < TerrainTile::SquarePtsCt; ++x)
-                {
-                    int offset = (z + TerrainTile::OverlapPtsCt) * TerrainTile::TotalPtsCt + (x + TerrainTile::OverlapPtsCt);
-                    float h = tpts[offset];
-                    if (h > minY && h < maxY)
-                    {
-                        octPts.push_back(Vec3f(minX + x * len, h, minZ + z * len));
-                    }
-                }
-            }
-
-            if (octPts.size() > 0)
-            {
-                m_cubeList = std::make_shared<CubeList>();
-                m_cubeList->Create(octPts, len * 1.0f);
-            }
-            m_needRebuild = false;
-        }
-
-        if (m_cubeList == nullptr)
-            return;
 
         int t = m_l.m_l;
         Vec4f color((std::min(t, 93) + 1) * 0.1f,

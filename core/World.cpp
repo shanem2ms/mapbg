@@ -184,7 +184,7 @@ namespace sam
             e.Root()->AddItem(m_worldGroup);
 
             Camera::Fly fly;
-            fly.pos = Point3f(0.1f, 0.15f, 0.1f);
+            fly.pos = Point3f(0.0f, 0.15f, -0.2f);
             fly.dir = Vec2f(0, 0.0f);
             e.Cam().SetFly(fly);
 
@@ -226,11 +226,14 @@ namespace sam
         Camera::Fly fly = cam.GetFly();
 
         Vec3f right, up, forward;
+        Vec3f upworld(0, 1, 0);
         fly.GetDirs(right, up, forward);
+        Vec3f fwWorld;
+        cross(fwWorld, right, upworld);
         fly.pos +=
             m_camVel[0] * right +
-            m_camVel[1] * up +
-            m_camVel[2] * forward;
+            m_camVel[1] * upworld +
+            m_camVel[2] * fwWorld;
 
         if (!isPaused)
         {
@@ -240,9 +243,11 @@ namespace sam
             m_octTileSelection.GetNearFarMidDist(ctx.m_nearfar);
         }
 
+        std::shared_ptr<OctTile> tile = m_octTileSelection.TileFromPos(fly.pos);
+
         //fly.pos[1] = std::max(m_octTileSelection.GetGroundHeight(fly.pos), fly.pos[1]);
 
-        cam.SetFly(fly);
+        cam.SetFly(fly);        
 
     }
 

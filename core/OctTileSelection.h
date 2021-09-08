@@ -27,6 +27,8 @@ namespace sam
         float GetGroundHeight(const Point3f& pt);
         void GetNearFarMidDist(float nearfarmidsq[3]);
 
+        std::shared_ptr<OctTile> TileFromPos(const Point3f& pos);
+
     public:
         OctTileSelection();
         ~OctTileSelection();
