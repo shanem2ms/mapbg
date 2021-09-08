@@ -3,12 +3,12 @@ set (BGFX_INCLUDE ${BGFX_INCLUDE_ROOT}/bgfx)
 set (BGFX_LIB ${CMAKE_INSTALL_PREFIX}/lib)
 
 if (MSVC)
+add_compile_options(/await:strict)
 set(BX_INC_DIR_COMPAT ${BGFX_INCLUDE_ROOT}/compat/msvc)
 elseif (APPLE)
 set(BX_INC_DIR_COMPAT ${BGFX_INCLUDE_ROOT}/compat/osx)
 endif()
 
-add_compile_options(/await:strict)
 
 
 add_subdirectory(shaders)

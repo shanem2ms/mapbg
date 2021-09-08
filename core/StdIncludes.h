@@ -61,6 +61,7 @@ private:
     bgfxh(const bgfxh& rhs);
 };
 
+typedef unsigned char byte;
 namespace co = cppcoro;
 
 

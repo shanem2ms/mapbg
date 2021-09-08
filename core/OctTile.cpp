@@ -68,6 +68,13 @@ namespace sam
     int nOctTilesTotal;
     int nOctTilesDrawn;
 
+    std::vector<byte> OctTile::RleEncode(const std::vector<byte> data)
+    {
+        std::vector<byte> outrle;
+
+
+    }
+
     void OctTile::LoadTerrainData()
     {
         m_needRebuild = false;
@@ -81,11 +88,16 @@ namespace sam
         float minY = bboxoct.mMin[1];
         float maxY = bboxoct.mMax[1];
         float minX = bboxoct.mMin[0];
-        float minZ = bboxoct.mMin[2];
+        float minZ = bboxoct.mMin[2];        
 
+
+        std::vector<char> data;
+        const int tsz = TerrainTile::SquarePtsCt;
+        data.resize(tsz * tsz * tsz);
 
         const float* tpts = m_terrainTile->Pts();
         float len = (bboxoct.mMax[0] - bboxoct.mMin[0]) / TerrainTile::SquarePtsCt;
+        float ext = TerrainTile::SquarePtsCt / (maxY - minY);
 
         for (int z = 0; z < TerrainTile::SquarePtsCt; ++z)
         {
@@ -95,6 +107,8 @@ namespace sam
                 float h = tpts[offset];
                 if (h > minY && h < maxY)
                 {
+                    int y = (int)((h - minY) * ext);
+                    data[y * tsz * tsz + z * tsz + x] = 1;
                     octPts.push_back(Vec3f(minX + x * len, h, minZ + z * len));
                 }
             }

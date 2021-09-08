@@ -168,6 +168,7 @@ namespace sam
         }
         void Decomission();
     private:
+        static std::vector<byte> RleEncode(const std::vector<byte> data);
         void LoadTerrainData();
     };
 
