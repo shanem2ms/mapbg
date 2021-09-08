@@ -6,7 +6,6 @@
 #include <numeric>
 #include "Mesh.h"
 #include "Hud.h"
-#include "imgui.h"
 #include "TerrainTileSelection.h"
 #define NOMINMAX
 
