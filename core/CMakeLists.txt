@@ -52,7 +52,6 @@ set(Source_Files
     "cppcoro/lib/spin_wait.cpp"
     "cppcoro/lib/static_thread_pool.cpp"
     "cppcoro/lib/win32.cpp"
-    "imgui/imgui.cpp"
     )
 
 source_group("Source Files" FILES ${Source_Files} ${Main_Files})
