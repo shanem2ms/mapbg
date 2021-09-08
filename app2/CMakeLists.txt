@@ -38,23 +38,15 @@ set(Source_Files
     "bgfx_utils.cpp"    
     )
 
+
 source_group("Source Files" FILES ${Source_Files})
 
-set(S1 ${CMAKE_BINARY_DIR}/vs_cubes.bin)
-set(S2 ${CMAKE_BINARY_DIR}/fs_cubes.bin)
-set(S3 ${CMAKE_BINARY_DIR}/cs_copysect.bin)
-set(S4 ${CMAKE_BINARY_DIR}/cs_erosion.bin)
-set(S5 ${CMAKE_BINARY_DIR}/vs_terrain.bin)
 
-set_source_files_properties(${S1} ${S2} ${S3} ${S4} ${S5} PROPERTIES GENERATED true)
+set_source_files_properties(${ALL_SHADERS} PROPERTIES GENERATED true)
 set(ALL_FILES    
     ${Header_Files} 
     ${Source_Files}
-    ${S1}
-    ${S2}
-    ${S3}
-    ${S4}
-    ${S5}
+    ${ALL_SHADERS}
 )
 
 ################################################################################
@@ -86,10 +78,11 @@ set (PLATFORMLIBS
 
 set_target_properties(${IOSAPPNAME} PROPERTIES MACOSX_BUNDLE_GUI_IDENTIFIER ${BUNDLE_ID})
 
-set_source_files_properties(${S1} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
-set_source_files_properties(${S2} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
-set_source_files_properties(${S3} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
-set_source_files_properties(${S4} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+foreach (SHDR ${ALL_SHADERS})
+
+set_source_files_properties(${SHDR} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+
+endforeach()
 
 target_include_directories(${IOSAPPNAME} PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/"

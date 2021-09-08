@@ -113,6 +113,9 @@ set (PLATFORMLIBS
     )
 endif()
 
+
+
+
 target_link_libraries(${PROJECT_NAME} LINK_PUBLIC 
     ${BGFX_LIB}/bgfx.lib 
     ${BGFX_LIB}/astc-codec.lib 

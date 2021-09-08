@@ -24,6 +24,8 @@ set(ALL_FILES
     ${VS_BINS}
 )
 
+set (ALL_SHADERS ${ALL_FILES} CACHE INTERNAL "ALL_SHADERS")
+
 if (MSVC)
 set (SHADERC ${CMAKE_INSTALL_PREFIX}/bin/shaderc.exe)
 set (SHADERC_PLATFORM windows)
