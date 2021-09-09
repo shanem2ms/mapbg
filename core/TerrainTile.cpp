@@ -11,6 +11,8 @@
 namespace sam
 {
 
+    const int numErosionIters = 1000;
+
     TerrainTile::TerrainTile(const Loc& l, std::shared_ptr<TerrainTile> parent) :
         m_image(-1), m_l(l),
         m_needRecalc(true),
@@ -153,7 +155,7 @@ namespace sam
                 bgfx::setImage(0, m_tex[0], 0, bgfx::Access::Write, bgfx::TextureFormat::RGBA32F);
                 bgfx::dispatch(0, m_csnoise, TotalPtsCt / 16, TotalPtsCt / 16);
 
-                for (int i = 0; i < 1000; i++)
+                for (int i = 0; i < numErosionIters; i++)
                 {
                     bgfx::setTexture(0, m_texture, m_tex[m_texpingpong]);
                     bgfx::setImage(1, m_tex[1 - m_texpingpong], 0, bgfx::Access::Write, bgfx::TextureFormat::RGBA32F);
@@ -195,7 +197,7 @@ namespace sam
                 bgfx::setImage(1, m_tex[0], 0, bgfx::Access::Write, bgfx::TextureFormat::RGBA32F);
                 bgfx::dispatch(0, m_cscopyparent, TotalPtsCt / 16, TotalPtsCt / 16);
 
-                for (int i = 0; i < 1000; i++)
+                for (int i = 0; i < numErosionIters; i++)
                 {
                     bgfx::setTexture(0, m_texture, m_tex[m_texpingpong]);
                     bgfx::setImage(1, m_tex[1 - m_texpingpong], 0, bgfx::Access::Write, bgfx::TextureFormat::RGBA32F);
