@@ -23,6 +23,8 @@ namespace sam
         gmtl::Point3f m_camVel;
         float m_tiltVel;
 
+        float m_gravityVel;
+
         std::shared_ptr<SceneGroup> m_worldGroup;
         std::shared_ptr<Touch> m_activeTouch;
         int m_currentTool;

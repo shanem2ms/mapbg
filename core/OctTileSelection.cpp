@@ -24,7 +24,7 @@ namespace sam
     class FrustumTiles
     {
     public:
-        static void Get(Camera& cam, std::vector<Loc>& locs, float pixelDist, int maxlod)
+        static void Get(Camera& cam, std::vector<Loc>& locs, float pixelDist, int maxlod, const AABoxf& playerBounds)
         {
             Frustumf viewFrust = cam.GetFrustum();
             Matrix44f viewproj = cam.PerspectiveMatrix() * cam.ViewMatrix();
@@ -32,7 +32,7 @@ namespace sam
 
 
             Vec3f chkpos(floorf(ctr[0]), floorf(ctr[1]), floorf(ctr[2]));
-            GetLocsInView(locs, Loc(0, 0, 0, 0), viewFrust, viewproj, pixelDist, maxlod);
+            GetLocsInView(locs, Loc(0, 0, 0, 0), viewFrust, viewproj, pixelDist, maxlod, playerBounds);
         }
 
     private:
@@ -125,7 +125,7 @@ namespace sam
         }
 
         static void GetLocsInView(std::vector<Loc>& locs, const Loc& curLoc,
-            const Frustumf& f, const Matrix44f& viewProj, float pixelDist, int maxlod)
+            const Frustumf& f, const Matrix44f& viewProj, float pixelDist, int maxlod, const AABoxf& playerBounds)
         {
             AABoxf aabox = curLoc.GetBBox();
             Point3f ptinc = (aabox.mMax - aabox.mMin) * 0.2f;
@@ -159,9 +159,10 @@ namespace sam
             {
                 AABoxf cbox = childLoc.GetBBox();
                 ContainmentType res = Contains(f, cbox);
-                if (res != ContainmentType::Disjoint)
+                bool intersectsPlayer = intersect(playerBounds, cbox);
+                if (res != ContainmentType::Disjoint || intersectsPlayer)
                 {
-                    GetLocsInView(locs, childLoc, f, viewProj, pixelDist, maxlod);
+                    GetLocsInView(locs, childLoc, f, viewProj, pixelDist, maxlod, playerBounds);
                 }
             }
         }
@@ -176,18 +177,15 @@ namespace sam
     }
 
     extern int g_maxTileLod;
-    void OctTileSelection::Update(Engine& e, DrawContext& ctx)
+    void OctTileSelection::Update(Engine& e, DrawContext& ctx, const AABoxf& playerBounds)
     {
         auto oldTiles = m_activeTiles;
         m_activeTiles.clear();
         auto& cam = e.Cam();
         Camera::Fly fly = cam.GetFly();
 
-        int tx = (int)floor(fly.pos[0]);
-        int tz = (int)floor(fly.pos[2]);
-
         std::vector<Loc> locs;
-        FrustumTiles::Get(e.Cam(), locs, 10.0f, g_maxTileLod);
+        FrustumTiles::Get(e.Cam(), locs, 10.0f, g_maxTileLod, playerBounds);
 
         std::sort(locs.begin(), locs.end());        
 

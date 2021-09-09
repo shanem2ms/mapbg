@@ -16,7 +16,8 @@ namespace sam
     World::World() :
         m_width(-1),
         m_height(-1),
-        m_currentTool(0)
+        m_currentTool(0),
+        m_gravityVel(0)
     {
     }
 
@@ -113,7 +114,7 @@ namespace sam
     int g_maxTileLod = 9;
     void World::KeyDown(int k)
     {
-        float speed = 0.005f;
+        float speed = 0.001f;
         switch (k)
         {
         case 'P':
@@ -184,7 +185,7 @@ namespace sam
             e.Root()->AddItem(m_worldGroup);
 
             Camera::Fly fly;
-            fly.pos = Point3f(0.0f, 0.15f, -0.2f);
+            fly.pos = Point3f(0.0f, 0.0f, -0.5f);
             fly.dir = Vec2f(0, 0.0f);
             e.Cam().SetFly(fly);
 
@@ -224,6 +225,30 @@ namespace sam
 
         auto &cam = e.Cam();
         Camera::Fly fly = cam.GetFly();
+        const float headheight = 0.01f;
+        Vec3f boundsExt(0.01f, 0.01f, 0.01f);
+        AABoxf playerbounds(fly.pos - boundsExt, fly.pos + boundsExt);
+
+        if (!isPaused)
+        {
+            m_worldGroup->Clear();
+            m_octTileSelection.Update(e, ctx, playerbounds);
+            m_octTileSelection.AddTilesToGroup(m_worldGroup);
+            m_octTileSelection.GetNearFarMidDist(ctx.m_nearfar);
+        }
+
+        std::shared_ptr<OctTile> tile = m_octTileSelection.TileFromPos(fly.pos);
+        float grnd = tile->GetGroundPos(Point2f(fly.pos[0], fly.pos[2]));
+
+        if (isnan(grnd) || fly.pos[1] > (grnd + headheight))
+        {
+            m_gravityVel -= 0.0005f;
+        }
+        else
+        {
+            fly.pos[1] = grnd + headheight;
+            m_gravityVel = 0;
+        }
 
         Vec3f right, up, forward;
         Vec3f upworld(0, 1, 0);
@@ -232,19 +257,8 @@ namespace sam
         cross(fwWorld, right, upworld);
         fly.pos +=
             m_camVel[0] * right +
-            m_camVel[1] * upworld +
+            (m_camVel[1] + m_gravityVel) * upworld +
             m_camVel[2] * fwWorld;
-
-        if (!isPaused)
-        {
-            m_worldGroup->Clear();
-            m_octTileSelection.Update(e, ctx);
-            m_octTileSelection.AddTilesToGroup(m_worldGroup);
-            m_octTileSelection.GetNearFarMidDist(ctx.m_nearfar);
-        }
-
-        std::shared_ptr<OctTile> tile = m_octTileSelection.TileFromPos(fly.pos);
-
         //fly.pos[1] = std::max(m_octTileSelection.GetGroundHeight(fly.pos), fly.pos[1]);
 
         cam.SetFly(fly);        

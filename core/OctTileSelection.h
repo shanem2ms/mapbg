@@ -21,7 +21,7 @@ namespace sam
         std::set<Loc> m_activeTiles;
         std::unique_ptr<TerrainTileSelection> m_terrainSelection;
 
-        void Update(Engine& e, DrawContext& ctx);
+        void Update(Engine& e, DrawContext& ctx, const AABoxf &playerBounds);
 
         void AddTilesToGroup(std::shared_ptr<SceneGroup> grp);
         float GetGroundHeight(const Point3f& pt);

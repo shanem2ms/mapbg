@@ -141,6 +141,7 @@ namespace sam
         bgfxh<bgfx::UniformHandle> m_uparams;
         std::shared_ptr<TerrainTile> m_terrainTile;
         std::shared_ptr<CubeList> m_cubeList;
+        std::vector<byte> m_rledata;
     public:
         float nearDistSq;
         float farDistSq;
@@ -167,8 +168,10 @@ namespace sam
             m_vals = v;
         }
         void Decomission();
+        float GetGroundPos(const Point2f& pt) const;
     private:
         static std::vector<byte> RleEncode(const std::vector<byte> data);
+        static std::vector<byte> RleDecode(const std::vector<byte> data);
         void LoadTerrainData();
     };
 

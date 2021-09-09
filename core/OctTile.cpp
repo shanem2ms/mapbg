@@ -71,8 +71,74 @@ namespace sam
     std::vector<byte> OctTile::RleEncode(const std::vector<byte> data)
     {
         std::vector<byte> outrle;
+        byte curval = data[0];
+        int cnt = 0;
+        for (byte v : data)
+        {
+            if (v != curval || cnt == 0x7FFF)
+            {
+                if (cnt < 0x80)
+                    outrle.push_back(cnt);
+                else
+                {
+                    byte b1 = cnt >> 8;
+                    byte b2 = cnt & 0xFF;
+                    b1 |= 0x80;
+                    outrle.push_back(b1);
+                    outrle.push_back(b2);                    
+                }
 
+                outrle.push_back(curval);
+                cnt = 1;
+                curval = v;
+            }
+            else
+                cnt++;
+        }
+        if (cnt > 0)
+        {
+            if (cnt < 0x80)
+                outrle.push_back(cnt);
+            else
+            {
+                byte b1 = cnt >> 8;
+                byte b2 = cnt & 0xFF;
+                b1 |= 0x80;
+                outrle.push_back(b1);
+                outrle.push_back(b2);
+            }
+            outrle.push_back(curval);
+        }
+        return outrle;
+    }
 
+    std::vector<byte> OctTile::RleDecode(const std::vector<byte> data)
+    {
+        std::vector<byte> outdata;
+        outdata.resize(TerrainTile::SquarePtsCt * TerrainTile::SquarePtsCt * TerrainTile::SquarePtsCt);
+        size_t offset = 0;
+        for (auto it = data.begin(); it != data.end(); ++it)
+        {
+            byte cnt0 = *it;
+            if (cnt0 < 0x80)
+            {
+                ++it;
+                memset(outdata.data() + offset, *it, cnt0);
+                offset += cnt0;
+            }
+            else
+            {
+                ++it;
+                byte cnt1 = *it;
+                cnt0 &= 0x7F;
+                int size = (cnt0 << 8) | cnt1;
+                ++it;
+                memset(outdata.data() + offset, *it, size);
+                offset += size;
+            }
+        }
+
+        return outdata;
     }
 
     void OctTile::LoadTerrainData()
@@ -91,7 +157,7 @@ namespace sam
         float minZ = bboxoct.mMin[2];        
 
 
-        std::vector<char> data;
+        std::vector<byte> data;
         const int tsz = TerrainTile::SquarePtsCt;
         data.resize(tsz * tsz * tsz);
 
@@ -114,11 +180,43 @@ namespace sam
             }
         }
 
+        m_rledata = RleEncode(data);
+        /*
+        std::vector<byte> rawdata = RleDecode(m_rledata);
+
+        for (size_t idx = 0; idx < data.size(); ++idx)
+        {
+            if (data[idx] != rawdata[idx])
+                __debugbreak();
+        }*/
         if (octPts.size() > 0)
         {
             m_cubeList = std::make_shared<CubeList>();
             m_cubeList->Create(octPts, len * 1.0f);
         }        
+    }
+
+    float OctTile::GetGroundPos(const Point2f& pt) const
+    {
+        if (m_rledata.size() == 0)
+            return NAN;
+
+        AABoxf bboxoct = m_l.GetBBox();
+        float extent = TerrainTile::SquarePtsCt / (bboxoct.mMax[0] - bboxoct.mMin[0]);
+        float invextent = (bboxoct.mMax[0] - bboxoct.mMin[0]) / TerrainTile::SquarePtsCt;
+        int x = (pt[0] - bboxoct.mMin[0])* extent;
+        int z = (pt[1] - bboxoct.mMin[2]) * extent;
+
+        std::vector<byte> data = RleDecode(m_rledata);
+        const int tsz = TerrainTile::SquarePtsCt;
+        for (int y = 255; y >= 0; --y)
+        {
+            if (data[y * tsz * tsz + z * tsz + x] > 0)
+            {
+                return y * invextent + bboxoct.mMin[1];
+            }
+        }
+        return NAN;
     }
 
     void OctTile::Draw(DrawContext& ctx)
