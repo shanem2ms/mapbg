@@ -82,8 +82,6 @@ set(Source_Files
     "db/write_batch.cc"
     "db/zlib_compressor.cc"
     "helpers/memenv/memenv.cc"
-    "port/port_posix_sse.cc"
-    "port/port_win.cc"
     "table/block.cc"
     "table/block_builder.cc"
     "table/filter_block.cc"
@@ -100,22 +98,37 @@ set(Source_Files
     "util/comparator.cc"
     "util/crc32c.cc"
     "util/env.cc"
-    "util/env_win.cc"
     "util/filter_policy.cc"
     "util/hash.cc"
     "util/histogram.cc"
     "util/logging.cc"
     "util/options.cc"
     "util/status.cc"
-    "util/win_logger.cc"
+    "port/port_posix_sse.cc"
     )
 
-source_group("Source Files" FILES ${Source_Files})
+if (MSVC)
+
+set (Platform_Files 
+    "port/port_win.cc"
+    "util/env_win.cc"
+    "util/win_logger.cc"
+)
+else ()
+set (Platform_Files 
+    "port/port_posix.cc"
+    "util/env_posix.cc"
+    "util/win_logger.cc"
+)
+endif()
+    
+source_group("Source Files" FILES ${Source_Files} ${Platform_Files})
 
 set(ALL_FILES
     
     ${Header_Files} 
     ${Source_Files}
+    ${Platform_Files}
 )
 
 add_library(leveldb STATIC ${ALL_FILES})
@@ -129,5 +142,8 @@ target_include_directories(leveldb PUBLIC
     "${CMAKE_BINARY_DIR}/zlib"
     )
 
+if (MSVC)
 add_compile_definitions(DLLX=;WIN32;OS_WIN;_WINDLL;ssize_t=__int64)
-   
+else ()
+add_compile_definitions(DLLX=;LEVELDB_PLATFORM_POSIX;OS_MACOSX)
+endif ()   

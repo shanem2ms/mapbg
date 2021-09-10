@@ -241,8 +241,6 @@ namespace sam
                     m_buildFrame = frameIdx + 1;
                 }
             }
-            else 
-            __debugbreak();
         }
         else if (m_buildStep == 1 && frameIdx >= m_buildFrame)
         {

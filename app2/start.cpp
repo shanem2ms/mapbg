@@ -49,9 +49,7 @@ public:
 			, 0
 			);
         
-        sam::DrawContext ctx;
         app.Resize(_width, _height);
-        app.LoadResources(ctx);
 	}
 
 	virtual int shutdown() override
@@ -79,8 +77,7 @@ public:
 			bgfx::touch(0);
             
             app.Tick(0);
-            sam::DrawContext ctx;
-            app.Draw(ctx);
+            app.Draw();
 			// Advance to next frame. Rendering thread will be kicked to
 			// process submitted rendering primitives.
 			bgfx::frame();
