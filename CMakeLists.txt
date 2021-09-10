@@ -70,6 +70,9 @@ endif()
 add_dependencies(core Bgfx)
 add_dependencies(shaders Bgfx)
 
+add_subdirectory(zlib)
+add_subdirectory(leveldb)
+
 
 ################################################################################
 # Target
@@ -84,7 +87,7 @@ set(Main_Files
 set(CMAKE_XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER ${BUNDLE_ID})
 set(CMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "73CP3TPHE9")
 
-add_executable(${PROJECT_NAME} WIN32 ${Main_Files} Bgfx core)
+add_executable(${PROJECT_NAME} WIN32 ${Main_Files} Bgfx core leveldb zlib)
 
 if (MSVC)
     set (PLATFORMLIBS
@@ -122,6 +125,8 @@ target_link_libraries(${PROJECT_NAME} LINK_PUBLIC
     ${BGFX_LIB}/bimg.lib 
     ${BGFX_LIB}/bx.lib core
     ${PLATFORMLIBS}
+    zlibstatic
+    leveldb
        )
        
 target_include_directories(${PROJECT_NAME} PUBLIC
@@ -130,4 +135,5 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     "${BGFX_INCLUDE_ROOT}"
     "${BX_INC_DIR_COMPAT}"
     "${BGFX_INC_DIR}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/leveldb/include"
     )

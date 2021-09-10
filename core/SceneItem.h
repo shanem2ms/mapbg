@@ -18,6 +18,7 @@ using namespace gmtl;
 namespace sam
 {
     class Camera;
+    class World;
 
     struct DrawContext
     {
@@ -25,6 +26,7 @@ namespace sam
         Matrix44f m_mat;
         bgfx::UniformHandle m_texture;
         bgfx::UniformHandle m_gradient;
+        World* m_pWorld;
         int m_nearfarpassIdx;
         float m_nearfar[3];
         int m_curviewIdx;

@@ -7,6 +7,7 @@
 
 namespace sam
 {
+    class World;
     class TerrainTile
     {
     public:
@@ -67,12 +68,10 @@ namespace sam
         {
             m_vals = v;
         }
-        bool Build();
 
         float GetGroundHeight(const gmtl::Point3f& pt) const;
-
+        bool Build(World* pWorld);
     private:
-        bool GpuErosion();
     };
 
 

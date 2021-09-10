@@ -4,6 +4,11 @@
 #include "OctTile.h"
 #include "OctTileSelection.h"
 
+namespace leveldb
+{
+    class DB;
+}
+
 class SimplexNoise;
 namespace sam
 {
@@ -29,11 +34,15 @@ namespace sam
         std::shared_ptr<Touch> m_activeTouch;
         int m_currentTool;
         bgfx::ProgramHandle m_shader;
+        leveldb::DB* m_db;
 
     public:
         void Layout(int w, int h);
         World();
         ~World();
+        leveldb::DB* Db() {
+            return m_db;
+        }
         void Update(Engine& engine, DrawContext& ctx);
         void TouchDown(float x, float y, int touchId);
         void TouchDrag(float x, float y, int touchId);

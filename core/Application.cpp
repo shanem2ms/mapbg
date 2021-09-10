@@ -88,6 +88,7 @@ namespace sam
         ctx.m_nearfar[1] = 25.0f;
         ctx.m_nearfar[2] = 100.0f;
         ctx.m_frameIdx = m_frameIdx;
+        ctx.m_pWorld = m_world.get();
         m_uiMgr->Update(*m_engine, m_width, m_height, ctx);
         m_world->Update(*m_engine, ctx);
 

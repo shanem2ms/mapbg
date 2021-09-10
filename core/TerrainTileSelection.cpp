@@ -29,7 +29,7 @@ namespace sam
     {
     }
 
-    void TerrainTileSelection::SelectTiles(const std::vector<Loc>& locs)
+    void TerrainTileSelection::SelectTiles(const std::vector<Loc>& locs, World *pWorld)
     {        
         if (m_tiles.size() > 100)
         {
@@ -65,7 +65,7 @@ namespace sam
                 if (itTile == m_tiles.end())
                 {
                     auto newTile = std::make_shared<TerrainTile>(loc, parentTile);
-                    if (!newTile->Build())
+                    if (!newTile->Build(pWorld))
                     {
                         nextBuildingTiles.push_back(newTile);
                     }
@@ -80,7 +80,7 @@ namespace sam
 
         for (std::shared_ptr<TerrainTile>& tile : m_buildingTiles)
         {
-            if (!tile->Build())
+            if (!tile->Build(pWorld))
                 nextBuildingTiles.push_back(tile);
         }
 

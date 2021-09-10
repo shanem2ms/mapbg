@@ -6,6 +6,16 @@
 #include <numeric>
 #include "Mesh.h"
 #include "gmtl/PlaneOps.h"
+#include "leveldb/dumpfile.h"
+#include "leveldb/env.h"
+#include "leveldb/status.h"
+#include "leveldb/options.h"
+#include "leveldb/filter_policy.h"
+#include "leveldb/cache.h"
+#include "leveldb/zlib_compressor.h"
+#include "leveldb/decompress_allocator.h"
+#include "leveldb/db.h"
+
 #define NOMINMAX
 
 
@@ -13,12 +23,42 @@ using namespace gmtl;
 
 namespace sam
 {
+    class NullLogger : public leveldb::Logger {
+    public:
+        void Logv(const char*, va_list) override {
+        }
+    };
+
     World::World() :
         m_width(-1),
         m_height(-1),
         m_currentTool(0),
-        m_gravityVel(0)
+        m_gravityVel(0),
+        m_db(nullptr)
     {
+
+        leveldb::Env* env = leveldb::Env::Default();
+        leveldb::Options options;
+        //create a bloom filter to quickly tell if a key is in the database or not
+        options.filter_policy = leveldb::NewBloomFilterPolicy(10);
+
+        //create a 40 mb cache (we use this on ~1gb devices)
+        options.block_cache = leveldb::NewLRUCache(40 * 1024 * 1024);
+
+        //create a 4mb write buffer, to improve compression and touch the disk less
+        options.write_buffer_size = 4 * 1024 * 1024;
+
+        //disable internal logging. The default logger will still print out things to a file
+        options.info_log = new NullLogger();
+
+        //use the new raw-zip compressor to write (and read)
+        options.compressors[0] = new leveldb::ZlibCompressorRaw(-1);
+
+        //also setup the old, slower compressor for backwards compatibility. This will only be used to read old compressed blocks.
+        options.compressors[1] = new leveldb::ZlibCompressor();
+
+        options.create_if_missing = true;
+        leveldb::Status status = leveldb::DB::Open(options, "testlvl", &m_db);
     }
 
     class Touch

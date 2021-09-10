@@ -8,6 +8,7 @@
 #include "OctTile.h"
 #include "TerrainTile.h"
 #include "gmtl/Intersection.h"
+#include "leveldb/db.h"
 #define NOMINMAX
 
 namespace sam
@@ -141,16 +142,67 @@ namespace sam
         return outdata;
     }
 
-    void OctTile::LoadTerrainData()
+    void OctTile::LoadVB()
     {
-        m_needRebuild = false;
+        AABoxf bboxoct = m_l.GetBBox();
+        float minY = bboxoct.mMin[1];
+        float maxY = bboxoct.mMax[1];
+        float minX = bboxoct.mMin[0];
+        float minZ = bboxoct.mMin[2];
+        float len = (bboxoct.mMax[0] - bboxoct.mMin[0]) / TerrainTile::SquarePtsCt;
+
+
+        const int tsz = TerrainTile::SquarePtsCt;
+        std::vector<Vec3f> octPts;
+
+        size_t offset = 0;
+        for (auto it = m_rledata.begin(); it != m_rledata.end(); ++it)
+        {
+            byte cnt0 = *it;
+            if (cnt0 < 0x80)
+            {
+                ++it;
+                if (*it == 1)
+                {
+                    for (byte idx = 0; idx < cnt0; ++idx)
+                    {
+                        size_t v = offset + idx;
+                        int y = (v / (tsz * tsz));
+                        v -= y * tsz * tsz;
+                        int z = v / tsz;
+                        v -= z * tsz;
+                        int x = v;
+                        octPts.push_back(Vec3f(minX + x * len, minY + y * len, minZ + z * len));
+                    }
+                }
+                offset += cnt0;
+            }
+            else
+            {
+                ++it;
+                byte cnt1 = *it;
+                cnt0 &= 0x7F;
+                int size = (cnt0 << 8) | cnt1;
+                ++it;
+                offset += size;
+            }
+        }
+
+        if (octPts.size() > 0)
+        {
+            m_cubeList = std::make_shared<CubeList>();
+            m_cubeList->Create(octPts, len * 0.5f);
+        }
+    }
+
+    void OctTile::LoadTerrainData()
+    {        
         AABoxf bboxterrain = m_terrainTile->GetBounds();
         AABoxf bboxoct = m_l.GetBBox();
 
         if (!intersect(bboxterrain, bboxoct))
             return;
 
-        std::vector<Vec3f> octPts;
         float minY = bboxoct.mMin[1];
         float maxY = bboxoct.mMax[1];
         float minX = bboxoct.mMin[0];
@@ -173,27 +225,13 @@ namespace sam
                 float h = tpts[offset];
                 if (h > minY && h < maxY)
                 {
-                    int y = (int)((h - minY) * ext);
+                    int y = std::max(0, std::min(255, (int)((h - minY) * ext)));
                     data[y * tsz * tsz + z * tsz + x] = 1;
-                    octPts.push_back(Vec3f(minX + x * len, h, minZ + z * len));
                 }
             }
         }
 
         m_rledata = RleEncode(data);
-        /*
-        std::vector<byte> rawdata = RleDecode(m_rledata);
-
-        for (size_t idx = 0; idx < data.size(); ++idx)
-        {
-            if (data[idx] != rawdata[idx])
-                __debugbreak();
-        }*/
-        if (octPts.size() > 0)
-        {
-            m_cubeList = std::make_shared<CubeList>();
-            m_cubeList->Create(octPts, len * 1.0f);
-        }        
     }
 
     float OctTile::GetGroundPos(const Point2f& pt) const
@@ -229,10 +267,31 @@ namespace sam
             return;
         if (ctx.m_nearfarpassIdx == 1 && nearDistSq > ctx.m_nearfar[1])
             return;
-
+        
         if (m_needRebuild)
         {
-            LoadTerrainData();
+            leveldb::Slice key((const char*)&m_l, sizeof(m_l));
+            leveldb::DB* db = ctx.m_pWorld->Db();
+            std::string strval;
+            leveldb::Status status = db->Get(leveldb::ReadOptions(), key, &strval);
+            if (status.ok())
+            {
+                m_rledata.resize(strval.size());
+                memcpy(m_rledata.data(), strval.data(), strval.size());
+            }
+            else
+            {
+                LoadTerrainData();
+                if (m_rledata.size() > 0)
+                {
+                    leveldb::Slice val((const char*)m_rledata.data(), m_rledata.size());
+                    leveldb::Status status = db->Put(leveldb::WriteOptions(), key, val);
+                }
+            }
+            if (m_rledata.size() > 0)
+                LoadVB();
+
+            m_needRebuild = false;
         }
 
         if (m_cubeList == nullptr)

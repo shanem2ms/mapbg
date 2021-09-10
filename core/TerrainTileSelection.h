@@ -22,7 +22,7 @@ namespace sam
 
         void Update(Engine& e, DrawContext& ctx);
 
-        void SelectTiles(const std::vector<Loc>& tileLocs);
+        void SelectTiles(const std::vector<Loc>& tileLocs, World* pWorld);
         float GetGroundHeight(const Point3f& pt);
 
         const std::map<Loc, std::shared_ptr<TerrainTile>>& Tiles() const

@@ -28,6 +28,40 @@ namespace sam
         static const int oy = -(1 << (lsize - 1));
         static const int oz = -(1 << (lsize - 1));
 
+        static constexpr uint64_t GetLodOffset(int l)
+        {
+            if (l == 0)
+                return 0;
+            else
+                return (1 << l) * (1 << l) * (1 << l) +
+                GetLodOffset(l - 1);
+        }
+
+        static constexpr uint64_t GetTileIndex(const Loc &l)
+        {
+            return GetLodOffset(l.m_l) +
+            l.m_x* (1 << lsize)* (1 << lsize) +
+                l.m_y * (1 << lsize) +
+                l.m_z;
+        }
+
+        static constexpr void GetLocFromIndex(Loc &loc, uint64_t index)
+        {
+            int l = 0;
+            while (index > (1 << l) * (1 << l) * (1 << l))
+            {
+                index -= (1 << l) * (1 << l) * (1 << l);
+                l++;
+            }
+
+            loc.m_l = l;
+            loc.m_x = index / ((1 << l) * (1 << l));
+            index -= loc.m_x * ((1 << l) * (1 << l));
+            loc.m_y = index / (1 << l);
+            index -= (1 << l);
+            loc.m_z = index;
+        }
+
         bool operator < (const Loc& rhs)
         {
             if (m_l != rhs.m_l)
@@ -81,7 +115,7 @@ namespace sam
         }
 
         bool IsGroundLoc() const
-        {
+        {            
             return m_y == (1 << (m_l - 1));
         }
 
@@ -168,6 +202,7 @@ namespace sam
             m_vals = v;
         }
         void Decomission();
+        void LoadVB();
         float GetGroundPos(const Point2f& pt) const;
     private:
         static std::vector<byte> RleEncode(const std::vector<byte> data);

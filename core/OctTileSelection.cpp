@@ -210,7 +210,7 @@ namespace sam
             m_activeTiles.insert(l);
         }
 
-        m_terrainSelection->SelectTiles(locs);
+        m_terrainSelection->SelectTiles(locs, ctx.m_pWorld);
 
         for (auto loc : oldTiles)
         {
