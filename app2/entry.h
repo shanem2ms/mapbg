@@ -12,7 +12,7 @@
 
 namespace bx { struct FileReaderI; struct FileWriterI; struct AllocatorI; }
 
-extern "C" int _main_(int _argc, char** _argv);
+extern "C" int _main_(int _argc, char** _argv, const char *docPath);
 
 #define ENTRY_WINDOW_FLAG_NONE         UINT32_C(0x00000000)
 #define ENTRY_WINDOW_FLAG_ASPECT_RATIO UINT32_C(0x00000001)
@@ -24,10 +24,10 @@ extern "C" int _main_(int _argc, char** _argv);
 
 #if ENTRY_CONFIG_IMPLEMENT_MAIN
 #define ENTRY_IMPLEMENT_MAIN(_app, ...)                 \
-	int _main_(int _argc, char** _argv)                 \
+	int _main_(int _argc, char** _argv, const char *docPath)                 \
 	{                                                   \
 			_app app(__VA_ARGS__);                      \
-			return entry::runApp(&app, _argc, _argv);   \
+			return entry::runApp(&app, _argc, _argv, docPath);   \
 	}
 #else
 #define ENTRY_IMPLEMENT_MAIN(_app, ...) \
@@ -287,7 +287,7 @@ namespace entry
 		virtual ~AppI() = 0;
 
 		///
-		virtual void init(int32_t _argc, const char* const* _argv, uint32_t _width, uint32_t _height) = 0;
+		virtual void init(int32_t _argc, const char* const* _argv, uint32_t _width, uint32_t _height, const char *docPath) = 0;
 
 		///
 		virtual int  shutdown() = 0;
@@ -322,7 +322,7 @@ namespace entry
 	uint32_t getNumApps();
 
 	///
-	int runApp(AppI* _app, int _argc, const char* const* _argv);
+	int runApp(AppI* _app, int _argc, const char* const* _argv, const char *docPath);
 
 } // namespace entry
 

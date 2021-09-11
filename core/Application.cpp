@@ -77,7 +77,15 @@ namespace sam
     void Application::Tick(float time)
     {
         m_engine->Tick(time);
-    }    
+    }
+
+    void Application::SetDocPath(const char *folder)
+    {
+        m_documentsPath = folder;
+        std::string dbPath = m_documentsPath + "/testlvl";
+
+        m_world->OpenDb(dbPath);
+    }
 
     const float Pi = 3.1415297;
 

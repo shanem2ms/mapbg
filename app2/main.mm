@@ -82,8 +82,14 @@ namespace entry
             }
         }
 
+        NSString *documentsDirectory = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) objectAtIndex:0];
+        NSString *fullPath = [documentsDirectory stringByAppendingPathComponent:@"UserDetails"];
+        
+        NSURL *pUrl = [[[NSFileManager defaultManager] URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask] lastObject];
+        NSString *docPath = pUrl.absoluteString;
+        
         MainThreadEntry* self = (MainThreadEntry*)_userData;
-        int32_t result = main(self->m_argc, self->m_argv);
+        int32_t result = main(self->m_argc, self->m_argv, [documentsDirectory UTF8String]);
         return result;
     }
 

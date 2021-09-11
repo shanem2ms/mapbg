@@ -49,6 +49,7 @@ namespace sam
         void TouchUp(int touchId);
         void KeyDown(int k);
         void KeyUp(int k);
+        void OpenDb(const std::string &path);
     };
 
 }

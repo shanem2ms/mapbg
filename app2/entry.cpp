@@ -19,7 +19,7 @@
 #include "cmd.h"
 #include "input.h"
 
-extern "C" int32_t _main_(int32_t _argc, char** _argv);
+extern "C" int32_t _main_(int32_t _argc, char** _argv, const char *docPath);
 
 namespace entry
 {
@@ -509,9 +509,9 @@ BX_PRAGMA_DIAGNOSTIC_POP();
 		return s_numApps;
 	}
 
-	int runApp(AppI* _app, int _argc, const char* const* _argv)
+	int runApp(AppI* _app, int _argc, const char* const* _argv, const char *docPath)
 	{
-		_app->init(_argc, _argv, s_width, s_height);
+        _app->init(_argc, _argv, s_width, s_height, docPath);
 		bgfx::frame();
 
 		WindowHandle defaultWindow = { 0 };
@@ -568,7 +568,7 @@ BX_PRAGMA_DIAGNOSTIC_POP();
 		BX_FREE(g_allocator, apps);
 	}
 
-	int main(int _argc, const char* const* _argv)
+	int main(int _argc, const char* const* _argv, const char *docPath)
 	{
 		//DBG(BX_COMPILER_NAME " / " BX_CPU_NAME " / " BX_ARCH_NAME " / " BX_PLATFORM_NAME);
 
@@ -624,11 +624,11 @@ restart:
 		s_restartArgs[0] = '\0';
 		if (0 == s_numApps)
 		{
-			result = ::_main_(_argc, (char**)_argv);
+			result = ::_main_(_argc, (char**)_argv, docPath);
 		}
 		else
 		{
-			result = runApp(getCurrentApp(selected), _argc, _argv);
+			result = runApp(getCurrentApp(selected), _argc, _argv, docPath);
 		}
 
 		if (0 != bx::strLen(s_restartArgs) )

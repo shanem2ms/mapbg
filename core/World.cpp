@@ -37,6 +37,11 @@ namespace sam
         m_db(nullptr)
     {
 
+        
+    }
+
+    void World::OpenDb(const std::string &path)
+    {
         leveldb::Env* env = leveldb::Env::Default();
         leveldb::Options options;
         //create a bloom filter to quickly tell if a key is in the database or not
@@ -58,7 +63,8 @@ namespace sam
         options.compressors[1] = new leveldb::ZlibCompressor();
 
         options.create_if_missing = true;
-        leveldb::Status status = leveldb::DB::Open(options, "testlvl", &m_db);
+        
+        leveldb::Status status = leveldb::DB::Open(options, path.c_str(), &m_db);
     }
 
     class Touch

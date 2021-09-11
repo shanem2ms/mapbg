@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 namespace sam
 {
@@ -19,6 +20,7 @@ class Application
     float m_touchDownX;
     float m_touchDownY;
     int m_frameIdx;
+    std::string m_documentsPath;
 
 public:    
     UIManager& UIMgr();
@@ -34,6 +36,9 @@ public:
     void Resize(int w, int h);
     void Tick(float time);
     void Draw();
+    void SetDocPath(const char *folder);
+    const std::string &Documents() const
+    { return m_documentsPath; }
 };
 
 }

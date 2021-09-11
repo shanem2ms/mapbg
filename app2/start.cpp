@@ -21,7 +21,8 @@ public:
 	{
 	}
 
-	void init(int32_t _argc, const char* const* _argv, uint32_t _width, uint32_t _height) override
+	void init(int32_t _argc, const char* const* _argv, uint32_t _width, uint32_t _height,
+              const char *docPath) override
 	{
 		Args args(_argc, _argv);
 
@@ -49,6 +50,7 @@ public:
 			, 0
 			);
         
+        app.SetDocPath(docPath);
         app.Resize(_width, _height);
 	}
 
