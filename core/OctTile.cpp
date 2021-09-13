@@ -245,6 +245,11 @@ namespace sam
         int x = (pt[0] - bboxoct.mMin[0])* extent;
         int z = (pt[1] - bboxoct.mMin[2]) * extent;
 
+        x = std::min(TerrainTile::SquarePtsCt - 1,
+                     std::max(0, x));
+        z = std::min(TerrainTile::SquarePtsCt - 1,
+                     std::max(0, z));
+
         std::vector<byte> data = RleDecode(m_rledata);
         const int tsz = TerrainTile::SquarePtsCt;
         for (int y = 255; y >= 0; --y)

@@ -66,11 +66,30 @@ public:
 	{
         int prevheight = m_height;
         int prevwidth = m_width;
+        static uint8_t prevMouseLeftBtn = 0;
+        static float prevX = 0, prevY = 0;
 		if (!entry::processEvents(m_width, m_height, m_debug, m_reset, &m_mouseState) )
 		{
             if (prevheight != m_height ||
                 prevwidth != m_width)
                 app.Resize(m_width, m_height);
+            
+            if (m_mouseState.m_buttons[entry::MouseButton::Left] != prevMouseLeftBtn)
+            {
+                prevMouseLeftBtn = m_mouseState.m_buttons[entry::MouseButton::Left];
+                
+                if (prevMouseLeftBtn > 0)
+                    app.TouchDown(m_mouseState.m_mx, m_mouseState.m_my, 0);
+                else
+                    app.TouchUp(0);
+            }
+            else if (prevMouseLeftBtn > 0 && (prevX != m_mouseState.m_mx
+                                              || prevY != m_mouseState.m_my))
+            {
+                app.TouchDrag(m_mouseState.m_mx, m_mouseState.m_my, 0);
+            }
+            prevX = m_mouseState.m_mx;
+            prevY = m_mouseState.m_my;
 			// Set view 0 default viewport.
 			bgfx::setViewRect(0, 0, 0, uint16_t(m_width), uint16_t(m_height) );
 

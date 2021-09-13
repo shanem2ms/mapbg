@@ -284,7 +284,8 @@ namespace sam
         }
 
         std::shared_ptr<OctTile> tile = m_octTileSelection.TileFromPos(fly.pos);
-        float grnd = tile->GetGroundPos(Point2f(fly.pos[0], fly.pos[2]));
+        float grnd = tile != nullptr ? tile->GetGroundPos(Point2f(fly.pos[0], fly.pos[2])) :
+            INFINITY;
 
         if (isnan(grnd) || fly.pos[1] > (grnd + headheight))
         {
