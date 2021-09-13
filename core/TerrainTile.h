@@ -47,7 +47,7 @@ namespace sam
         TerrainTile(const Loc& l, std::shared_ptr<TerrainTile> parent);
         ~TerrainTile();
 
-        const bgfxh<bgfx::TextureHandle> &GetTerrain() const { return m_terrain; }
+        const bgfxh<bgfx::TextureHandle>& GetTerrain();
         void SetLastUseFrame(int frameIdx)
         { m_lastUsedframeIdx = frameIdx; }
 

@@ -42,7 +42,7 @@ namespace sam
 
     void World::OpenDb(const std::string &path)
     {
-        leveldb::Env* env = leveldb::Env::Default();
+        //leveldb::Env* env = leveldb::Env::Default();
         leveldb::Options options;
         //create a bloom filter to quickly tell if a key is in the database or not
         options.filter_policy = leveldb::NewBloomFilterPolicy(10);

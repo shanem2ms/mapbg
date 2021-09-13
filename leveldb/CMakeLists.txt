@@ -107,7 +107,7 @@ set(Source_Files
     "port/port_posix_sse.cc"
     )
 
-if (MSVC)
+if (WIN32)
 
 set (Platform_Files 
     "port/port_win.cc"
@@ -134,12 +134,22 @@ set(ALL_FILES
 add_library(leveldb STATIC ${ALL_FILES})
 
 
+if (MSVC)
+    set (PlatformIncludeDirs 
+        "${CMAKE_CURRENT_SOURCE_DIR}/include/unistd"
+    )
+else()
+    set (PlatformIncludeDirs )
+endif()
+
 target_include_directories(leveldb PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/."
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/../"
     "${CMAKE_CURRENT_SOURCE_DIR}/../zlib"
     "${CMAKE_BINARY_DIR}/zlib"
+    ${PlatformIncludeDirs}
+
     )
 
 if (MSVC)

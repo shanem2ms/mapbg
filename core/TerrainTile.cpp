@@ -89,6 +89,25 @@ namespace sam
 
     static std::set<Loc> sAllLocs;
 
+    const bgfxh<bgfx::TextureHandle>& TerrainTile::GetTerrain()
+    {
+        if (!bgfx::isValid(m_terrain))
+        {
+            const bgfx::Memory *pMem = 
+                bgfx::copy(m_heightData.data(), m_heightData.size() * 4);
+            m_terrain = bgfx::createTexture2D(
+                TotalPtsCt, TotalPtsCt, false,
+                1,
+                bgfx::TextureFormat::Enum::R32F,
+                BGFX_TEXTURE_COMPUTE_WRITE | BGFX_TEXTURE_NONE
+                | BGFX_SAMPLER_U_CLAMP
+                | BGFX_SAMPLER_V_CLAMP,
+                pMem
+            );
+        }
+        return m_terrain;
+    }
+  
     bool TerrainTile::Build(World* pWorld)
     {
         int frameIdx = Application::Inst().FrameIdx();

@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include "shellscalingapi.h"
 #include <Windows.h>
+#include <ShlObj.h>
 #include <windowsx.h>
 #include <bx/bx.h>
 #include <bx/spscqueue.h>
@@ -172,6 +173,12 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
     bgfx::setViewClear(kClearView, BGFX_CLEAR_COLOR);
     bgfx::setViewRect(kClearView, 0, 0, bgfx::BackbufferRatio::Equal);
     bgfxInit = true;
+
+    CHAR my_documents[MAX_PATH];
+    HRESULT result = SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, SHGFP_TYPE_CURRENT, my_documents);
+
+    GetCurrentDirectory(MAX_PATH, my_documents);
+    app.SetDocPath(my_documents);
     app.Resize(rect.right, rect.bottom);
     return TRUE;
 }
