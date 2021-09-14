@@ -27,6 +27,7 @@ namespace sam
         int m_height;
         gmtl::Point3f m_camVel;
         float m_tiltVel;
+        bool m_flymode;
 
         float m_gravityVel;
 

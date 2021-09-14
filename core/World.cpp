@@ -34,7 +34,8 @@ namespace sam
         m_height(-1),
         m_currentTool(0),
         m_gravityVel(0),
-        m_db(nullptr)
+        m_db(nullptr),
+        m_flymode(false)
     {
 
         
@@ -155,6 +156,7 @@ namespace sam
     const int DButton = 'D';
     const int WButton = 'W';
     const int SButton = 'S';
+    const int FButton = 'F';
     bool isPaused = false;
 
     int g_maxTileLod = 9;
@@ -183,6 +185,9 @@ namespace sam
             break;
         case SButton:
             m_camVel[2] += speed;
+            break;
+        case FButton:
+            m_flymode = !m_flymode;
             break;
         }
         if (k >= '1' && k <= '9')
@@ -280,20 +285,31 @@ namespace sam
             m_worldGroup->Clear();
             m_octTileSelection.Update(e, ctx, playerbounds);
             m_octTileSelection.AddTilesToGroup(m_worldGroup);
-            m_octTileSelection.GetNearFarMidDist(ctx.m_nearfar);
         }
 
         std::shared_ptr<OctTile> tile = m_octTileSelection.TileFromPos(fly.pos);
         float grnd = tile != nullptr ? tile->GetGroundPos(Point2f(fly.pos[0], fly.pos[2])) :
             INFINITY;
-
-        if (isnan(grnd) || fly.pos[1] > (grnd + headheight))
+        m_octTileSelection.GetNearFarMidDist(ctx.m_nearfar);
+        float flyspeedup = 1;
+        if (!m_flymode)
         {
-            m_gravityVel -= 0.0005f;
+            std::shared_ptr<OctTile> tile = m_octTileSelection.TileFromPos(fly.pos);
+            float grnd = tile->GetGroundPos(Point2f(fly.pos[0], fly.pos[2]));
+
+            if (isnan(grnd) || fly.pos[1] > (grnd + headheight))
+            {
+                m_gravityVel -= 0.0005f;
+            }
+            else
+            {
+                fly.pos[1] = grnd + headheight;
+                m_gravityVel = 0;
+            }
         }
         else
         {
-            fly.pos[1] = grnd + headheight;
+            flyspeedup = 10;
             m_gravityVel = 0;
         }
 
@@ -303,9 +319,9 @@ namespace sam
         Vec3f fwWorld;
         cross(fwWorld, right, upworld);
         fly.pos +=
-            m_camVel[0] * right +
-            (m_camVel[1] + m_gravityVel) * upworld +
-            m_camVel[2] * fwWorld;
+            m_camVel[0] * right * flyspeedup +
+            (m_camVel[1] + m_gravityVel) * upworld * flyspeedup +
+            m_camVel[2] * fwWorld * flyspeedup;
         //fly.pos[1] = std::max(m_octTileSelection.GetGroundHeight(fly.pos), fly.pos[1]);
 
         cam.SetFly(fly);        

@@ -36,6 +36,26 @@ namespace sam
         }
 
     private:
+
+        // (X[i], Y[i]) are coordinates of i'th point.
+        static float polygonArea(Vec2f p[], int n)
+        {
+            // Initialize area
+            float area = 0.0;
+
+            // Calculate value of shoelace formula
+            int j = n - 1;
+            for (int i = 0; i < n; i++)
+            {
+                area += (p[j][0] + p[i][0]) * (p[j][1] - p[i][1]);
+                j = i;  // j is previous vertex to i
+            }
+
+            // Return absolute value
+            return abs(area / 2.0);
+        }
+
+
         enum class ContainmentType
         {
             Disjoint = 0,
@@ -124,31 +144,47 @@ namespace sam
             pts[7] = Point3f(u[0], u[1], u[2]);
         }
 
+
+
         static void GetLocsInView(std::vector<Loc>& locs, const Loc& curLoc,
             const Frustumf& f, const Matrix44f& viewProj, float pixelDist, int maxlod, const AABoxf& playerBounds)
         {
+            static const int sides[6][4] =
+            {
+                { 0, 2, 6, 4 },
+                { 4, 6, 7, 5 },
+                { 5, 7, 3, 1 },
+                { 1, 3, 2, 0 },
+                { 2, 3, 7, 6 },
+                { 4, 5, 1, 0 },
+            };
+
             AABoxf aabox = curLoc.GetBBox();
-            Point3f ptinc = (aabox.mMax - aabox.mMin) * 0.2f;
             Point3f c[8];
             GetCorners(aabox, c);
-            float avgdist = 0;
+            Point4f ppt[8];
             for (int idx = 0; idx < 8; ++idx)
             {
                 Point4f pt0(c[idx][0], c[idx][1], c[idx][2], 1);
-                Point4f ppt0;
-                xform(ppt0, viewProj, pt0);
-                ppt0 /= ppt0[3];
-
-                Point4f pt1(c[idx][0] + ptinc[0], c[idx][1] + ptinc[1], c[idx][2] + ptinc[2], 1);
-                Point4f ppt1;
-                xform(ppt1, viewProj, pt1);
-                ppt1 /= ppt1[3];
-
-                float dist = length(Vec4f(ppt1 - ppt0));
-                avgdist += dist;
+                xform(ppt[idx], viewProj, pt0);
+                ppt[idx] /= ppt[idx][3];
             }
 
-            if (curLoc.m_l > 1 && (avgdist < pixelDist || curLoc.m_l >= maxlod))
+            float totalArea = 0;
+            for (int i = 0; i < 6; ++i)
+            {
+                Vec2f pts[4];
+                for (int j = 0; j < 4; ++j)
+                {
+                    const Point4f &vpt = ppt[sides[i][j]];
+                    pts[j] = Vec2f(vpt[0], vpt[1]);
+                }
+
+                float area = polygonArea(pts, 4);
+                totalArea += area;
+            }
+
+            if (curLoc.m_l > 1 && (totalArea < pixelDist || curLoc.m_l >= maxlod))
             {
                 locs.push_back(curLoc);
                 return;
@@ -185,7 +221,7 @@ namespace sam
         Camera::Fly fly = cam.GetFly();
 
         std::vector<Loc> locs;
-        FrustumTiles::Get(e.Cam(), locs, 10.0f, g_maxTileLod, playerBounds);
+        FrustumTiles::Get(e.Cam(), locs, 100.0f, g_maxTileLod, playerBounds);
 
         std::sort(locs.begin(), locs.end());        
 

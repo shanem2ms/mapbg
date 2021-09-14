@@ -307,10 +307,17 @@ namespace sam
             m_uparams = bgfx::createUniform("u_params", bgfx::UniformType::Vec4, 1);
         }
 
+        static Vec3f c[] = {
+            Vec3f(1, 0, 0),
+            Vec3f(0.6f, 0.4f, 0),
+            Vec3f(1.0f, 1.0f, 0),
+            Vec3f(0, 1.0f, 0),
+            Vec3f(0, 0, 1.0f),
+            Vec3f(1.0f, 0, 1.0f)
+        };
         int t = m_l.m_l;
-        Vec4f color((std::min(t, 93) + 1) * 0.1f,
-            (std::max(t - 10, 0) + 1) * 0.1f,
-            1,
+        Vec3f cc = c[t % 6];
+        Vec4f color(cc[0], cc[1], cc[2],
             1);
         bgfx::setUniform(m_uparams, &color, 1);
         Matrix44f m;
