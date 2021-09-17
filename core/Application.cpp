@@ -4,6 +4,7 @@
 #include "Engine.h"
 #include "UIControl.h"
 #include "World.h"
+#include "imgui.h"
 
 namespace sam
 {
@@ -14,10 +15,11 @@ namespace sam
 
     Application::Application() :
         m_height(0),
-        m_touchDownX(0),
-        m_touchDownY(0),
+        m_touchDown(0, 0),
+        m_touchPos(0, 0),
         m_width(0),
-        m_frameIdx(0)
+        m_frameIdx(0),
+        m_buttonDown(false)
     {
         s_pInst = this;
         m_engine = std::make_unique<Engine>();
@@ -38,21 +40,23 @@ namespace sam
 
     void Application::TouchDown(float x, float y, int touchId)
     {
-        m_touchDownX = x;
-        m_touchDownY = y;
+        m_touchDown = gmtl::Vec2f(x, y);
 
+        m_buttonDown = 1;
         if (!m_uiMgr->TouchDown(x, y, touchId))
             m_world->TouchDown(x, y, touchId);
     }
 
-    void Application::TouchDrag(float x, float y, int touchId)
+    void Application::TouchMove(float x, float y, int touchId)
     {
+        m_touchPos = gmtl::Vec2f(x, y);
         if (!m_uiMgr->TouchDrag(x, y, touchId))
             m_world->TouchDrag(x, y, touchId);
     }
 
     void Application::TouchUp(int touchId)
     {
+        m_buttonDown = 0;
         if (!m_uiMgr->TouchUp(touchId))
             m_world->TouchUp(touchId);
     }
@@ -79,12 +83,12 @@ namespace sam
         m_engine->Tick(time);
     }
 
-    void Application::SetDocPath(const char *folder)
+    void Application::Initialize(const char *folder)
     {
         m_documentsPath = folder;
         std::string dbPath = m_documentsPath + "/testlvl";
-
         m_world->OpenDb(dbPath);
+        imguiCreate();
     }
 
     const float Pi = 3.1415297;
@@ -103,6 +107,25 @@ namespace sam
         bgfx::setViewRect(0, 0, 0, uint16_t(m_width), uint16_t(m_height));
         bgfx::setViewRect(1, 0, 0, uint16_t(m_width), uint16_t(m_height));
         m_engine->Draw(ctx);
+
+        imguiBeginFrame(m_touchPos[0]
+            , m_touchPos[1]
+            , m_buttonDown
+            , 0
+            , uint16_t(m_width)
+            , uint16_t(m_height)
+        );
+
+        ImGui::PushStyleColor(ImGuiCol_Text
+            , false
+            ? ImVec4(1.0, 0.0, 0.0, 1.0)
+            : ImVec4(1.0, 1.0, 1.0, 1.0)
+        );
+        ImGui::TextWrapped("%s", "What is going on here");
+        ImGui::Separator();
+        ImGui::PopStyleColor();
+
+        imguiEndFrame();
         m_frameIdx = bgfx::frame() + 1;
     }
     Application::~Application()

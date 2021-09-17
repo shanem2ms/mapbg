@@ -16,6 +16,7 @@ namespace sam
     struct DrawContext;
     class Engine;
     class Touch;
+    class TargetCube;
     
     class World
     {
@@ -36,6 +37,7 @@ namespace sam
         int m_currentTool;
         bgfx::ProgramHandle m_shader;
         leveldb::DB* m_db;
+        std::shared_ptr<TargetCube> m_targetCube;
 
     public:
         void Layout(int w, int h);

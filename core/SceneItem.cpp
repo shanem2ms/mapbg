@@ -161,7 +161,9 @@ namespace sam
     static const int boardSizeH = 48;
 
     Camera::Camera() :
-        m_mode(0)
+        m_mode(0),
+        m_near(0.002f),
+        m_far(25.0f)
     {}
 
 
@@ -188,7 +190,7 @@ namespace sam
     {
         Matrix44f rot, off, scl, perp;
         float aspect = (float)w / (float)h;
-        setPerspective(m_proj, 60.0f, aspect, 0.002f, 25.0f);
+        setPerspective(m_proj, 60.0f, aspect, m_near, m_far);
         m_aspect = aspect;
         if (m_mode == 0)
         {

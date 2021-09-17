@@ -2,6 +2,7 @@
 #include "Mesh.h"
 
 bgfx::VertexLayout PosTexcoordVertex::ms_layout;
+bgfx::VertexLayout PosTexcoordNrmVertex::ms_layout;
 
 bool Cube::isInit = false;
 bgfx::VertexBufferHandle Cube::vbh;
@@ -68,40 +69,40 @@ template class Grid<16>;
 
 void CubeList::Create(const std::vector<Vec3f>& pts, float cubeSize)
 {
-    PosTexcoordVertex::init();
+    PosTexcoordNrmVertex::init();
 
 
-    static PosTexcoordVertex s_cubeVertices[] =
+    static PosTexcoordNrmVertex s_cubeVertices[] =
     {
-        {-1.0f,  1.0f,  1.0f,  0.0f,  1.0f},
-        { 1.0f,  1.0f,  1.0f,  1.0f,  1.0f},
-        {-1.0f, -1.0f,  1.0f,  0.0f,  0.0f},
-        { 1.0f, -1.0f,  1.0f,  1.0f,  0.0f},
+        {-1.0f,  1.0f,  1.0f,  0.0f,  1.0f, 0, 0, 1},
+        { 1.0f,  1.0f,  1.0f,  1.0f,  1.0f, 0, 0, 1},
+        {-1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0, 0, 1},
+        { 1.0f, -1.0f,  1.0f,  1.0f,  0.0f, 0, 0, 1},
 
-        {-1.0f,  1.0f, -1.0f,  0.0f,  1.0f},
-        { 1.0f,  1.0f, -1.0f,  1.0f,  1.0f},
-        {-1.0f, -1.0f, -1.0f,  0.0f,  0.0f},
-        { 1.0f, -1.0f, -1.0f,  1.0f,  0.0f},
+        {-1.0f,  1.0f, -1.0f, 0.0f,  1.0f, 0, 0, -1},
+        { 1.0f,  1.0f, -1.0f, 1.0f,  1.0f, 0, 0, -1},
+        {-1.0f, -1.0f, -1.0f, 0.0f,  0.0f, 0, 0, -1},
+        { 1.0f, -1.0f, -1.0f, 1.0f,  0.0f, 0, 0, -1},
 
-        {-1.0f,  1.0f,  1.0f, 0.0f,  1.0f},
-        {-1.0f,  1.0f, -1.0f, 1.0f,  1.0f},
-        {-1.0f, -1.0f,  1.0f, 0.0f,  0.0f},
-        {-1.0f, -1.0f, -1.0f, 1.0f,  0.0f},
+        {-1.0f,  1.0f,  1.0f, 0.0f,  1.0f, -1, 0, 0 },
+        {-1.0f,  1.0f, -1.0f, 1.0f,  1.0f, -1, 0, 0 },
+        {-1.0f, -1.0f,  1.0f, 0.0f,  0.0f, -1, 0, 0 },
+        {-1.0f, -1.0f, -1.0f, 1.0f,  0.0f, -1, 0, 0 },
 
-        { 1.0f,  1.0f,  1.0f, 0.0f,  1.0f},
-        { 1.0f, -1.0f,  1.0f, 1.0f,  1.0f},
-        { 1.0f,  1.0f, -1.0f, 0.0f,  0.0f},
-        { 1.0f, -1.0f, -1.0f, 1.0f,  0.0f},
+        { 1.0f,  1.0f,  1.0f, 0.0f,  1.0f, 1, 0, 0 },
+        { 1.0f, -1.0f,  1.0f, 1.0f,  1.0f, 1, 0, 0},
+        { 1.0f,  1.0f, -1.0f, 0.0f,  0.0f, 1, 0, 0},
+        { 1.0f, -1.0f, -1.0f, 1.0f,  0.0f, 1, 0, 0},
 
-        {-1.0f,  1.0f,  1.0f, 0.0f,  1.0f},
-        { 1.0f,  1.0f,  1.0f, 1.0f,  1.0f},
-        {-1.0f,  1.0f, -1.0f, 0.0f,  0.0f},
-        { 1.0f,  1.0f, -1.0f, 1.0f,  0.0f},
+        {-1.0f,  1.0f,  1.0f, 0.0f,  1.0f, 0, 1, 0},
+        { 1.0f,  1.0f,  1.0f, 1.0f,  1.0f, 0, 1, 0},
+        {-1.0f,  1.0f, -1.0f, 0.0f,  0.0f, 0, 1, 0},
+        { 1.0f,  1.0f, -1.0f, 1.0f,  0.0f, 0, 1, 0},
 
-        {-1.0f, -1.0f,  1.0f, 0.0f,  1.0f},
-        {-1.0f, -1.0f, -1.0f, 1.0f,  1.0f},
-        { 1.0f, -1.0f,  1.0f, 0.0f,  0.0f},
-        { 1.0f, -1.0f, -1.0f, 1.0f,  0.0f},
+        {-1.0f, -1.0f,  1.0f, 0.0f,  1.0f, 0, -1, 0},
+        {-1.0f, -1.0f, -1.0f, 1.0f,  1.0f, 0, -1, 0},
+        { 1.0f, -1.0f,  1.0f, 0.0f,  0.0f, 0, -1, 0},
+        { 1.0f, -1.0f, -1.0f, 1.0f,  0.0f, 0, -1, 0},
     };
 
     static const uint32_t s_cubeIndices[] =
@@ -132,9 +133,9 @@ void CubeList::Create(const std::vector<Vec3f>& pts, float cubeSize)
         {
             indices.push_back(i + offset);
         }
-        for (const PosTexcoordVertex& cubevtx : s_cubeVertices)
+        for (const PosTexcoordNrmVertex& cubevtx : s_cubeVertices)
         {
-            PosTexcoordVertex vtx = cubevtx;
+            PosTexcoordNrmVertex vtx = cubevtx;
             vtx.m_x = vtx.m_x * cubeSize + pt[0];
             vtx.m_y = vtx.m_y * cubeSize + pt[1];
             vtx.m_z = vtx.m_z * cubeSize + pt[2];
@@ -143,8 +144,8 @@ void CubeList::Create(const std::vector<Vec3f>& pts, float cubeSize)
     }
 
     vbh = bgfx::createVertexBuffer(
-        bgfx::makeRef(vertices.data(), vertices.size() * sizeof(PosTexcoordVertex))
-        , PosTexcoordVertex::ms_layout
+        bgfx::makeRef(vertices.data(), vertices.size() * sizeof(PosTexcoordNrmVertex))
+        , PosTexcoordNrmVertex::ms_layout
     );
 
     ibh = bgfx::createIndexBuffer(

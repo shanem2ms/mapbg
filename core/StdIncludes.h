@@ -45,6 +45,7 @@ public:
 
     T &operator = (const T& rhs)
     {
+        free();
         t = rhs;
         return t;
     }

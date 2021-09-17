@@ -178,7 +178,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
     HRESULT result = SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, SHGFP_TYPE_CURRENT, my_documents);
 
     GetCurrentDirectory(MAX_PATH, my_documents);
-    app.SetDocPath(my_documents);
+    app.Initialize(my_documents);
     app.Resize(rect.right, rect.bottom);
     return TRUE;
 }
@@ -238,7 +238,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         app.TouchUp(0);
         break;
     case WM_MOUSEMOVE:
-        app.TouchDrag((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), 0);
+        app.TouchMove((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), 0);
         break;
     case WM_KEYDOWN:
     case WM_SYSKEYDOWN:

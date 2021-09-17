@@ -9,8 +9,6 @@ elseif (APPLE)
 set(BX_INC_DIR_COMPAT ${BGFX_INCLUDE_ROOT}/compat/osx)
 endif()
 
-
-
 add_subdirectory(shaders)
 
 ################################################################################
@@ -57,6 +55,11 @@ set(Source_Files
     "UIControl.cpp"
     "Mesh.cpp"
     "SimplexNoise/SimplexNoise.cpp"
+    "imgui/imgui.cpp"
+    "imgui/dear-imgui/imgui.cpp"
+    "imgui/dear-imgui/imgui_draw.cpp"
+    "imgui/dear-imgui/imgui_widgets.cpp"
+    "imgui/dear-imgui/imgui_tables.cpp"
     )
 
 source_group("Source Files" FILES ${Source_Files} ${Main_Files})
@@ -82,9 +85,10 @@ message("BGFX_INC_DIR = ${BGFX_INC_DIR}")
 
 target_include_directories(core PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/."
+    "${CMAKE_CURRENT_SOURCE_DIR}/imgui/."
     "${CMAKE_CURRENT_SOURCE_DIR}/../leveldb/include"
     ${BGFX_INCLUDE_ROOT}
     ${BX_INC_DIR_COMPAT}
     )
 
-add_compile_definitions(DLLX=)
+add_compile_definitions(DLLX=;PRId64="I64d")

@@ -28,6 +28,7 @@ namespace sam
         void GetNearFarMidDist(float nearfarmidsq[3]);
 
         std::shared_ptr<OctTile> TileFromPos(const Point3f& pos);
+        bool Intersects(const Point3f& pos, const Vec3f& ray, Loc& outloc, Vec3i& outpt);
 
     public:
         OctTileSelection();

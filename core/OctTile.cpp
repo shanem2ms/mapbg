@@ -16,7 +16,9 @@ namespace sam
 
     OctTile::OctTile(const Loc& l) : m_image(-1), m_l(l), m_needRebuild(true),
         m_buildFrame(0),
-        m_dataready(false)
+        m_dataready(false),
+        m_intersects(-1),
+        m_lastUsedRawData(0)
     {
     }
 
@@ -86,7 +88,7 @@ namespace sam
                     byte b2 = cnt & 0xFF;
                     b1 |= 0x80;
                     outrle.push_back(b1);
-                    outrle.push_back(b2);                    
+                    outrle.push_back(b2);
                 }
 
                 outrle.push_back(curval);
@@ -196,7 +198,7 @@ namespace sam
     }
 
     void OctTile::LoadTerrainData()
-    {        
+    {
         AABoxf bboxterrain = m_terrainTile->GetBounds();
         AABoxf bboxoct = m_l.GetBBox();
 
@@ -206,7 +208,7 @@ namespace sam
         float minY = bboxoct.mMin[1];
         float maxY = bboxoct.mMax[1];
         float minX = bboxoct.mMin[0];
-        float minZ = bboxoct.mMin[2];        
+        float minZ = bboxoct.mMin[2];
 
 
         std::vector<byte> data;
@@ -242,13 +244,13 @@ namespace sam
         AABoxf bboxoct = m_l.GetBBox();
         float extent = TerrainTile::SquarePtsCt / (bboxoct.mMax[0] - bboxoct.mMin[0]);
         float invextent = (bboxoct.mMax[0] - bboxoct.mMin[0]) / TerrainTile::SquarePtsCt;
-        int x = (pt[0] - bboxoct.mMin[0])* extent;
+        int x = (pt[0] - bboxoct.mMin[0]) * extent;
         int z = (pt[1] - bboxoct.mMin[2]) * extent;
 
         x = std::min(TerrainTile::SquarePtsCt - 1,
-                     std::max(0, x));
+            std::max(0, x));
         z = std::min(TerrainTile::SquarePtsCt - 1,
-                     std::max(0, z));
+            std::max(0, z));
 
         std::vector<byte> data = RleDecode(m_rledata);
         const int tsz = TerrainTile::SquarePtsCt;
@@ -272,7 +274,7 @@ namespace sam
             return;
         if (ctx.m_nearfarpassIdx == 1 && nearDistSq > ctx.m_nearfar[1])
             return;
-        
+
         if (m_needRebuild)
         {
             leveldb::Slice key((const char*)&m_l, sizeof(m_l));
@@ -317,8 +319,9 @@ namespace sam
         };
         int t = m_l.m_l;
         Vec3f cc = c[t % 6];
-        Vec4f color(cc[0], cc[1], cc[2],
-            1);
+        Vec4f cr;
+        lerp(cr, m_intersects, Vec4f(1.0f, 0, 0, 1), Vec4f(0, 1, 0, 1));
+        Vec4f color = (m_intersects >= 0) ? cr : Vec4f(0.2f, 0.2f, 0.2f, 1);
         bgfx::setUniform(m_uparams, &color, 1);
         Matrix44f m;
         identity(m);
@@ -336,6 +339,11 @@ namespace sam
         // Set render states.l
         bgfx::setState(state);
         bgfx::submit(ctx.m_curviewIdx, ctx.m_pgm);
+
+        if (m_rawdata.size() > 0 && m_lastUsedRawData++ > 60)
+        {
+            m_rawdata = std::vector<byte>();
+        }
     }
 
     void OctTile::Decomission()
@@ -343,8 +351,159 @@ namespace sam
         m_needRebuild = true;
     }
 
+    bool OctTile::Intersect(const Point3f& pt0, const Point3f& pt1, Vec3i & hitpt)
+    {
+        if (m_rledata.size() == 0)
+            return false;
+
+        AABoxf aabb = m_l.GetBBox();
+        Vec3f extents = aabb.mMax - aabb.mMin;
+        float mul = TerrainTile::SquarePtsCt / extents[0];
+        Vec3f c0 = (pt0 - aabb.mMin) * mul;
+        Vec3f c1 = (pt1 - aabb.mMin) * mul;
+        std::vector<Vec3i> pts;
+        if (m_rawdata.size() == 0)
+        {
+            m_rawdata = RleDecode(m_rledata);
+        }
+        m_lastUsedRawData = 0;
+        hitpt = FindHit(m_rawdata, Vec3i(c0[0], c0[1], c0[2]), Vec3i(c1[0], c1[1], c1[2]));
+        if (hitpt[0] > 0)
+            return true;
+        return false;
+    }
+
     OctTile::~OctTile()
     {
         Decomission();
     }
+
+
+#define checkhit(x, y, z) if (data[y * tsz * tsz + z * tsz + x] > 0) return Vec3i(x, y, z);
+#define R(x) std::max(0, std::min(TerrainTile::SquarePtsCt - 1, x))
+
+    Vec3i OctTile::FindHit(const std::vector<byte>& data, const Vec3i pt1, const Vec3i pt2)
+    {
+        const int tsz = TerrainTile::SquarePtsCt;
+
+        int x1 = R(pt1[0]), y1 = R(pt1[1]), z1 = R(pt1[2]);
+        int x2 = R(pt2[0]), y2 = R(pt2[1]), z2 = R(pt2[2]);
+
+        checkhit(x1, y1, z1);
+
+        int dx = abs(x2 - x1);
+        int dy = abs(y2 - y1);
+        int dz = abs(z2 - z1);
+        int xs, ys, zs;
+        if (x2 > x1)
+            xs = 1;
+        else
+            xs = -1;
+
+        if (y2 > y1)
+            ys = 1;
+        else
+            ys = -1;
+        if (z2 > z1)
+            zs = 1;
+        else
+            zs = -1;
+
+        // Driving axis is X - axis"
+        if (dx >= dy && dx >= dz)
+        {
+            int p1 = 2 * dy - dx;
+            int p2 = 2 * dz - dx;
+            while (x1 != x2)
+            {
+                x1 += xs;
+                if (p1 >= 0)
+                {
+                    y1 += ys;
+                    p1 -= 2 * dx;
+                }
+                if (p2 >= 0)
+                {
+                    z1 += zs;
+                    p2 -= 2 * dx;
+                }
+                p1 += 2 * dy;
+                p2 += 2 * dz;
+                checkhit(x1, y1, z1);
+            }
+        }
+        // Driving axis is Y - axis"
+        else if (dy >= dx && dy >= dz)
+        {
+            int p1 = 2 * dx - dy;
+            int p2 = 2 * dz - dy;
+            while (y1 != y2) {
+                y1 += ys;
+                if (p1 >= 0)
+                {
+                    x1 += xs;
+                    p1 -= 2 * dy;
+                }
+                if (p2 >= 0) {
+                    z1 += zs;
+                    p2 -= 2 * dy;
+                }
+                p1 += 2 * dx;
+                p2 += 2 * dz;
+                checkhit(x1, y1, z1);
+            }
+        }
+
+        // Driving axis is Z - axis"
+        else
+        {
+            int p1 = 2 * dy - dz;
+            int p2 = 2 * dx - dz;
+            while (z1 != z2) {
+                z1 += zs;
+                if (p1 >= 0) {
+                    y1 += ys;
+                    p1 -= 2 * dz;
+                }
+                if (p2 >= 0) {
+                    x1 += xs;
+                    p2 -= 2 * dz;
+                }
+                p1 += 2 * dy;
+                p2 += 2 * dx;
+                checkhit(x1, y1, z1);
+            }
+        }
+        return Vec3i(-1, -1, -1);
+    }
+
+    AABoxf TargetCube::GetBounds() const
+    {
+        return AABoxf();
+    }
+    void TargetCube::Initialize(DrawContext& nvg)
+    {
+        m_shader = Engine::Inst().LoadShader("vs_cubes.bin", "fs_targetcube.bin");
+    }
+
+    void TargetCube::Draw(DrawContext& ctx)
+    {
+        Cube::init();
+        Matrix44f m = ctx.m_mat* CalcMat();
+        bgfx::setTransform(m.getData());
+        // Set vertex and index buffer.
+        bgfx::setVertexBuffer(0, Cube::vbh);
+        bgfx::setIndexBuffer(Cube::ibh);
+        uint64_t state = 0
+            | BGFX_STATE_WRITE_RGB
+            | BGFX_STATE_WRITE_A
+            | BGFX_STATE_WRITE_Z
+            | BGFX_STATE_DEPTH_TEST_LESS
+            | BGFX_STATE_MSAA
+            | BGFX_STATE_BLEND_ALPHA;
+        // Set render states.l
+        bgfx::setState(state);
+        bgfx::submit(ctx.m_curviewIdx, m_shader);
+    }
+
 }

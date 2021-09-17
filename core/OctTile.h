@@ -176,6 +176,9 @@ namespace sam
         std::shared_ptr<TerrainTile> m_terrainTile;
         std::shared_ptr<CubeList> m_cubeList;
         std::vector<byte> m_rledata;
+        std::vector<byte> m_rawdata;
+        int m_lastUsedRawData;
+        float m_intersects;
     public:
         float nearDistSq;
         float farDistSq;
@@ -192,6 +195,9 @@ namespace sam
             m_terrainTile = terrainTile;
         }
 
+        void SetIntersects(float i)
+        { m_intersects = i; }
+
         void SetImage(int image)
         {
             m_image = image;
@@ -204,6 +210,8 @@ namespace sam
         void Decomission();
         void LoadVB();
         float GetGroundPos(const Point2f& pt) const;
+        bool Intersect(const Point3f& pt0, const Point3f& pt1, Vec3i &hitpt);
+        static Vec3i FindHit(const std::vector<byte> &data, const Vec3i p1, const Vec3i p2);
     private:
         static std::vector<byte> RleEncode(const std::vector<byte> data);
         static std::vector<byte> RleDecode(const std::vector<byte> data);
@@ -223,4 +231,12 @@ namespace sam
 
         return false;
     }
+
+    class TargetCube : public SceneItem
+    {
+        bgfx::ProgramHandle m_shader;
+        void Initialize(DrawContext& nvg) override;
+        AABoxf GetBounds() const override;
+        void Draw(DrawContext& ctx) override;
+    };
 }

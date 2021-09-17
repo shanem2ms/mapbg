@@ -20,12 +20,23 @@ namespace sam
     extern int g_farTiles;
     extern int nOctTilesTotal;
     extern int nOctTilesDrawn;
+    extern Loc g_hitLoc;;
 
 
 	void Hud::Draw(DrawContext& ctx)
 	{        
         Matrix44f m =
             ctx.m_mat * CalcMat();
+
+        bgfx::dbgTextClear();
+        bgfx::dbgTextPrintf(0, 2, 0x0f, "Target Loc [%d, %d %d %d]", g_hitLoc.m_l, g_hitLoc.m_x, g_hitLoc.m_y, g_hitLoc.m_z);
+        bgfx::dbgTextPrintf(0, 3, 0x0f, "Oct Tiles [%d, %d, %d]", OctTileSelection::sNumTiles.load(), nOctTilesTotal, nOctTilesDrawn);
+        bgfx::dbgTextPrintf(0, 6, 0x0f, "Near Tiles [%d]", g_nearTiles);
+        bgfx::dbgTextPrintf(0, 7, 0x0f, "Far Tiles [%d]", g_farTiles);
+
+        Engine& e = Engine::Inst();
+        Camera::Fly la = e.Cam().GetFly();
+        bgfx::dbgTextPrintf(0, 4, 0x0f, "Cam [%f %f %f]", la.pos[0], la.pos[1], la.pos[2]);
 
         //bgfx::setTransform(m.getData());
         Quad::init();
@@ -41,17 +52,7 @@ namespace sam
         // Set render states.l
         bgfx::setState(state);
         bgfx::submit(0, m_shader);
-
-        bgfx::dbgTextClear();
-        bgfx::dbgTextPrintf(0, 2, 0x0f, "Terrain Tiles [%d]", TerrainTileSelection::sNumTiles.load());
-        bgfx::dbgTextPrintf(0, 3, 0x0f, "Oct Tiles [%d, %d, %d]", OctTileSelection::sNumTiles.load(), nOctTilesTotal, nOctTilesDrawn);
-        bgfx::dbgTextPrintf(0, 6, 0x0f, "Near Tiles [%d]", g_nearTiles);
-        bgfx::dbgTextPrintf(0, 7, 0x0f, "Far Tiles [%d]", g_farTiles);
-
-        Engine& e = Engine::Inst();
-        Camera::Fly la = e.Cam().GetFly();
-        bgfx::dbgTextPrintf(0, 4, 0x0f, "Cam [%f %f %f]", la.pos[0], la.pos[1], la.pos[2]);
-	}
+    }
 
 	AABoxf Hud::GetBounds() const
 	{

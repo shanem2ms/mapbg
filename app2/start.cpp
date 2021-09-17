@@ -50,7 +50,7 @@ public:
 			, 0
 			);
         
-        app.SetDocPath(docPath);
+        app.Initialize(docPath);
         app.Resize(_width, _height);
 	}
 

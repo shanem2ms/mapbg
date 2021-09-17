@@ -5,6 +5,7 @@
 #include "SimplexNoise/SimplexNoise.h"
 #include <numeric>
 #include "Mesh.h"
+#include "OctTile.h"
 #include "gmtl/PlaneOps.h"
 #include "leveldb/dumpfile.h"
 #include "leveldb/env.h"
@@ -215,6 +216,8 @@ namespace sam
         }
     }
 
+    Loc g_hitLoc(0, 0, 0);
+
     void World::Update(Engine& e, DrawContext& ctx)
     {
         if (m_worldGroup == nullptr)
@@ -234,6 +237,8 @@ namespace sam
             */
             m_worldGroup = std::make_shared<SceneGroup>();
             e.Root()->AddItem(m_worldGroup);
+            m_targetCube = std::make_shared<TargetCube>();
+            e.Root()->AddItem(m_targetCube);
 
             Camera::Fly fly;
             fly.pos = Point3f(0.0f, 0.0f, -0.5f);
@@ -291,6 +296,40 @@ namespace sam
         float grnd = tile != nullptr ? tile->GetGroundPos(Point2f(fly.pos[0], fly.pos[2])) :
             INFINITY;
         m_octTileSelection.GetNearFarMidDist(ctx.m_nearfar);
+        e.Cam().SetNearFar(ctx.m_nearfar[0], ctx.m_nearfar[2]);
+
+        {
+            Matrix44f mat0 = cam.GetPerspectiveMatrix(ctx.m_nearfar[0], ctx.m_nearfar[1]) *
+                cam.ViewMatrix();
+            invert(mat0);
+            Vec4f nearWsPt, farWsPt;
+            xform(nearWsPt, mat0, Vec4f(0, 0, 0, 1));
+            Matrix44f mat1 = cam.GetPerspectiveMatrix(ctx.m_nearfar[1], ctx.m_nearfar[2]) *
+                cam.ViewMatrix();
+            invert(mat1);
+            xform(farWsPt, mat1, Vec4f(0, 0, 1, 1));
+            nearWsPt /= nearWsPt[3];
+            farWsPt /= farWsPt[3];
+            Vec3f dir = Point3f(farWsPt[0], farWsPt[1], farWsPt[2]) -
+                Point3f(nearWsPt[0], nearWsPt[1], nearWsPt[2]);
+            normalize(dir);
+            Loc hitLoc(0,0,0);
+            Vec3i hitpt;
+
+            if (m_octTileSelection.Intersects(Point3f(nearWsPt[0], nearWsPt[1], nearWsPt[2]), dir, hitLoc, hitpt))
+            {
+                AABox aabb = hitLoc.GetBBox();
+                Vec3f extents = (aabb.mMax - aabb.mMin);
+                const int tsz = 256;
+                float scl = extents[0] / (float)tsz;
+                
+                Point3f offset = Vec3f(hitpt[0], hitpt[1], hitpt[2]) * scl + aabb.mMin;
+                m_targetCube->SetOffset(offset);
+                m_targetCube->SetScale(Vec3f(scl, scl, scl));
+                g_hitLoc = hitLoc;
+            }
+        }
+
         float flyspeedup = 1;
         if (!m_flymode)
         {
@@ -327,7 +366,6 @@ namespace sam
         cam.SetFly(fly);        
 
     }
-
 
     void World::Layout(int w, int h)
     {

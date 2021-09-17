@@ -7,6 +7,7 @@
 #include "Mesh.h"
 #include "gmtl/PlaneOps.h"
 #include <sstream>
+#include "gmtl/Ray.h"
 #define NOMINMAX
 #ifdef _WIN32
 #include <Windows.h>
@@ -163,11 +164,14 @@ namespace sam
             Point3f c[8];
             GetCorners(aabox, c);
             Point4f ppt[8];
+            bool hasnegativeZ = false;
             for (int idx = 0; idx < 8; ++idx)
             {
                 Point4f pt0(c[idx][0], c[idx][1], c[idx][2], 1);
                 xform(ppt[idx], viewProj, pt0);
                 ppt[idx] /= ppt[idx][3];
+                if (ppt[idx][3] < 0)
+                    hasnegativeZ = true;
             }
 
             float totalArea = 0;
@@ -176,7 +180,7 @@ namespace sam
                 Vec2f pts[4];
                 for (int j = 0; j < 4; ++j)
                 {
-                    const Point4f &vpt = ppt[sides[i][j]];
+                    const Point4f& vpt = ppt[sides[i][j]];
                     pts[j] = Vec2f(vpt[0], vpt[1]);
                 }
 
@@ -184,7 +188,8 @@ namespace sam
                 totalArea += area;
             }
 
-            if (curLoc.m_l > 1 && (totalArea < pixelDist || curLoc.m_l >= maxlod))
+            if (curLoc.m_l > 1 && !hasnegativeZ &&
+                (totalArea < pixelDist || curLoc.m_l >= maxlod))
             {
                 locs.push_back(curLoc);
                 return;
@@ -223,7 +228,7 @@ namespace sam
         std::vector<Loc> locs;
         FrustumTiles::Get(e.Cam(), locs, 100.0f, g_maxTileLod, playerBounds);
 
-        std::sort(locs.begin(), locs.end());        
+        std::sort(locs.begin(), locs.end());
 
         for (const auto& l : locs)
         {
@@ -234,10 +239,10 @@ namespace sam
                 { // Init OctTile
                     float sx = l.m_x;
                     float sy = l.m_z;
-                    
+
                     Point3f pos = l.GetCenter();
                     sq->SetOffset(pos);
-                    float s = l.GetExtent() * 0.5f;                    
+                    float s = l.GetExtent() * 0.5f;
                     sq->SetScale(Vec3f(s, s, s));
                 }
                 m_tiles.insert(std::make_pair(l, sq));
@@ -313,14 +318,14 @@ namespace sam
             return;
 
         std::sort(tiles.begin(), tiles.end(), [](auto& t1, auto& t2) { return t1->distFromCam > t2->distFromCam;  });
-        
+
 
         float splitdistsq = tiles[tiles.size() / 2]->distFromCam;
         float neardistsq = std::numeric_limits<float>::max();
         float fardistsq = 0;
         for (auto& t : tiles)
         {
-//            splitdistsq += t->nearDistSq;
+            //            splitdistsq += t->nearDistSq;
             neardistsq = std::min(neardistsq, t->nearDistSq);
             fardistsq = std::max(fardistsq, t->farDistSq);
         }
@@ -379,6 +384,61 @@ namespace sam
 
         return nullptr;
     }
+
+    struct IntersectTile
+    {
+        float dist;
+        float h1;
+        float h2;
+        Loc l;
+        std::shared_ptr<OctTile> tile;
+    };
+
+    bool OctTileSelection::Intersects(const Point3f& pos, const Vec3f& ray, Loc &outloc, Vec3i &opt)
+    {
+        std::vector<IntersectTile> orderedTiles;
+        Ray r(pos, ray);
+        for (auto& pair : m_tiles)
+        {
+            unsigned int num_hits;
+            float h1, h2;
+            AABoxf aabb = pair.first.GetBBox();
+            gmtl::Vec3f midpt = (aabb.mMin + aabb.mMax) * 0.5f;
+
+            bool res = intersect(aabb, r, num_hits, h1, h2);            
+            if (res)
+            {
+                IntersectTile tile = {
+                    lengthSquared(midpt),
+                    num_hits > 1 ? h1 : 0,
+                    num_hits > 1 ? h2 : h1 ,
+                    pair.first,
+                    pair.second };
+                orderedTiles.push_back(tile);
+            }
+        }
+
+        std::sort(orderedTiles.begin(), orderedTiles.end(), [](const auto& l, const auto& r)
+            {
+                return l.dist < r.dist;
+            });
+
+        size_t idx = 1;
+        for (auto& it : orderedTiles)
+        {
+            Vec3i outpt;
+            if (it.tile->Intersect(r.mOrigin + it.h1 * r.mDir, r.mOrigin + it.h2 * r.mDir, outpt))
+            {
+                opt = outpt;
+                outloc = it.l;
+                return true;
+            }
+            idx++;
+        }
+
+        return false;
+    }
+
 
     OctTileSelection::~OctTileSelection()
     {

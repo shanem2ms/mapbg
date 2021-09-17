@@ -24,46 +24,76 @@ struct PosTexcoordVertex
     static bgfx::VertexLayout ms_layout;
 };
 
+struct PosTexcoordNrmVertex
+{
+    float m_x;
+    float m_y;
+    float m_z;
+    float m_u;
+    float m_v;
+    float m_nx;
+    float m_ny;
+    float m_nz;
+
+    static void init()
+    {
+        static bool isinit = false;
+        if (!isinit)
+        {
+            ms_layout
+                .begin()
+                .add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
+                .add(bgfx::Attrib::TexCoord0, 2, bgfx::AttribType::Float)
+                .add(bgfx::Attrib::Normal, 3, bgfx::AttribType::Float)
+                .end();
+            isinit = true;
+        }
+    };
+
+    static bgfx::VertexLayout ms_layout;
+};
+
 struct Cube
 {
     static void init()
     {
         if (isInit)
             return;
-        PosTexcoordVertex::init();
+        PosTexcoordNrmVertex::init();
 
 
-        static PosTexcoordVertex s_cubeVertices[] =
+
+        static PosTexcoordNrmVertex s_cubeVertices[] =
         {
-            {-1.0f,  1.0f,  1.0f,  0.0f,  1.0f},
-            { 1.0f,  1.0f,  1.0f,  1.0f,  1.0f},
-            {-1.0f, -1.0f,  1.0f,  0.0f,  0.0f},
-            { 1.0f, -1.0f,  1.0f,  1.0f,  0.0f},
+            {-1.0f,  1.0f,  1.0f,  0.0f,  1.0f, 0, 0, 1},
+            { 1.0f,  1.0f,  1.0f,  1.0f,  1.0f, 0, 0, 1},
+            {-1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0, 0, 1},
+            { 1.0f, -1.0f,  1.0f,  1.0f,  0.0f, 0, 0, 1},
 
-            {-1.0f,  1.0f, -1.0f,  0.0f,  1.0f},
-            { 1.0f,  1.0f, -1.0f,  1.0f,  1.0f},
-            {-1.0f, -1.0f, -1.0f,  0.0f,  0.0f},
-            { 1.0f, -1.0f, -1.0f,  1.0f,  0.0f},
+            {-1.0f,  1.0f, -1.0f, 0.0f,  1.0f, 0, 0, -1},
+            { 1.0f,  1.0f, -1.0f, 1.0f,  1.0f, 0, 0, -1},
+            {-1.0f, -1.0f, -1.0f, 0.0f,  0.0f, 0, 0, -1},
+            { 1.0f, -1.0f, -1.0f, 1.0f,  0.0f, 0, 0, -1},
 
-            {-1.0f,  1.0f,  1.0f, 0.0f,  1.0f},
-            {-1.0f,  1.0f, -1.0f, 1.0f,  1.0f},
-            {-1.0f, -1.0f,  1.0f, 0.0f,  0.0f},
-            {-1.0f, -1.0f, -1.0f, 1.0f,  0.0f},
+            {-1.0f,  1.0f,  1.0f, 0.0f,  1.0f, -1, 0, 0 },
+            {-1.0f,  1.0f, -1.0f, 1.0f,  1.0f, -1, 0, 0 },
+            {-1.0f, -1.0f,  1.0f, 0.0f,  0.0f, -1, 0, 0 },
+            {-1.0f, -1.0f, -1.0f, 1.0f,  0.0f, -1, 0, 0 },
 
-            { 1.0f,  1.0f,  1.0f, 0.0f,  1.0f},
-            { 1.0f, -1.0f,  1.0f, 1.0f,  1.0f},
-            { 1.0f,  1.0f, -1.0f, 0.0f,  0.0f},
-            { 1.0f, -1.0f, -1.0f, 1.0f,  0.0f},
+            { 1.0f,  1.0f,  1.0f, 0.0f,  1.0f, 1, 0, 0 },
+            { 1.0f, -1.0f,  1.0f, 1.0f,  1.0f, 1, 0, 0},
+            { 1.0f,  1.0f, -1.0f, 0.0f,  0.0f, 1, 0, 0},
+            { 1.0f, -1.0f, -1.0f, 1.0f,  0.0f, 1, 0, 0},
 
-            {-1.0f,  1.0f,  1.0f, 0.0f,  1.0f},
-            { 1.0f,  1.0f,  1.0f, 1.0f,  1.0f},
-            {-1.0f,  1.0f, -1.0f, 0.0f,  0.0f},
-            { 1.0f,  1.0f, -1.0f, 1.0f,  0.0f},
+            {-1.0f,  1.0f,  1.0f, 0.0f,  1.0f, 0, 1, 0},
+            { 1.0f,  1.0f,  1.0f, 1.0f,  1.0f, 0, 1, 0},
+            {-1.0f,  1.0f, -1.0f, 0.0f,  0.0f, 0, 1, 0},
+            { 1.0f,  1.0f, -1.0f, 1.0f,  0.0f, 0, 1, 0},
 
-            {-1.0f, -1.0f,  1.0f, 0.0f,  1.0f},
-            {-1.0f, -1.0f, -1.0f, 1.0f,  1.0f},
-            { 1.0f, -1.0f,  1.0f, 0.0f,  0.0f},
-            { 1.0f, -1.0f, -1.0f, 1.0f,  0.0f},
+            {-1.0f, -1.0f,  1.0f, 0.0f,  1.0f, 0, -1, 0},
+            {-1.0f, -1.0f, -1.0f, 1.0f,  1.0f, 0, -1, 0},
+            { 1.0f, -1.0f,  1.0f, 0.0f,  0.0f, 0, -1, 0},
+            { 1.0f, -1.0f, -1.0f, 1.0f,  0.0f, 0, -1, 0},
         };
 
         static const uint16_t s_cubeIndices[] =
@@ -89,7 +119,7 @@ struct Cube
 
         vbh = bgfx::createVertexBuffer(
             bgfx::makeRef(s_cubeVertices, sizeof(s_cubeVertices))
-            , PosTexcoordVertex::ms_layout
+            , PosTexcoordNrmVertex::ms_layout
         );
 
         ibh = bgfx::createIndexBuffer(
@@ -108,7 +138,7 @@ struct CubeList
 {
     void Create(const std::vector<Vec3f>& pts, float cubeSize);
 
-    std::vector<PosTexcoordVertex> vertices;
+    std::vector<PosTexcoordNrmVertex> vertices;
     std::vector<uint32_t> indices;
 
     bgfxh<bgfx::VertexBufferHandle> vbh;

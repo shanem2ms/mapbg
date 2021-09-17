@@ -1,6 +1,6 @@
 set (CS_SHADERS cs_erosion.sc cs_copyparent.sc cs_copysect.sc cs_noise.sc)
-set (VS_SHADERS vs_cubes.sc vs_terrain.sc vs_hud.sc)
-set (FS_SHADERS fs_cubes.sc fs_terrain.sc fs_hud.sc)
+set (VS_SHADERS vs_cubes.sc vs_hud.sc)
+set (FS_SHADERS fs_cubes.sc fs_targetcube.sc fs_hud.sc)
 
 set (CS_BINS ${CS_SHADERS})
 list(TRANSFORM CS_BINS REPLACE ".sc" ".bin" )
@@ -51,7 +51,7 @@ string(REPLACE ".sc" ".bin" SHDRBIN ${SHDR})
 
 add_custom_command(
   OUTPUT ${CMAKE_BINARY_DIR}/${SHDRBIN}
-  COMMAND ${SHADERC} -f ${CMAKE_CURRENT_SOURCE_DIR}/${SHDR}
+  COMMAND ${SHADERC} -f ${CMAKE_CURRENT_SOURCE_DIR}/${SHDR} --varyingdef ${CMAKE_CURRENT_SOURCE_DIR}/varying.def.sc
                      -o ${CMAKE_BINARY_DIR}/${SHDRBIN} --type f --platform ${SHADERC_PLATFORM} --profile ${SHADERC_FPROF} -i ${BGFX_INCLUDE}
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${SHDR} ${CMAKE_CURRENT_SOURCE_DIR}/uniforms.sh
   VERBATIM)
@@ -64,7 +64,7 @@ string(REPLACE ".sc" ".bin" SHDRBIN ${SHDR})
 
 add_custom_command(
   OUTPUT ${CMAKE_BINARY_DIR}/${SHDRBIN}
-  COMMAND ${SHADERC} -f ${CMAKE_CURRENT_SOURCE_DIR}/${SHDR}
+  COMMAND ${SHADERC} -f ${CMAKE_CURRENT_SOURCE_DIR}/${SHDR} --varyingdef ${CMAKE_CURRENT_SOURCE_DIR}/varying.def.sc
                      -o ${CMAKE_BINARY_DIR}/${SHDRBIN} --type c --platform ${SHADERC_PLATFORM} --profile ${SHADERC_CPROF} -i ${BGFX_INCLUDE}
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${SHDR} ${CMAKE_CURRENT_SOURCE_DIR}/uniforms.sh
   VERBATIM)
@@ -78,7 +78,7 @@ message("VS ${SHDRBIN}")
 
 add_custom_command(
   OUTPUT ${CMAKE_BINARY_DIR}/${SHDRBIN}
-  COMMAND ${SHADERC} -f ${CMAKE_CURRENT_SOURCE_DIR}/${SHDR}
+  COMMAND ${SHADERC} -f ${CMAKE_CURRENT_SOURCE_DIR}/${SHDR} --varyingdef ${CMAKE_CURRENT_SOURCE_DIR}/varying.def.sc
                      -o ${CMAKE_BINARY_DIR}/${SHDRBIN} --type v --platform ${SHADERC_PLATFORM} --profile ${SHADERC_VPROF} -i ${BGFX_INCLUDE}
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${SHDR} ${CMAKE_CURRENT_SOURCE_DIR}/uniforms.sh
   VERBATIM)

@@ -39,6 +39,8 @@ namespace sam
         gmtl::Matrix44f m_proj;
         gmtl::Matrix44f m_view;
         float m_aspect;
+        float m_near;
+        float m_far;
 
     public:
 
@@ -71,6 +73,10 @@ namespace sam
 
         Camera();
         void Update(int w, int h);
+        void SetNearFar(float near, float far)
+        {
+            m_near = near; m_far = far;
+        }
 
         Frustumf GetFrustum() const;
 
