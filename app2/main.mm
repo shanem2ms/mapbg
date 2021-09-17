@@ -20,6 +20,8 @@
 
 #include <bx/uint32_t.h>
 #include <bx/thread.h>
+#include "bgfx_utils.h"
+#include "Application.h"
 
 namespace entry
 {
@@ -90,7 +92,34 @@ namespace entry
         
         MainThreadEntry* self = (MainThreadEntry*)_userData;
         int32_t result = main(self->m_argc, self->m_argv, [documentsDirectory UTF8String]);
-        return result;
+        /*
+        m_width  = _width;
+        m_height = _height;
+        m_debug  = BGFX_DEBUG_TEXT;
+        m_reset  = BGFX_RESET_VSYNC;
+
+        bgfx::Init init;
+        init.type     = args.m_type;
+        init.vendorId = args.m_pciId;
+        init.resolution.width  = m_width;
+        init.resolution.height = m_height;
+        init.resolution.reset  = m_reset;
+        bgfx::init(init);
+
+        // Enable debug text.
+        bgfx::setDebug(m_debug);
+
+        // Set view 0 clear state.
+        bgfx::setViewClear(0
+            , BGFX_CLEAR_COLOR|BGFX_CLEAR_DEPTH
+            , 0x303030ff
+            , 1.0f
+            , 0
+            );
+        
+        app.Initialize(docPath);
+        app.Resize(_width, _height);*/
+        return 0;
     }
 
     const Event* poll()

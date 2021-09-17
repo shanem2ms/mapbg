@@ -125,8 +125,6 @@ namespace sam
         bgfx::ShaderHandle vtxShader = bgfx::createShader(loadMem(&fileReader, vtx.c_str()));
         bgfx::ShaderHandle fragShader = bgfx::createShader(loadMem(&fileReader, px.c_str()));
         bgfx::ProgramHandle pgm = bgfx::createProgram(vtxShader, fragShader, true);
-        if (!bgfx::isValid(pgm))
-            __debugbreak();
         m_shaders.insert(std::make_pair(key, pgm));
         return pgm;
     }

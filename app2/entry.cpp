@@ -7,7 +7,7 @@
 #include <bx/file.h>
 #include <bx/sort.h>
 #include <bgfx/bgfx.h>
-
+#include "bgfx_utils.h"
 #include <time.h>
 
 #if BX_PLATFORM_EMSCRIPTEN
@@ -18,8 +18,7 @@
 #include "entry_p.h"
 #include "cmd.h"
 #include "input.h"
-
-extern "C" int32_t _main_(int32_t _argc, char** _argv, const char *docPath);
+#include "Application.h"
 
 namespace entry
 {
@@ -38,6 +37,14 @@ namespace entry
 	typedef bx::StringT<&g_allocator> String;
 
 	static String s_currentDir;
+
+    entry::MouseState m_mouseState;
+
+static uint32_t m_width;
+static uint32_t m_height;
+static uint32_t m_debug;
+static uint32_t m_reset;
+    static sam::Application app;
 
 	class FileReader : public bx::FileReader
 	{
@@ -508,11 +515,37 @@ BX_PRAGMA_DIAGNOSTIC_POP();
 	{
 		return s_numApps;
 	}
-
+    bool update();
 	int runApp(AppI* _app, int _argc, const char* const* _argv, const char *docPath)
 	{
-        _app->init(_argc, _argv, s_width, s_height, docPath);
-		bgfx::frame();
+        Args args(_argc, _argv);
+        m_width  = s_width;
+        m_height = s_height;
+        m_debug  = BGFX_DEBUG_TEXT;
+        m_reset  = BGFX_RESET_VSYNC;
+
+        bgfx::Init init;
+        init.type     = args.m_type;
+        init.vendorId = args.m_pciId;
+        init.resolution.width  = m_width;
+        init.resolution.height = m_height;
+        init.resolution.reset  = m_reset;
+        bgfx::init(init);
+
+        // Enable debug text.
+        bgfx::setDebug(m_debug);
+
+        // Set view 0 clear state.
+        bgfx::setViewClear(0
+            , BGFX_CLEAR_COLOR|BGFX_CLEAR_DEPTH
+            , 0x303030ff
+            , 1.0f
+            , 0
+            );
+        
+        app.Initialize(docPath);
+        app.Resize(s_width, s_height);
+        bgfx::frame();
 
 		WindowHandle defaultWindow = { 0 };
 		setWindowSize(defaultWindow, s_width, s_height);
@@ -521,7 +554,7 @@ BX_PRAGMA_DIAGNOSTIC_POP();
 		s_app = _app;
 		emscripten_set_main_loop(&updateApp, -1, 1);
 #else
-		while (_app->update() )
+		while (update() )
 		{
 			if (0 != bx::strLen(s_restartArgs) )
 			{
@@ -530,9 +563,56 @@ BX_PRAGMA_DIAGNOSTIC_POP();
 		}
 #endif // BX_PLATFORM_EMSCRIPTEN
 
-		return _app->shutdown();
+        bgfx::shutdown();
+        return 0;
 	}
 
+bool update()
+{
+    int prevheight = m_height;
+    int prevwidth = m_width;
+    static uint8_t prevMouseLeftBtn = 0;
+    static float prevX = 0, prevY = 0;
+    if (!entry::processEvents(m_width, m_height, m_debug, m_reset, &m_mouseState) )
+    {
+        if (prevheight != m_height ||
+            prevwidth != m_width)
+            app.Resize(m_width, m_height);
+        
+        if (m_mouseState.m_buttons[entry::MouseButton::Left] != prevMouseLeftBtn)
+        {
+            prevMouseLeftBtn = m_mouseState.m_buttons[entry::MouseButton::Left];
+            
+            if (prevMouseLeftBtn > 0)
+                app.TouchDown(m_mouseState.m_mx, m_mouseState.m_my, 0);
+            else
+                app.TouchUp(0);
+        }
+        else if (prevMouseLeftBtn > 0 && (prevX != m_mouseState.m_mx
+                                          || prevY != m_mouseState.m_my))
+        {
+            app.TouchMove(m_mouseState.m_mx, m_mouseState.m_my, 0);
+        }
+        prevX = m_mouseState.m_mx;
+        prevY = m_mouseState.m_my;
+        // Set view 0 default viewport.
+        bgfx::setViewRect(0, 0, 0, uint16_t(m_width), uint16_t(m_height) );
+
+        // This dummy draw call is here to make sure that view 0 is cleared
+        // if no other draw calls are submitted to view 0.
+        bgfx::touch(0);
+        
+        app.Tick(0);
+        app.Draw();
+        // Advance to next frame. Rendering thread will be kicked to
+        // process submitted rendering primitives.
+        bgfx::frame();
+
+        return true;
+    }
+
+    return false;
+}
 	static int32_t sortApp(const void* _lhs, const void* _rhs)
 	{
 		const AppI* lhs = *(const AppI**)_lhs;
@@ -622,15 +702,9 @@ restart:
 
 		int32_t result = bx::kExitSuccess;
 		s_restartArgs[0] = '\0';
-		if (0 == s_numApps)
-		{
-			result = ::_main_(_argc, (char**)_argv, docPath);
-		}
-		else
-		{
-			result = runApp(getCurrentApp(selected), _argc, _argv, docPath);
-		}
-
+		
+		result = runApp(getCurrentApp(selected), _argc, _argv, docPath);
+		
 		if (0 != bx::strLen(s_restartArgs) )
 		{
 			find = s_restartArgs;
