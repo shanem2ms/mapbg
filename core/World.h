@@ -3,11 +3,7 @@
 #include <set>
 #include "OctTile.h"
 #include "OctTileSelection.h"
-
-namespace leveldb
-{
-    class DB;
-}
+#include "Level.h"
 
 class SimplexNoise;
 namespace sam
@@ -35,24 +31,22 @@ namespace sam
         std::shared_ptr<SceneGroup> m_worldGroup;
         std::shared_ptr<Touch> m_activeTouch;
         int m_currentTool;
-        bgfx::ProgramHandle m_shader;
-        leveldb::DB* m_db;
+        bgfx::ProgramHandle m_shader;        
         std::shared_ptr<TargetCube> m_targetCube;
+        Level m_level;
 
     public:
         void Layout(int w, int h);
         World();
         ~World();
-        leveldb::DB* Db() {
-            return m_db;
-        }
+        Level& Level() { return m_level; }
         void Update(Engine& engine, DrawContext& ctx);
         void TouchDown(float x, float y, int touchId);
         void TouchDrag(float x, float y, int touchId);
         void TouchUp(int touchId);
         void KeyDown(int k);
         void KeyUp(int k);
-        void OpenDb(const std::string &path);
+        void Open(const std::string &path);
     };
 
 }

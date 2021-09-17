@@ -6,7 +6,6 @@
 #include <numeric>
 #include "Mesh.h"
 #include "TerrainTile.h"
-#include "leveldb/db.h"
 #define NOMINMAX
 
 namespace sam
@@ -119,13 +118,10 @@ namespace sam
         if (m_buildStep == 0)
         {
             Loc l = m_l;
-            l.m_l = -m_l.m_l;
-            leveldb::Slice key((const char*)&l, sizeof(l));
-            leveldb::DB* db = pWorld->Db();
+            
             std::string val;
-            leveldb::Status status = db->Get(leveldb::ReadOptions(), key, &val);
 
-            if (status.ok())
+            if (pWorld->Level().GetTerrainChunk(l, &val))
             {
                 m_heightData.resize(val.size() / sizeof(float));
                 memcpy(m_heightData.data(), val.data(), m_heightData.size() * sizeof(float));
@@ -146,7 +142,7 @@ namespace sam
                 m_dataready = true;
                 m_buildStep = -1;
             }
-            else if (status.IsNotFound())
+            else
             {
                 sAllLocs.insert(m_l);
                 if (!bgfx::isValid(m_texture)) {
@@ -293,14 +289,11 @@ namespace sam
             m_heightBbox.mMax[1] = maxheight;
 
             m_parent = nullptr;
-            m_rbTex.free();
 
-            Loc l = m_l;
-            l.m_l = -m_l.m_l;
-            leveldb::Slice key((const char*)&l, sizeof(l));
-            leveldb::Slice val((const char*)m_heightData.data(), m_heightData.size() * sizeof(float));
-            leveldb::DB* db = pWorld->Db();
-            leveldb::Status status = db->Put(leveldb::WriteOptions(), key, val);
+            m_rbTex.free();
+            
+            pWorld->Level().WriteTerrainChunk(
+                m_l, (const char*)m_heightData.data(), m_heightData.size() * sizeof(float));
 
             m_dataready = true;
             m_buildStep = -1;

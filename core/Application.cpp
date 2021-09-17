@@ -87,7 +87,7 @@ namespace sam
     {
         m_documentsPath = folder;
         std::string dbPath = m_documentsPath + "/testlvl";
-        m_world->OpenDb(dbPath);
+        m_world->Open(dbPath);
         imguiCreate();
     }
 

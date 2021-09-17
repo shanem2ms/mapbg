@@ -8,7 +8,6 @@
 #include "OctTile.h"
 #include "TerrainTile.h"
 #include "gmtl/Intersection.h"
-#include "leveldb/db.h"
 #define NOMINMAX
 
 namespace sam
@@ -277,22 +276,23 @@ namespace sam
 
         if (m_needRebuild)
         {
-            leveldb::Slice key((const char*)&m_l, sizeof(m_l));
-            leveldb::DB* db = ctx.m_pWorld->Db();
-            std::string strval;
-            leveldb::Status status = db->Get(leveldb::ReadOptions(), key, &strval);
-            if (status.ok())
+            bool success = false;
+            ctx.m_pWorld->Level().GetOctChunk(m_l, [this, &success](const std::string &strval, bool ok)
             {
-                m_rledata.resize(strval.size());
-                memcpy(m_rledata.data(), strval.data(), strval.size());
-            }
-            else
+                if (ok)
+                {
+                    m_rledata.resize(strval.size());
+                    memcpy(m_rledata.data(), strval.data(), strval.size());
+                }
+                success = ok;
+            });
+            
+            if (!success)
             {
                 LoadTerrainData();
                 if (m_rledata.size() > 0)
                 {
-                    leveldb::Slice val((const char*)m_rledata.data(), m_rledata.size());
-                    leveldb::Status status = db->Put(leveldb::WriteOptions(), key, val);
+                    ctx.m_pWorld->Level().WriteOctChunk(m_l, (const char*)m_rledata.data(), m_rledata.size());
                 }
             }
             if (m_rledata.size() > 0)
