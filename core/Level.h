@@ -2,8 +2,6 @@
 
 #include <map>
 #include <set>
-#include <thread>
-#include <condition_variable>
 #include <functional>
 #include "Loc.h"
 
@@ -18,11 +16,6 @@ namespace sam
 
     class Level {
         leveldb::DB* m_db;
-        std::thread m_loaderThread;
-        std::mutex m_mtx;
-        std::condition_variable m_cv;
-
-        static void LoaderThread(void *arg);
     public:
 
         Level();

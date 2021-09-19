@@ -4,6 +4,7 @@
 #include <set>
 #include "SceneItem.h"
 #include "Loc.h"
+
 struct CubeList;
 
 namespace sam
@@ -12,15 +13,15 @@ namespace sam
 
     class OctTile : public SceneItem
     {
+        
         int m_image;
         Vec2f m_vals;
         Loc m_l;
-        bool m_needRebuild;
         Vec2f m_maxdh;
         Vec2f m_mindh;
         int m_texpingpong;
         int m_buildFrame;
-        bool m_dataready;
+        int m_readyState;
         bgfxh<bgfx::UniformHandle> m_uparams;
         std::shared_ptr<TerrainTile> m_terrainTile;
         std::shared_ptr<CubeList> m_cubeList;
@@ -37,6 +38,7 @@ namespace sam
         OctTile(const Loc& l);
         ~OctTile();
 
+        void BackgroundLoad(World *pWorld);
         bool IsEmpty() const { return m_terrainTile == nullptr;  }
 
         void SetTerrainTile(std::shared_ptr<TerrainTile> terrainTile)
@@ -61,6 +63,8 @@ namespace sam
         float GetGroundPos(const Point2f& pt) const;
         bool Intersect(const Point3f& pt0, const Point3f& pt1, Vec3i &hitpt);
         static Vec3i FindHit(const std::vector<byte> &data, const Vec3i p1, const Vec3i p2);
+        int GetReadyState() const
+        { return m_readyState; }
     private:
         static std::vector<byte> RleEncode(const std::vector<byte> data);
         static std::vector<byte> RleDecode(const std::vector<byte> data);

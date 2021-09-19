@@ -22,19 +22,11 @@ namespace sam
 
 
     Level::Level() :
-        m_db(nullptr),
-        m_loaderThread(LoaderThread, this)
+        m_db(nullptr)
     {
     }
 
-
-    void Level::LoaderThread(void *arg)
-    {
-        Level* pThis = (Level *)arg;
-        std::unique_lock<std::mutex> lk(pThis->m_mtx);
-        pThis->m_cv.wait(lk);
-    }
-
+      
     void Level::OpenDb(const std::string& path)
     {
         //leveldb::Env* env = leveldb::Env::Default();

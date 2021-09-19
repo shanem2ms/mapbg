@@ -209,12 +209,39 @@ namespace sam
         }
     };
 
-    OctTileSelection::OctTileSelection()
+    OctTileSelection::OctTileSelection() :
+        m_exit(false),
+        m_loaderThread(LoaderThread, this)
     {
         m_nearfarmidsq[0] = 0.1f;
         m_nearfarmidsq[1] = 25.0f;
         m_nearfarmidsq[2] = 100.0f;
         m_terrainSelection = std::make_unique<TerrainTileSelection>();
+    }
+
+    
+    void OctTileSelection::LoaderThread(void* arg)
+    {
+        OctTileSelection* pThis = (OctTileSelection*)arg;
+        std::unique_lock<std::mutex> lk(pThis->m_mtxcv);
+        while (!pThis->m_exit)
+        {
+            pThis->m_cv.wait(lk);
+            while (pThis->m_loaderTiles.size() > 0)
+            {
+                std::shared_ptr<OctTile> tile;
+                {
+                    std::lock_guard(pThis->m_mtx);
+                    if (pThis->m_loaderTiles.size() > 0)
+                    {
+                        tile = pThis->m_loaderTiles.back();
+                        pThis->m_loaderTiles.pop_back();
+                    }
+                }
+                if (tile != nullptr && tile->GetReadyState() == 0)
+                    tile->BackgroundLoad(pThis->m_pWorld);
+            }
+        }
     }
 
     extern int g_maxTileLod;
@@ -224,12 +251,13 @@ namespace sam
         m_activeTiles.clear();
         auto& cam = e.Cam();
         Camera::Fly fly = cam.GetFly();
-
+        m_pWorld = ctx.m_pWorld;
         std::vector<Loc> locs;
         FrustumTiles::Get(e.Cam(), locs, 100.0f, g_maxTileLod, playerBounds);
 
         std::sort(locs.begin(), locs.end());
 
+        std::vector<std::shared_ptr<OctTile>> loaderTiles;
         for (const auto& l : locs)
         {
             auto itSq = m_tiles.find(l);
@@ -245,13 +273,19 @@ namespace sam
                     float s = l.GetExtent() * 0.5f;
                     sq->SetScale(Vec3f(s, s, s));
                 }
-                m_tiles.insert(std::make_pair(l, sq));
+                itSq = m_tiles.insert(std::make_pair(l, sq)).first;
                 sNumTiles++;
             }
+            if (itSq->second->GetReadyState() == 0)
+                loaderTiles.push_back(itSq->second);
             m_activeTiles.insert(l);
         }
 
-        m_terrainSelection->SelectTiles(locs, ctx.m_pWorld);
+        {
+            std::lock_guard grd(m_mtx);
+            std::swap(m_loaderTiles, loaderTiles);
+        }
+        m_cv.notify_one();
 
         for (auto loc : oldTiles)
         {
@@ -442,7 +476,9 @@ namespace sam
 
     OctTileSelection::~OctTileSelection()
     {
-
+        m_exit = true;
+        m_cv.notify_one();
+        m_loaderThread.join();
     }
 
 }

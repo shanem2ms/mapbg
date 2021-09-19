@@ -6,6 +6,7 @@
 #include <numeric>
 #include "Mesh.h"
 #include "OctTile.h"
+#include "TerrainTileSelection.h"
 #include "TerrainTile.h"
 #include "gmtl/Intersection.h"
 #define NOMINMAX
@@ -13,9 +14,9 @@
 namespace sam
 {
 
-    OctTile::OctTile(const Loc& l) : m_image(-1), m_l(l), m_needRebuild(true),
+    OctTile::OctTile(const Loc& l) : m_image(-1), m_l(l),
         m_buildFrame(0),
-        m_dataready(false),
+        m_readyState(0),
         m_intersects(-1),
         m_lastUsedRawData(0)
     {
@@ -263,6 +264,39 @@ namespace sam
         return NAN;
     }
 
+    void OctTile::BackgroundLoad(World* pWorld)
+    {
+        m_readyState = 1;
+        bool success = false;
+        pWorld->Level().GetOctChunk(m_l, [this, &success](const std::string& strval, bool ok)
+            {
+                if (ok)
+                {
+                    m_rledata.resize(strval.size());
+                    memcpy(m_rledata.data(), strval.data(), strval.size());
+                }
+                success = ok;
+            });
+
+        if (!success)
+        {
+            m_readyState = 2;
+            if (m_terrainTile != nullptr)
+            {
+                LoadTerrainData();
+                if (m_rledata.size() > 0)
+                {
+                    pWorld->Level().WriteOctChunk(m_l, (const char*)m_rledata.data(), m_rledata.size());
+                }
+            }
+        }
+        if (m_rledata.size() > 0)
+        {
+            m_readyState = 3;
+        }
+    }
+
+
     void OctTile::Draw(DrawContext& ctx)
     {
         nOctTilesTotal++;
@@ -274,35 +308,19 @@ namespace sam
         if (ctx.m_nearfarpassIdx == 1 && nearDistSq > ctx.m_nearfar[1])
             return;
 
-        if (m_needRebuild)
-        {
-            bool success = false;
-            ctx.m_pWorld->Level().GetOctChunk(m_l, [this, &success](const std::string &strval, bool ok)
-            {
-                if (ok)
-                {
-                    m_rledata.resize(strval.size());
-                    memcpy(m_rledata.data(), strval.data(), strval.size());
-                }
-                success = ok;
-            });
-            
-            if (!success)
-            {
-                LoadTerrainData();
-                if (m_rledata.size() > 0)
-                {
-                    ctx.m_pWorld->Level().WriteOctChunk(m_l, (const char*)m_rledata.data(), m_rledata.size());
-                }
-            }
-            if (m_rledata.size() > 0)
-                LoadVB();
+        if (m_readyState < 3)
+            return;
 
-            m_needRebuild = false;
+        if (m_readyState == 3)
+        {
+            LoadVB();
+            m_readyState++;
         }
 
-        if (m_cubeList == nullptr)
+        if (m_readyState > 3 &&
+            m_cubeList == nullptr)
             return;
+
 
         if (!bgfx::isValid(m_uparams))
         {
@@ -348,7 +366,7 @@ namespace sam
 
     void OctTile::Decomission()
     {
-        m_needRebuild = true;
+        m_readyState = 0;
     }
 
     bool OctTile::Intersect(const Point3f& pt0, const Point3f& pt1, Vec3i & hitpt)

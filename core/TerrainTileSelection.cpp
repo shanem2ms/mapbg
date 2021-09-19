@@ -25,6 +25,19 @@ namespace sam
     {
     }
 
+    bool TerrainTileSelection::RequestTile(const Loc& tileLoc, World* pWorld, std::shared_ptr<TerrainTile>& outTile)
+    {
+        auto itTile = m_tiles.find(tileLoc);
+        if (itTile != m_tiles.end())
+        {
+            outTile = itTile->second;
+            return true;
+        }
+
+        m_requestTiles.insert(tileLoc);
+    }
+
+    /*
     void TerrainTileSelection::SelectTiles(const std::vector<Loc>& locs, World *pWorld)
     {        
         if (m_tiles.size() > 100)
@@ -82,6 +95,7 @@ namespace sam
 
         m_buildingTiles.swap(nextBuildingTiles);
     }
+    */
 
     void TerrainTileSelection::Update(Engine& e, DrawContext& ctx)
     {

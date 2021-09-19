@@ -2,6 +2,8 @@
 #include <map>
 #include <set>
 #include "OctTile.h"
+#include <thread>
+#include <condition_variable>
 
 class SimplexNoise;
 namespace sam
@@ -20,6 +22,17 @@ namespace sam
         std::map<Loc, std::shared_ptr<OctTile>> m_tiles;
         std::set<Loc> m_activeTiles;
         std::unique_ptr<TerrainTileSelection> m_terrainSelection;
+        std::vector<std::shared_ptr<OctTile>> m_loaderTiles;
+
+        std::thread m_loaderThread;
+        std::mutex m_mtx;
+        bool m_exit;
+        std::mutex m_mtxcv;
+        std::condition_variable m_cv;
+        World *m_pWorld;
+
+        static void LoaderThread(void* arg);
+
 
         void Update(Engine& e, DrawContext& ctx, const AABoxf &playerBounds);
 

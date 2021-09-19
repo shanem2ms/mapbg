@@ -138,11 +138,11 @@ struct CubeList
 {
     void Create(const std::vector<Vec3f>& pts, float cubeSize);
 
+    bgfxh<bgfx::VertexBufferHandle> vbh;
+    bgfxh<bgfx::IndexBufferHandle> ibh;
     std::vector<PosTexcoordNrmVertex> vertices;
     std::vector<uint32_t> indices;
 
-    bgfxh<bgfx::VertexBufferHandle> vbh;
-    bgfxh<bgfx::IndexBufferHandle> ibh;
 };
 
 template <int N> struct Grid

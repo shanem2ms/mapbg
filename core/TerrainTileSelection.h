@@ -17,12 +17,13 @@ namespace sam
 
         std::map<Loc, std::shared_ptr<TerrainTile>> m_tiles;
         std::set<Loc> m_activeTiles;
+        std::set<Loc> m_requestTiles;
 
         std::vector<std::shared_ptr<TerrainTile>> m_buildingTiles;
 
         void Update(Engine& e, DrawContext& ctx);
 
-        void SelectTiles(const std::vector<Loc>& tileLocs, World* pWorld);
+        bool RequestTile(const Loc& tileLoc, World* pWorld, std::shared_ptr<TerrainTile> &outTile);
         float GetGroundHeight(const Point3f& pt);
 
         const std::map<Loc, std::shared_ptr<TerrainTile>>& Tiles() const

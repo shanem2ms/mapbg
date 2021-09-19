@@ -17,16 +17,14 @@ using namespace gmtl;
 namespace sam
 {
   
-
     World::World() :
         m_width(-1),
         m_height(-1),
         m_currentTool(0),
         m_gravityVel(0),        
-        m_flymode(false)
+        m_flymode(true)
     {
 
-        
     }  
 
     void World::Open(const std::string& path)
@@ -286,7 +284,7 @@ namespace sam
                 AABox aabb = hitLoc.GetBBox();
                 Vec3f extents = (aabb.mMax - aabb.mMin);
                 const int tsz = 256;
-                float scl = extents[0] / (float)tsz;
+                float scl = extents[0] / (float)tsz; 
                 
                 Point3f offset = Vec3f(hitpt[0], hitpt[1], hitpt[2]) * scl + aabb.mMin;
                 m_targetCube->SetOffset(offset);

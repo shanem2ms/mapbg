@@ -126,6 +126,8 @@ void CubeList::Create(const std::vector<Vec3f>& pts, float cubeSize)
         21, 22, 23,
     };
 
+    vertices.reserve(pts.size() * 24);
+    indices.reserve(pts.size() * 36);
     for (const Vec3f& pt : pts)
     {
         uint32_t offset = vertices.size();
