@@ -3,6 +3,7 @@
 #include <set>
 #include "OctTile.h"
 #include "OctTileSelection.h"
+#include "TerrainTileSelection.h"
 #include "Level.h"
 
 class SimplexNoise;
@@ -16,9 +17,10 @@ namespace sam
     
     class World
     {
-    public:
+    private:
 
         OctTileSelection m_octTileSelection;
+        TerrainTileSelection m_terrainTileSelection;
 
         int m_width;
         int m_height;
@@ -36,6 +38,9 @@ namespace sam
         Level m_level;
 
     public:
+
+        TerrainTileSelection &TerrainTileSelection()
+        { return m_terrainTileSelection; }
         void Layout(int w, int h);
         World();
         ~World();

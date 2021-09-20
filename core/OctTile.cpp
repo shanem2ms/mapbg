@@ -266,32 +266,36 @@ namespace sam
 
     void OctTile::BackgroundLoad(World* pWorld)
     {
-        m_readyState = 1;
-        bool success = false;
-        pWorld->Level().GetOctChunk(m_l, [this, &success](const std::string& strval, bool ok)
-            {
-                if (ok)
-                {
-                    m_rledata.resize(strval.size());
-                    memcpy(m_rledata.data(), strval.data(), strval.size());
-                }
-                success = ok;
-            });
-
-        if (!success)
+        if (m_readyState == 0)
         {
-            m_readyState = 2;
-            if (m_terrainTile != nullptr)
-            {
-                LoadTerrainData();
-                if (m_rledata.size() > 0)
+            m_readyState = 1;
+            bool success = false;
+            pWorld->Level().GetOctChunk(m_l, [this, &success](const std::string& strval, bool ok)
                 {
-                    pWorld->Level().WriteOctChunk(m_l, (const char*)m_rledata.data(), m_rledata.size());
-                }
-            }
+                    if (ok)
+                    {
+                        m_rledata.resize(strval.size());
+                        memcpy(m_rledata.data(), strval.data(), strval.size());
+                        m_readyState = 3;
+                    }
+                });
         }
-        if (m_rledata.size() > 0)
+        if (m_readyState == 1)
         {
+            if (m_terrainTile != nullptr)
+                m_readyState = 2;
+
+            if (pWorld->TerrainTileSelection().RequestTile(m_l, pWorld, m_terrainTile))
+                m_readyState = 2;
+        }
+
+        if (m_readyState == 2)
+        {
+            LoadTerrainData();
+            if (m_rledata.size() > 0)
+            {
+                pWorld->Level().WriteOctChunk(m_l, (const char*)m_rledata.data(), m_rledata.size());
+            }
             m_readyState = 3;
         }
     }
