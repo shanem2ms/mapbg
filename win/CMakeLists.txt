@@ -5,6 +5,7 @@ set(CMAKE_SYSTEM_VERSION 10.0 CACHE STRING "" FORCE)
 set (BGFX_INCLUDE_ROOT ${CMAKE_INSTALL_PREFIX}/include)
 set (BGFX_INCLUDE ${BGFX_INCLUDE_ROOT}/bgfx)
 set (BGFX_LIB ${CMAKE_INSTALL_PREFIX}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${MainBinaryDir})
 
 ################################################################################
 # Target
@@ -32,8 +33,6 @@ target_link_libraries(${PROJECT_NAME} LINK_PUBLIC
     ${BGFX_LIB}/bimg.lib 
     ${BGFX_LIB}/bx.lib
     core 
-    leveldb 
-    zlib
     ${PLATFORMLIBS}
     zlibstatic
     leveldb

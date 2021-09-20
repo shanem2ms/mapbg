@@ -60,9 +60,18 @@ ExternalProject_Add(
 )
 endif()
 
+set(MainBinaryDir ${CMAKE_BINARY_DIR})
 set(BUNDLE_ID "com.mapbg.shane")
 
 add_subdirectory(core)
+add_dependencies(core Bgfx)
+add_dependencies(shaders Bgfx)
+
+add_subdirectory(zlib)
+add_subdirectory(leveldb)
+add_dependencies(core zlib)
+add_dependencies(core leveldb)
+
 if (APPLE)
 add_subdirectory(ios)
 add_dependencies(ios core)
@@ -70,11 +79,6 @@ else()
 add_subdirectory(win)
 add_dependencies(map core)
 endif()
-add_dependencies(core Bgfx)
-add_dependencies(shaders Bgfx)
-
-add_subdirectory(zlib)
-add_subdirectory(leveldb)
 
 set(CMAKE_XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER ${BUNDLE_ID})
 set(CMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "73CP3TPHE9")
