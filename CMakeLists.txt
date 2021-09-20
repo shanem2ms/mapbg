@@ -64,8 +64,11 @@ set(BUNDLE_ID "com.mapbg.shane")
 
 add_subdirectory(core)
 if (APPLE)
-add_subdirectory(app2)
-add_dependencies(app2 core)
+add_subdirectory(ios)
+add_dependencies(ios core)
+else()
+add_subdirectory(win)
+add_dependencies(map core)
 endif()
 add_dependencies(core Bgfx)
 add_dependencies(shaders Bgfx)
@@ -73,67 +76,5 @@ add_dependencies(shaders Bgfx)
 add_subdirectory(zlib)
 add_subdirectory(leveldb)
 
-
-################################################################################
-# Target
-################################################################################
-set(Main_Files
-"map.cpp"
-"Resource.h"
-"map.h"
-"map.rc"
-)
-
 set(CMAKE_XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER ${BUNDLE_ID})
 set(CMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "73CP3TPHE9")
-
-add_executable(${PROJECT_NAME} WIN32 ${Main_Files} Bgfx core leveldb zlib)
-
-if (MSVC)
-    set (PLATFORMLIBS
-    "d3dcompiler;"
-    "dxgi;"
-    "dxguid;"
-    "d3d11;"
-    "Shcore;"
-)
-elseif (APPLE)
-find_library(FOUNDATIONLIB Foundation)
-find_library(COREFOUNDATIONLIB CoreFoundation)
-find_library(METALLIB Metal)
-find_library(QUARTZCORELIB QuartzCore)
-find_library(METALKITLIB MetalKit)
-find_library(UIKITLIB UIKit)
-find_library(MODELIOLIB ModelIO)
-set (PLATFORMLIBS 
-"${FOUNDATIONLIB};"
-"${COREFOUNDATIONLIB};"
-"${METALLIB};"
-"${QUARTZCORELIB};"
-"${METALKITLIB};"
-"${UIKITLIB};"
-"${MODELIOLIB};"
-    )
-endif()
-
-
-
-
-target_link_libraries(${PROJECT_NAME} LINK_PUBLIC 
-    ${BGFX_LIB}/bgfx.lib 
-    ${BGFX_LIB}/astc-codec.lib 
-    ${BGFX_LIB}/bimg.lib 
-    ${BGFX_LIB}/bx.lib core
-    ${PLATFORMLIBS}
-    zlibstatic
-    leveldb
-       )
-       
-target_include_directories(${PROJECT_NAME} PUBLIC
-    "${CMAKE_CURRENT_SOURCE_DIR}/."
-    "${CMAKE_BINARY_DIR}/."
-    "${BGFX_INCLUDE_ROOT}"
-    "${BX_INC_DIR_COMPAT}"
-    "${BGFX_INC_DIR}"
-    "${CMAKE_CURRENT_SOURCE_DIR}/leveldb/include"
-    )
