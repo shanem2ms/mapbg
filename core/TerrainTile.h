@@ -45,6 +45,7 @@ namespace sam
         float distFromCam;
     public:
         TerrainTile(const Loc& l, std::shared_ptr<TerrainTile> parent);
+        TerrainTile(const Loc& l, const std::string &val);
         ~TerrainTile();
 
         const bgfxh<bgfx::TextureHandle>& GetTerrain();

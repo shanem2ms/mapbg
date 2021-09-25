@@ -12,7 +12,6 @@ namespace sam
     struct DrawContext;
     class Engine;
     class Touch;
-    class TerrainTileSelection;
     class OctTileSelection
     {
     public:
@@ -21,7 +20,6 @@ namespace sam
 
         std::map<Loc, std::shared_ptr<OctTile>> m_tiles;
         std::set<Loc> m_activeTiles;
-        std::unique_ptr<TerrainTileSelection> m_terrainSelection;
         std::vector<std::shared_ptr<OctTile>> m_loaderTiles;
 
         std::thread m_loaderThread;

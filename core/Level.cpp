@@ -73,12 +73,12 @@ namespace sam
         return status.ok();
     }
 
-    void Level::GetOctChunk(const Loc& l, std::function<void(const std::string&, bool)> func) const
+
+    bool Level::GetOctChunk(const Loc& l, std::string* val) const
     {
-        std::string val;
         leveldb::Slice key((const char*)&l, sizeof(l));
-        leveldb::Status status = m_db->Get(leveldb::ReadOptions(), key, &val);
-        func(val, status.ok());
+        leveldb::Status status = m_db->Get(leveldb::ReadOptions(), key, val);
+        return status.ok();
     }
 
     bool Level::WriteOctChunk(const Loc& l, const char* byte, size_t len)

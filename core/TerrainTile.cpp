@@ -24,6 +24,29 @@ namespace sam
     {
     }
 
+    TerrainTile::TerrainTile(const Loc& l, const std::string& val) :
+        m_image(-1), m_l(l),
+        m_needRecalc(true),
+        m_buildFrame(0),
+        m_buildStep(-1),
+        m_dataready(true),
+        m_parent(nullptr),
+        m_lastUsedframeIdx(0)
+    {
+        m_heightData.resize(val.size() / sizeof(float));
+        memcpy(m_heightData.data(), val.data(), m_heightData.size() * sizeof(float));
+
+        float minheight = std::numeric_limits<float>::max();
+        float maxheight = -minheight;
+        for (float val : m_heightData)
+        {
+            minheight = std::min(minheight, val);
+            maxheight = std::max(maxheight, val);
+        }
+        m_heightBbox = m_l.GetBBox();
+        m_heightBbox.mMin[1] = minheight;
+        m_heightBbox.mMax[1] = maxheight;
+    }
 
     inline float cHiehgt(float n1, float n2) { return (n2 + n1 * 1.5f) / 2.5f - 0.5f; }
     const SimplexNoise simplex;
@@ -92,7 +115,7 @@ namespace sam
     {
         if (!bgfx::isValid(m_terrain))
         {
-            const bgfx::Memory *pMem = 
+            const bgfx::Memory* pMem =
                 bgfx::copy(m_heightData.data(), m_heightData.size() * 4);
             m_terrain = bgfx::createTexture2D(
                 TotalPtsCt, TotalPtsCt, false,
@@ -106,7 +129,7 @@ namespace sam
         }
         return m_terrain;
     }
-  
+
     bool TerrainTile::Build(World* pWorld)
     {
         int frameIdx = Application::Inst().FrameIdx();
@@ -118,143 +141,119 @@ namespace sam
         if (m_buildStep == 0)
         {
             Loc l = m_l;
-            
+
             std::string val;
 
-            if (pWorld->Level().GetTerrainChunk(l, &val))
+            sAllLocs.insert(m_l);
+            if (!bgfx::isValid(m_texture)) {
+                m_texture = bgfx::createUniform("s_terrain", bgfx::UniformType::Sampler);
+                m_erosion = Engine::Inst().LoadShader("cs_erosion.bin");
+                m_copysect = Engine::Inst().LoadShader("cs_copysect.bin");
+                m_csnoise = Engine::Inst().LoadShader("cs_noise.bin");
+                m_cscopyparent = Engine::Inst().LoadShader("cs_copyparent.bin");
+                m_uparams = bgfx::createUniform("u_params", bgfx::UniformType::Vec4, 1);
+                m_vparams = bgfx::createUniform("v_params", bgfx::UniformType::Vec4, 1);
+            }
+
+            m_terrain = bgfx::createTexture2D(
+                TotalPtsCt, TotalPtsCt, false,
+                1,
+                bgfx::TextureFormat::Enum::R32F,
+                BGFX_TEXTURE_COMPUTE_WRITE | BGFX_TEXTURE_NONE
+                | BGFX_SAMPLER_U_CLAMP
+                | BGFX_SAMPLER_V_CLAMP,
+                nullptr
+            );
+
+            for (int i = 0; i < 2; ++i)
             {
-                m_heightData.resize(val.size() / sizeof(float));
-                memcpy(m_heightData.data(), val.data(), m_heightData.size() * sizeof(float));
+                m_tex[i] = bgfx::createTexture2D(
+                    TotalPtsCt, TotalPtsCt, false,
+                    1,
+                    bgfx::TextureFormat::Enum::RGBA32F,
+                    BGFX_TEXTURE_COMPUTE_WRITE | BGFX_TEXTURE_NONE,
+                    nullptr
+                );
+            }
 
-                float minheight = std::numeric_limits<float>::max();
-                float maxheight = -minheight;
-                for (float val : m_heightData)
+            AABoxf box = m_l.GetBBox();
+            float extents = m_l.GetExtent();
+
+            float overlap = (float)OverlapPtsCt / (float)SquarePtsCt;
+            overlap *= extents;
+
+            if (parent == nullptr || m_l.m_l < 5)
+            {
+                Vec4f tileScaleOffset(
+                    (extents + overlap * 2),
+                    1,
+                    (box.mMin[0] - overlap),
+                    (box.mMin[2] - overlap));
+
+                int wx = m_l.m_x;
+                int wy = m_l.m_z;
+                float nx = wx * SquarePtsCt;
+                float ny = wy * SquarePtsCt;
+
+                bgfx::setUniform(m_uparams, &tileScaleOffset, 1);
+                bgfx::setImage(0, m_tex[0], 0, bgfx::Access::Write, bgfx::TextureFormat::RGBA32F);
+                bgfx::dispatch(0, m_csnoise, TotalPtsCt / 16, TotalPtsCt / 16);
+
+                for (int i = 0; i < numErosionIters; i++)
                 {
-                    minheight = std::min(minheight, val);
-                    maxheight = std::max(maxheight, val);
+                    bgfx::setTexture(0, m_texture, m_tex[m_texpingpong]);
+                    bgfx::setImage(1, m_tex[1 - m_texpingpong], 0, bgfx::Access::Write, bgfx::TextureFormat::RGBA32F);
+                    bgfx::dispatch(0, m_erosion, TotalPtsCt / 16, TotalPtsCt / 16);
+                    m_texpingpong = 1 - m_texpingpong;
                 }
-                m_heightBbox = m_l.GetBBox();
-                m_heightBbox.mMin[1] = minheight;
-                m_heightBbox.mMax[1] = maxheight;
 
-                m_parent = nullptr;
-
-                m_dataready = true;
-                m_buildStep = -1;
+                bgfx::setTexture(0, m_texture, m_tex[m_texpingpong]);
+                bgfx::setImage(1, m_terrain, 0, bgfx::Access::Write, bgfx::TextureFormat::R32F);
+                bgfx::dispatch(0, m_copysect, TotalPtsCt / 16, TotalPtsCt / 16);
+                m_buildStep = 1;
+                m_buildFrame = frameIdx + 1;
             }
             else
             {
-                sAllLocs.insert(m_l);
-                if (!bgfx::isValid(m_texture)) {
-                    m_texture = bgfx::createUniform("s_terrain", bgfx::UniformType::Sampler);
-                    m_erosion = Engine::Inst().LoadShader("cs_erosion.bin");
-                    m_copysect = Engine::Inst().LoadShader("cs_copysect.bin");
-                    m_csnoise = Engine::Inst().LoadShader("cs_noise.bin");
-                    m_cscopyparent = Engine::Inst().LoadShader("cs_copyparent.bin");
-                    m_uparams = bgfx::createUniform("u_params", bgfx::UniformType::Vec4, 1);
-                    m_vparams = bgfx::createUniform("v_params", bgfx::UniformType::Vec4, 1);
-                }
 
-                m_terrain = bgfx::createTexture2D(
-                    TotalPtsCt, TotalPtsCt, false,
-                    1,
-                    bgfx::TextureFormat::Enum::R32F,
-                    BGFX_TEXTURE_COMPUTE_WRITE | BGFX_TEXTURE_NONE
-                    | BGFX_SAMPLER_U_CLAMP
-                    | BGFX_SAMPLER_V_CLAMP,
-                    nullptr
-                );
+                Vec4f tileScaleOffset(
+                    1.0f,
+                    extents / 16.0f,
+                    (float)m_l.m_x,
+                    (float)m_l.m_z);
 
-                for (int i = 0; i < 2; ++i)
+                constexpr float xParentOff[2] = {
+                    (float)(OverlapPtsCt - OverlapPtsCt / 2),
+                    (float)(OverlapPtsCt + (SquarePtsCt / 2) - OverlapPtsCt / 2) };
+                constexpr float xChildOff = (float)(OverlapPtsCt / 2) / (float)TotalPtsCt;
+
+                Loc ll = m_l.GetLocal(m_l.Parent());
+                Vec4f parentOffset(
+                    0.5,
+                    0.5,
+                    xParentOff[ll.m_x],
+                    xParentOff[ll.m_z]);
+                bgfx::setUniform(m_uparams, &tileScaleOffset, 1);
+                bgfx::setUniform(m_vparams, &parentOffset, 1);
+                Vec4f uloc(m_l.m_l, m_l.m_x, m_l.m_z, 0);
+                const auto& terrain = parent->GetTerrain();
+                bgfx::setTexture(0, m_texture, terrain);
+                bgfx::setImage(1, m_tex[0], 0, bgfx::Access::Write, bgfx::TextureFormat::RGBA32F);
+                bgfx::dispatch(0, m_cscopyparent, TotalPtsCt / 16, TotalPtsCt / 16);
+
+                for (int i = 0; i < numErosionIters; i++)
                 {
-                    m_tex[i] = bgfx::createTexture2D(
-                        TotalPtsCt, TotalPtsCt, false,
-                        1,
-                        bgfx::TextureFormat::Enum::RGBA32F,
-                        BGFX_TEXTURE_COMPUTE_WRITE | BGFX_TEXTURE_NONE,
-                        nullptr
-                    );
-                }
-
-                AABoxf box = m_l.GetBBox();
-                float extents = m_l.GetExtent();
-
-                float overlap = (float)OverlapPtsCt / (float)SquarePtsCt;
-                overlap *= extents;
-
-                if (parent == nullptr || m_l.m_l < 5)
-                {
-                    Vec4f tileScaleOffset(
-                        (extents + overlap * 2),
-                        1,
-                        (box.mMin[0] - overlap),
-                        (box.mMin[2] - overlap));
-
-                    int wx = m_l.m_x;
-                    int wy = m_l.m_z;
-                    float nx = wx * SquarePtsCt;
-                    float ny = wy * SquarePtsCt;
-
-                    bgfx::setUniform(m_uparams, &tileScaleOffset, 1);
-                    bgfx::setImage(0, m_tex[0], 0, bgfx::Access::Write, bgfx::TextureFormat::RGBA32F);
-                    bgfx::dispatch(0, m_csnoise, TotalPtsCt / 16, TotalPtsCt / 16);
-
-                    for (int i = 0; i < numErosionIters; i++)
-                    {
-                        bgfx::setTexture(0, m_texture, m_tex[m_texpingpong]);
-                        bgfx::setImage(1, m_tex[1 - m_texpingpong], 0, bgfx::Access::Write, bgfx::TextureFormat::RGBA32F);
-                        bgfx::dispatch(0, m_erosion, TotalPtsCt / 16, TotalPtsCt / 16);
-                        m_texpingpong = 1 - m_texpingpong;
-                    }
-
                     bgfx::setTexture(0, m_texture, m_tex[m_texpingpong]);
-                    bgfx::setImage(1, m_terrain, 0, bgfx::Access::Write, bgfx::TextureFormat::R32F);
-                    bgfx::dispatch(0, m_copysect, TotalPtsCt / 16, TotalPtsCt / 16);
-                    m_buildStep = 1;
-                    m_buildFrame = frameIdx + 1;
+                    bgfx::setImage(1, m_tex[1 - m_texpingpong], 0, bgfx::Access::Write, bgfx::TextureFormat::RGBA32F);
+                    bgfx::dispatch(0, m_erosion, TotalPtsCt / 16, TotalPtsCt / 16);
+                    m_texpingpong = 1 - m_texpingpong;
                 }
-                else
-                {
 
-                    Vec4f tileScaleOffset(
-                        1.0f,
-                        extents / 16.0f,
-                        (float)m_l.m_x,
-                        (float)m_l.m_z);
-
-                    constexpr float xParentOff[2] = {
-                        (float)(OverlapPtsCt - OverlapPtsCt / 2),
-                        (float)(OverlapPtsCt + (SquarePtsCt / 2) - OverlapPtsCt / 2) };
-                    constexpr float xChildOff = (float)(OverlapPtsCt / 2) / (float)TotalPtsCt;
-
-                    Loc ll = m_l.GetLocal(m_l.Parent());
-                    Vec4f parentOffset(
-                        0.5,
-                        0.5,
-                        xParentOff[ll.m_x],
-                        xParentOff[ll.m_z]);
-                    bgfx::setUniform(m_uparams, &tileScaleOffset, 1);
-                    bgfx::setUniform(m_vparams, &parentOffset, 1);
-                    Vec4f uloc(m_l.m_l, m_l.m_x, m_l.m_z, 0);
-                    const auto& terrain = parent->GetTerrain();
-                    bgfx::setTexture(0, m_texture, terrain);
-                    bgfx::setImage(1, m_tex[0], 0, bgfx::Access::Write, bgfx::TextureFormat::RGBA32F);
-                    bgfx::dispatch(0, m_cscopyparent, TotalPtsCt / 16, TotalPtsCt / 16);
-
-                    for (int i = 0; i < numErosionIters; i++)
-                    {
-                        bgfx::setTexture(0, m_texture, m_tex[m_texpingpong]);
-                        bgfx::setImage(1, m_tex[1 - m_texpingpong], 0, bgfx::Access::Write, bgfx::TextureFormat::RGBA32F);
-                        bgfx::dispatch(0, m_erosion, TotalPtsCt / 16, TotalPtsCt / 16);
-                        m_texpingpong = 1 - m_texpingpong;
-                    }
-
-                    bgfx::setTexture(0, m_texture, m_tex[m_texpingpong]);
-                    bgfx::setImage(1, m_terrain, 0, bgfx::Access::Write, bgfx::TextureFormat::R32F);
-                    bgfx::dispatch(0, m_copysect, TotalPtsCt / 16, TotalPtsCt / 16);
-                    m_buildStep = 1;
-                    m_buildFrame = frameIdx + 1;
-                }
+                bgfx::setTexture(0, m_texture, m_tex[m_texpingpong]);
+                bgfx::setImage(1, m_terrain, 0, bgfx::Access::Write, bgfx::TextureFormat::R32F);
+                bgfx::dispatch(0, m_copysect, TotalPtsCt / 16, TotalPtsCt / 16);
+                m_buildStep = 1;
+                m_buildFrame = frameIdx + 1;
             }
         }
         else if (m_buildStep == 1 && frameIdx >= m_buildFrame)
@@ -291,7 +290,7 @@ namespace sam
             m_parent = nullptr;
 
             m_rbTex.free();
-            
+
             pWorld->Level().WriteTerrainChunk(
                 m_l, (const char*)m_heightData.data(), m_heightData.size() * sizeof(float));
 

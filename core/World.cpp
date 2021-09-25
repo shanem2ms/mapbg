@@ -252,6 +252,7 @@ namespace sam
         {
             m_worldGroup->Clear();
             m_octTileSelection.Update(e, ctx, playerbounds);
+            m_terrainTileSelection.Update(e, ctx);
             m_octTileSelection.AddTilesToGroup(m_worldGroup);
         }
 

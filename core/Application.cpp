@@ -5,6 +5,9 @@
 #include "UIControl.h"
 #include "World.h"
 #include "imgui.h"
+#include <chrono>
+
+#define WATCHDOGTHREAD 0
 
 namespace sam
 {
@@ -12,6 +15,14 @@ namespace sam
     co::static_thread_pool g_threadPool(8);
 #endif
     static Application* s_pInst = nullptr;
+    static std::thread sWatchdogThread;
+    static std::chrono::steady_clock::time_point sFrameStart;
+
+#if WATCHDOGTHREAD
+    static bool sWatchDogCheckEnabled = false;
+    void WatchDogFunc();
+    using namespace std::chrono_literals;
+#endif
 
     Application::Application() :
         m_height(0),
@@ -25,7 +36,26 @@ namespace sam
         m_engine = std::make_unique<Engine>();
         m_world = std::make_unique<World>();
         m_uiMgr = std::make_unique<UIManager>();
+#if WATCHDOGTHREAD
+        sWatchdogThread = std::thread(WatchDogFunc);
+#endif
     }
+
+#if WATCHDOGTHREAD
+    void WatchDogFunc()
+    {
+        while (true)
+        {
+            std::this_thread::sleep_for(1ms);
+            auto elapsed = std::chrono::high_resolution_clock::now()
+                - sFrameStart;
+            if (sWatchDogCheckEnabled && elapsed > 20ms)
+            {
+                __debugbreak();
+            }
+        }
+    }
+#endif
 
     Application& Application::Inst()
     {
@@ -92,9 +122,11 @@ namespace sam
     }
 
     const float Pi = 3.1415297;
-
+    float g_Fps = 0;
+    int counter = 0;
     void Application::Draw()
     {
+        sFrameStart = std::chrono::high_resolution_clock::now();
         sam::DrawContext ctx;
         ctx.m_nearfar[0] = 0.1f;
         ctx.m_nearfar[1] = 25.0f;
@@ -116,17 +148,20 @@ namespace sam
             , uint16_t(m_height)
         );
 
-        ImGui::PushStyleColor(ImGuiCol_Text
-            , false
-            ? ImVec4(1.0, 0.0, 0.0, 1.0)
-            : ImVec4(1.0, 1.0, 1.0, 1.0)
-        );
-        ImGui::TextWrapped("%s", "What is going on here");
-        ImGui::Separator();
-        ImGui::PopStyleColor();
-
         imguiEndFrame();
         m_frameIdx = bgfx::frame() + 1;
+        auto elapsed = std::chrono::high_resolution_clock::now() - sFrameStart;
+        long long microseconds = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+        g_Fps = (float)1000000.0f / microseconds;
+#if WATCHDOGTHREAD
+        if (elapsed < 20ms)
+        {
+            if (counter++ == 100)
+                sWatchDogCheckEnabled = true;
+        }
+        else
+            counter = 0;
+#endif
     }
     Application::~Application()
     {

@@ -69,8 +69,6 @@ template class Grid<16>;
 
 void CubeList::Create(const std::vector<Vec3f>& pts, float cubeSize)
 {
-    PosTexcoordNrmVertex::init();
-
 
     static PosTexcoordNrmVertex s_cubeVertices[] =
     {
@@ -144,15 +142,22 @@ void CubeList::Create(const std::vector<Vec3f>& pts, float cubeSize)
             vertices.push_back(vtx);
         }
     }
-
-    vbh = bgfx::createVertexBuffer(
-        bgfx::makeRef(vertices.data(), vertices.size() * sizeof(PosTexcoordNrmVertex))
-        , PosTexcoordNrmVertex::ms_layout
-    );
-
-    ibh = bgfx::createIndexBuffer(
-        bgfx::makeRef(indices.data(), indices.size() * sizeof(uint32_t)),
-        BGFX_BUFFER_INDEX32
-    );    
 }
 
+void CubeList::Use()
+{
+    PosTexcoordNrmVertex::init();
+
+    if (!vbh.isValid())
+    {
+        vbh = bgfx::createVertexBuffer(
+            bgfx::makeRef(vertices.data(), vertices.size() * sizeof(PosTexcoordNrmVertex))
+            , PosTexcoordNrmVertex::ms_layout
+        );
+
+        ibh = bgfx::createIndexBuffer(
+            bgfx::makeRef(indices.data(), indices.size() * sizeof(uint32_t)),
+            BGFX_BUFFER_INDEX32
+        );
+    }
+}

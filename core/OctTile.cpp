@@ -270,32 +270,29 @@ namespace sam
         {
             m_readyState = 1;
             bool success = false;
-            pWorld->Level().GetOctChunk(m_l, [this, &success](const std::string& strval, bool ok)
-                {
-                    if (ok)
-                    {
-                        m_rledata.resize(strval.size());
-                        memcpy(m_rledata.data(), strval.data(), strval.size());
-                        m_readyState = 3;
-                    }
-                });
+            std::string strval;
+            if (pWorld->Level().GetOctChunk(m_l, &strval))
+            {
+                m_rledata.resize(strval.size());
+                memcpy(m_rledata.data(), strval.data(), strval.size());
+                LoadVB();
+                m_readyState = 3;
+            }
+
         }
         if (m_readyState == 1)
         {
             if (m_terrainTile != nullptr)
                 m_readyState = 2;
-
-            if (pWorld->TerrainTileSelection().RequestTile(m_l, pWorld, m_terrainTile))
+            else if (pWorld->TerrainTileSelection().RequestTile(m_l, pWorld, m_terrainTile))
                 m_readyState = 2;
         }
 
         if (m_readyState == 2)
         {
             LoadTerrainData();
-            if (m_rledata.size() > 0)
-            {
-                pWorld->Level().WriteOctChunk(m_l, (const char*)m_rledata.data(), m_rledata.size());
-            }
+            pWorld->Level().WriteOctChunk(m_l, (const char*)m_rledata.data(), m_rledata.size());
+            LoadVB();
             m_readyState = 3;
         }
     }
@@ -304,8 +301,6 @@ namespace sam
     void OctTile::Draw(DrawContext& ctx)
     {
         nOctTilesTotal++;
-        if (m_terrainTile == nullptr || !m_terrainTile->IsDataReady())
-            return;
         nOctTilesDrawn++;
         if (ctx.m_nearfarpassIdx == 0 && farDistSq < ctx.m_nearfar[1])
             return;
@@ -315,13 +310,7 @@ namespace sam
         if (m_readyState < 3)
             return;
 
-        if (m_readyState == 3)
-        {
-            LoadVB();
-            m_readyState++;
-        }
-
-        if (m_readyState > 3 &&
+        if (m_readyState >= 3 &&
             m_cubeList == nullptr)
             return;
 
@@ -331,6 +320,7 @@ namespace sam
             m_uparams = bgfx::createUniform("u_params", bgfx::UniformType::Vec4, 1);
         }
 
+        m_cubeList->Use();
         static Vec3f c[] = {
             Vec3f(1, 0, 0),
             Vec3f(0.6f, 0.4f, 0),

@@ -3,6 +3,8 @@
 #include "Application.h"
 #include "Engine.h"
 #include "SimplexNoise/SimplexNoise.h"
+#include "World.h"
+#include "Level.h"
 #include <numeric>
 #include "Mesh.h"
 #include "gmtl/PlaneOps.h"
@@ -27,19 +29,37 @@ namespace sam
 
     bool TerrainTileSelection::RequestTile(const Loc& tileLoc, World* pWorld, std::shared_ptr<TerrainTile>& outTile)
     {
-        auto itTile = m_tiles.find(tileLoc);
+        Loc tl = tileLoc;
+        tl.m_y = 0;
+        auto itTile = m_tiles.find(tl);
         if (itTile != m_tiles.end())
         {
-            outTile = itTile->second;
-            return true;
+            if (itTile->second->IsDataReady())
+            {
+                outTile = itTile->second;
+                return true;
+            }
+            else
+                return false;
         }
-
-        m_requestTiles.insert(tileLoc);
+        else
+        {
+            std::string val;
+            if (pWorld->Level().GetTerrainChunk(tl, &val))
+            {
+                outTile = std::make_shared<TerrainTile>(tl, val);
+                m_tiles.insert(std::make_pair(tl, outTile));
+                return true;
+            }
+            else
+                m_requestTiles.insert(tileLoc);
+        }
+        return false;
     }
 
-    /*
-    void TerrainTileSelection::SelectTiles(const std::vector<Loc>& locs, World *pWorld)
-    {        
+    void TerrainTileSelection::Update(Engine& e, DrawContext& ctx)
+    {
+
         if (m_tiles.size() > 100)
         {
             std::vector<std::pair<Loc, TerrainTile*>> alltiles;
@@ -55,9 +75,10 @@ namespace sam
                 sNumTiles--;
             }
         }
+
         std::vector<std::shared_ptr<TerrainTile>> nextBuildingTiles;
-        for (const Loc& oloc : locs)
-        {            
+        for (const Loc& oloc : m_requestTiles)
+        {
             std::vector<Loc> locsParents;
             Loc p = oloc;
             p.m_y = 0;
@@ -74,7 +95,7 @@ namespace sam
                 if (itTile == m_tiles.end())
                 {
                     auto newTile = std::make_shared<TerrainTile>(loc, parentTile);
-                    if (!newTile->Build(pWorld))
+                    if (!newTile->Build(ctx.m_pWorld))
                     {
                         nextBuildingTiles.push_back(newTile);
                     }
@@ -85,20 +106,15 @@ namespace sam
                     break;
                 parentTile = itTile->second;
             }
-        }  
+        }
 
         for (std::shared_ptr<TerrainTile>& tile : m_buildingTiles)
         {
-            if (!tile->Build(pWorld))
+            if (!tile->Build(ctx.m_pWorld))
                 nextBuildingTiles.push_back(tile);
         }
 
         m_buildingTiles.swap(nextBuildingTiles);
-    }
-    */
-
-    void TerrainTileSelection::Update(Engine& e, DrawContext& ctx)
-    {
     }
 
     float TerrainTileSelection::GetGroundHeight(const Point3f& pt)

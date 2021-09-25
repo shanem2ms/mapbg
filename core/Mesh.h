@@ -138,6 +138,7 @@ struct CubeList
 {
     void Create(const std::vector<Vec3f>& pts, float cubeSize);
 
+    void Use();
     bgfxh<bgfx::VertexBufferHandle> vbh;
     bgfxh<bgfx::IndexBufferHandle> ibh;
     std::vector<PosTexcoordNrmVertex> vertices;

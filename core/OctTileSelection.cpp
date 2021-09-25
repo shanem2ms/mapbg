@@ -216,7 +216,6 @@ namespace sam
         m_nearfarmidsq[0] = 0.1f;
         m_nearfarmidsq[1] = 25.0f;
         m_nearfarmidsq[2] = 100.0f;
-        m_terrainSelection = std::make_unique<TerrainTileSelection>();
     }
 
     
@@ -238,7 +237,7 @@ namespace sam
                         pThis->m_loaderTiles.pop_back();
                     }
                 }
-                if (tile != nullptr && tile->GetReadyState() == 0)
+                if (tile != nullptr && tile->GetReadyState() < 3)
                     tile->BackgroundLoad(pThis->m_pWorld);
             }
         }
@@ -276,7 +275,7 @@ namespace sam
                 itSq = m_tiles.insert(std::make_pair(l, sq)).first;
                 sNumTiles++;
             }
-            if (itSq->second->GetReadyState() == 0)
+            if (itSq->second->GetReadyState() < 3)
                 loaderTiles.push_back(itSq->second);
             m_activeTiles.insert(l);
         }
@@ -294,24 +293,18 @@ namespace sam
                 m_tiles.erase(loc);
                 sNumTiles--;
             }
-        }
+        }     
 
-        auto terrainTiles = m_terrainSelection->Tiles();
         for (auto sqPair : m_activeTiles)
         {
             auto itSq = m_tiles.find(sqPair);
             Loc tloc = itSq->first;
             tloc.m_y = 0;
-            auto itTerrainTile = terrainTiles.find(tloc);
-            if (itTerrainTile != terrainTiles.end())
-            {
-                itTerrainTile->second->SetLastUseFrame(ctx.m_frameIdx);
-                itSq->second->SetTerrainTile(itTerrainTile->second);
-            }
+
             AABoxf box = sqPair.GetBBox();
             const Point3f& m0 = box.mMin;
             const Point3f& m1 = box.mMax;
-            Point3f pts[9] = {
+            Point3f pts[8] = {
                 Point3f(m0[0], m0[1], m0[2]),
                 Point3f(m0[0], m0[1], m1[2]),
                 Point3f(m0[0], m1[1], m0[2]),

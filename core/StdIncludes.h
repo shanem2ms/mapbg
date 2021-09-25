@@ -63,6 +63,10 @@ public:
         free();
     }
 
+    bool isValid() const
+    {
+        return bgfx::isValid(t);
+    }
 private:
     bgfxh(const bgfxh& rhs);
 };

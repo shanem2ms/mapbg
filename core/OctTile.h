@@ -39,12 +39,7 @@ namespace sam
         ~OctTile();
 
         void BackgroundLoad(World *pWorld);
-        bool IsEmpty() const { return m_terrainTile == nullptr;  }
-
-        void SetTerrainTile(std::shared_ptr<TerrainTile> terrainTile)
-        {
-            m_terrainTile = terrainTile;
-        }
+        bool IsEmpty() const { return m_rledata.size() == 0;  }
 
         void SetIntersects(float i)
         { m_intersects = i; }
