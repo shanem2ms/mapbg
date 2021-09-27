@@ -74,7 +74,7 @@ add_dependencies(core leveldb)
 
 if (APPLE)
 add_subdirectory(ios)
-add_dependencies(ios core)
+add_dependencies(map core)
 else()
 add_subdirectory(win)
 add_dependencies(map core)
