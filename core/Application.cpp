@@ -113,12 +113,15 @@ namespace sam
         m_engine->Tick(time);
     }
 
+    static int sButtonStates[256];
+    
     void Application::Initialize(const char *folder)
     {
         m_documentsPath = folder;
         std::string dbPath = m_documentsPath + "/testlvl";
         m_world->Open(dbPath);
         imguiCreate();
+        memset(sButtonStates, 0, sizeof(sButtonStates));
     }
 
     const float Pi = 3.1415297;
@@ -147,12 +150,51 @@ namespace sam
             , uint16_t(m_width)
             , uint16_t(m_height)
         );
+        
+        ImGui::SetNextWindowPos(
+            ImVec2(m_width - 400, m_height - 400)
+            , ImGuiCond_FirstUseEver
+        );
+
+        int buttonsThisFrame[256];
+        memset(buttonsThisFrame, 0, sizeof(buttonsThisFrame));
+        ImGui::Begin("make window", nullptr, 
+            ImGuiWindowFlags_NoBackground |
+            ImGuiWindowFlags_NoTitleBar |
+            ImGuiWindowFlags_NoResize |
+            ImGuiWindowFlags_NoMove);
+
+        ImGui::SetCursorPos(ImVec2(120,0));
+        ImGui::Button(ICON_FA_CHEVRON_UP, ImVec2(100, 100));
+        buttonsThisFrame['W'] = ImGui::IsItemActive();
+        ImGui::SetCursorPos(ImVec2(120, 110));
+        ImGui::Button(ICON_FA_CHEVRON_DOWN, ImVec2(100, 100));
+        buttonsThisFrame['S'] = ImGui::IsItemActive();
+        ImGui::SetCursorPos(ImVec2(240, 50));
+        ImGui::Button(ICON_FA_CHEVRON_RIGHT, ImVec2(100, 100));
+        buttonsThisFrame['D'] = ImGui::IsItemActive();
+        ImGui::SetCursorPos(ImVec2(0, 50));
+        ImGui::Button(ICON_FA_CHEVRON_LEFT, ImVec2(100, 100));
+        buttonsThisFrame['A'] = ImGui::IsItemActive();
+        ImGui::End();
 
         imguiEndFrame();
         m_frameIdx = bgfx::frame() + 1;
         auto elapsed = std::chrono::high_resolution_clock::now() - sFrameStart;
         long long microseconds = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
         g_Fps = (float)1000000.0f / microseconds;
+
+        for (int i = 0; i < 256; ++i)
+        {
+            if (buttonsThisFrame[i] != sButtonStates[i])
+            {
+                if (buttonsThisFrame[i] > 0)
+                    m_world->KeyDown(i);
+                else
+                    m_world->KeyUp(i);
+            }
+        }
+        memcpy(sButtonStates, buttonsThisFrame, sizeof(sButtonStates));
 #if WATCHDOGTHREAD
         if (elapsed < 20ms)
         {
