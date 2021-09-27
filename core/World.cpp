@@ -22,7 +22,7 @@ namespace sam
         m_height(-1),
         m_currentTool(0),
         m_gravityVel(0),        
-        m_flymode(true)
+        m_flymode(false)
     {
 
     }  
@@ -113,6 +113,7 @@ namespace sam
         m_activeTouch = nullptr;
         m_tiltVel = 0;
     }
+    extern bool g_showOctBoxes;
 
     const int LeftShift = 16;
     const int SpaceBar = 32;
@@ -153,6 +154,9 @@ namespace sam
         case FButton:
             m_flymode = !m_flymode;
             break;
+        case 'B':
+            g_showOctBoxes = !g_showOctBoxes;
+            break;
         }
         if (k >= '1' && k <= '9')
         {
@@ -180,7 +184,8 @@ namespace sam
     }
 
     Loc g_hitLoc(0, 0, 0);
-
+    float g_hitLocArea = 0;
+    float FrustumTiles_GetQuadArea(const Loc& curLoc, const Matrix44f& viewProj, bool& hasnegativeZ);
     void World::Update(Engine& e, DrawContext& ctx)
     {
         if (m_worldGroup == nullptr)
@@ -205,7 +210,7 @@ namespace sam
 
             Camera::Fly fly;
             fly.pos = Point3f(0.0f, 0.0f, -0.5f);
-            fly.dir = Vec2f(0, 0.0f);
+            fly.dir = Vec2f(1.24564195f, -0.455399066f);
             e.Cam().SetFly(fly);
 
             m_shader = e.LoadShader("vs_cubes.bin", "fs_cubes.bin");
@@ -291,6 +296,10 @@ namespace sam
                 m_targetCube->SetOffset(offset);
                 m_targetCube->SetScale(Vec3f(scl, scl, scl));
                 g_hitLoc = hitLoc;
+                bool test;
+                Matrix44f vp = cam.GetPerspectiveMatrix(ctx.m_nearfar[0], ctx.m_nearfar[1])*
+                    cam.ViewMatrix();
+                g_hitLocArea = FrustumTiles_GetQuadArea(g_hitLoc, vp, test);
             }
         }
 
@@ -300,7 +309,8 @@ namespace sam
             std::shared_ptr<OctTile> tile = m_octTileSelection.TileFromPos(fly.pos);
             float grnd = tile->GetGroundPos(Point2f(fly.pos[0], fly.pos[2]));
 
-            if (isnan(grnd) || fly.pos[1] > (grnd + headheight))
+            if (isnan(grnd)) m_gravityVel = 0;
+            else if (fly.pos[1] > (grnd + headheight))
             {
                 m_gravityVel -= 0.0005f;
             }

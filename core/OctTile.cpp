@@ -297,7 +297,8 @@ namespace sam
         }
     }
 
-
+    extern Loc g_hitLoc;
+    bool g_showOctBoxes = false;
     void OctTile::Draw(DrawContext& ctx)
     {
         nOctTilesTotal++;
@@ -307,54 +308,98 @@ namespace sam
         if (ctx.m_nearfarpassIdx == 1 && nearDistSq > ctx.m_nearfar[1])
             return;
 
-        if (m_readyState < 3)
-            return;
-
-        if (m_readyState >= 3 &&
-            m_cubeList == nullptr)
-            return;
-
-
         if (!bgfx::isValid(m_uparams))
         {
             m_uparams = bgfx::createUniform("u_params", bgfx::UniformType::Vec4, 1);
         }
 
-        m_cubeList->Use();
-        static Vec3f c[] = {
-            Vec3f(1, 0, 0),
-            Vec3f(0.6f, 0.4f, 0),
-            Vec3f(1.0f, 1.0f, 0),
-            Vec3f(0, 1.0f, 0),
-            Vec3f(0, 0, 1.0f),
-            Vec3f(1.0f, 0, 1.0f)
-        };
-        int t = m_l.m_l;
-        Vec3f cc = c[t % 6];
-        Vec4f cr;
-        lerp(cr, m_intersects, Vec4f(1.0f, 0, 0, 1), Vec4f(0, 1, 0, 1));
-        Vec4f color = (m_intersects >= 0) ? cr : Vec4f(0.2f, 0.2f, 0.2f, 1);
-        bgfx::setUniform(m_uparams, &color, 1);
-        Matrix44f m;
-        identity(m);
-        bgfx::setTransform(m.getData());
-        // Set vertex and index buffer.
-        bgfx::setVertexBuffer(0, m_cubeList->vbh);
-        bgfx::setIndexBuffer(m_cubeList->ibh);
-        uint64_t state = 0
-            | BGFX_STATE_WRITE_RGB
-            | BGFX_STATE_WRITE_A
-            | BGFX_STATE_WRITE_Z
-            | BGFX_STATE_DEPTH_TEST_LESS
-            | BGFX_STATE_MSAA
-            | BGFX_STATE_BLEND_ALPHA;
-        // Set render states.l
-        bgfx::setState(state);
-        bgfx::submit(ctx.m_curviewIdx, ctx.m_pgm);
-
-        if (m_rawdata.size() > 0 && m_lastUsedRawData++ > 60)
+        if (!g_showOctBoxes && m_readyState >= 3 && m_cubeList != nullptr)
         {
-            m_rawdata = std::vector<byte>();
+            m_cubeList->Use();
+            static Vec3f c[] = {
+                Vec3f(1, 0, 0),
+                Vec3f(0.6f, 0.4f, 0),
+                Vec3f(1.0f, 1.0f, 0),
+                Vec3f(0, 1.0f, 0),
+                Vec3f(0, 0, 1.0f),
+                Vec3f(1.0f, 0, 1.0f)
+            };
+            int t = m_l.m_l;
+            Vec3f cc = c[t % 6];
+            Vec4f cr;
+            lerp(cr, m_intersects, Vec4f(1.0f, 0, 0, 1), Vec4f(0, 1, 0, 1));
+            Vec4f color = (m_intersects >= 0) ? cr : Vec4f(0.2f, 0.2f, 0.2f, 1);
+            bgfx::setUniform(m_uparams, &color, 1);
+            Matrix44f m;
+            identity(m);
+            bgfx::setTransform(m.getData());
+            // Set vertex and index buffer.
+            bgfx::setVertexBuffer(0, m_cubeList->vbh);
+            bgfx::setIndexBuffer(m_cubeList->ibh);
+            uint64_t state = 0
+                | BGFX_STATE_WRITE_RGB
+                | BGFX_STATE_WRITE_A
+                | BGFX_STATE_WRITE_Z
+                | BGFX_STATE_DEPTH_TEST_LESS
+                | BGFX_STATE_MSAA
+                | BGFX_STATE_BLEND_ALPHA;
+            // Set render states.l
+            bgfx::setState(state);
+            bgfx::submit(ctx.m_curviewIdx, ctx.m_pgm);
+
+            if (m_rawdata.size() > 0 && m_lastUsedRawData++ > 60)
+            {
+                m_rawdata = std::vector<byte>();
+            }
+        }
+        else if (g_showOctBoxes)
+        {
+            Cube::init();
+            AABoxf bbox = m_l.GetBBox();
+            float scl = (bbox.mMax[0] - bbox.mMin[0]) * 0.45f;
+            Point3f off = (bbox.mMax + bbox.mMin) * 0.5f;
+            Matrix44f m = makeTrans<Matrix44f>(off) *
+                makeScale<Matrix44f>(scl);
+            bgfx::setTransform(m.getData());
+            Vec4f color = m_l == g_hitLoc ? Vec4f(1.0f, 0.0f, 1.0f, 1.0f) : Vec4f(0.0f, 1.0f, 1.0f, 1.0f);
+            bgfx::setUniform(m_uparams, &color, 1);
+
+            if (m_l == Loc(1, 1, 1, 2))
+            {
+                std::vector<Point2f> pts;
+                Matrix44f p = Engine::Inst().Cam().GetPerspectiveMatrix(ctx.m_nearfar[1], ctx.m_nearfar[2]);
+                Matrix44f v = Engine::Inst().Cam().ViewMatrix();
+
+                
+                Matrix44f vp;
+                mult(vp, p, v);
+
+                Matrix44f wvp = vp * m;
+
+                Point4f ppos;
+                for (int i = 0; i < 36; ++i)
+                {
+                    xform(ppos, wvp,
+                        Point4f(Cube::s_cubeVertices[i].m_x,
+                            Cube::s_cubeVertices[i].m_y,
+                            Cube::s_cubeVertices[i].m_z,
+                            1));
+                    ppos /= ppos[3];
+                    pts.push_back(Point2f(ppos[0], ppos[1]));
+                }
+            }
+            uint64_t state = 0
+                | BGFX_STATE_WRITE_RGB
+                | BGFX_STATE_WRITE_A
+                | BGFX_STATE_WRITE_Z
+                | BGFX_STATE_DEPTH_TEST_LESS
+                | BGFX_STATE_MSAA
+                | BGFX_STATE_BLEND_ALPHA;
+            // Set render states.l
+            bgfx::setState(state);
+            bgfx::setVertexBuffer(0, Cube::vbh);
+            bgfx::setIndexBuffer(Cube::ibh);
+            bgfx::submit(ctx.m_curviewIdx, ctx.m_pgm);
         }
     }
 

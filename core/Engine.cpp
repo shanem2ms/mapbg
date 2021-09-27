@@ -47,9 +47,9 @@ namespace sam
         dc.m_texture = m_texture;
         dc.m_gradient = m_gradient;
         gmtl::identity(dc.m_mat);
-        float near = sqrt(dc.m_nearfar[0]);
-        float mid = sqrt(dc.m_nearfar[1]);
-        float far = sqrt(dc.m_nearfar[2]);
+        float near = dc.m_nearfar[0];
+        float mid = dc.m_nearfar[1];
+        float far = dc.m_nearfar[2];
         gmtl::Matrix44f view = Cam().ViewMatrix();
         
         bgfx::setViewClear(0,

@@ -14,12 +14,12 @@
 #endif
 
 
-
-
 using namespace gmtl;
 
 namespace sam
 {
+    void convexHull(Point2f points[], size_t n, std::vector<Point2f>& outpts);
+    
     std::atomic<size_t> OctTileSelection::sNumTiles = 0;
 
     class FrustumTiles
@@ -82,7 +82,7 @@ namespace sam
         }
 
 
-        static ContainmentType Contains(Frustumf f, AABoxf box)
+        static ContainmentType Contains(const Frustumf &f, AABoxf box)
         {
             ContainmentType result = ContainmentType::Contains;
             for (int i = 0; i < 6; i++)
@@ -145,10 +145,8 @@ namespace sam
             pts[7] = Point3f(u[0], u[1], u[2]);
         }
 
-
-
-        static void GetLocsInView(std::vector<Loc>& locs, const Loc& curLoc,
-            const Frustumf& f, const Matrix44f& viewProj, float pixelDist, int maxlod, const AABoxf& playerBounds)
+    public:
+        static float GetQuadArea(const Loc& curLoc, const Matrix44f& viewProj, bool &hasnegativeZ)
         {
             static const int sides[6][4] =
             {
@@ -163,31 +161,30 @@ namespace sam
             AABoxf aabox = curLoc.GetBBox();
             Point3f c[8];
             GetCorners(aabox, c);
-            Point4f ppt[8];
-            bool hasnegativeZ = false;
+            Point2f pt2d[8];
+            hasnegativeZ = false;
             for (int idx = 0; idx < 8; ++idx)
             {
                 Point4f pt0(c[idx][0], c[idx][1], c[idx][2], 1);
-                xform(ppt[idx], viewProj, pt0);
-                ppt[idx] /= ppt[idx][3];
-                if (ppt[idx][3] < 0)
+                Point4f ppt;
+                xform(ppt, viewProj, pt0);
+                ppt /= ppt[3];
+                if (ppt[3] < 0)
                     hasnegativeZ = true;
+                pt2d[idx] = Point2f(ppt[0], ppt[1]);
             }
 
-            float totalArea = 0;
-            for (int i = 0; i < 6; ++i)
-            {
-                Vec2f pts[4];
-                for (int j = 0; j < 4; ++j)
-                {
-                    const Point4f& vpt = ppt[sides[i][j]];
-                    pts[j] = Vec2f(vpt[0], vpt[1]);
-                }
+            std::vector<Point2f> hullpts;
+            convexHull(pt2d, 8, hullpts);
+            return polygonArea((Vec2f*)hullpts.data(), hullpts.size());
+        }
 
-                float area = polygonArea(pts, 4);
-                totalArea += area;
-            }
-
+        static void GetLocsInView(std::vector<Loc>& locs, const Loc& curLoc,
+            const Frustumf& frustum, const Matrix44f& viewProj, float pixelDist, int maxlod, const AABoxf& playerBounds)
+        {
+           
+            bool hasnegativeZ = false;
+            float totalArea = GetQuadArea(curLoc, viewProj, hasnegativeZ);
             if (curLoc.m_l > 1 && !hasnegativeZ &&
                 (totalArea < pixelDist || curLoc.m_l >= maxlod))
             {
@@ -199,15 +196,20 @@ namespace sam
             for (const Loc& childLoc : children)
             {
                 AABoxf cbox = childLoc.GetBBox();
-                ContainmentType res = Contains(f, cbox);
+                ContainmentType res = Contains(frustum, cbox);
                 bool intersectsPlayer = intersect(playerBounds, cbox);
                 if (res != ContainmentType::Disjoint || intersectsPlayer)
                 {
-                    GetLocsInView(locs, childLoc, f, viewProj, pixelDist, maxlod, playerBounds);
+                    GetLocsInView(locs, childLoc, frustum, viewProj, pixelDist, maxlod, playerBounds);
                 }
             }
         }
     };
+
+    float FrustumTiles_GetQuadArea(const Loc& curLoc, const Matrix44f& viewProj, bool& hasnegativeZ)
+    {
+        return FrustumTiles::GetQuadArea(curLoc, viewProj, hasnegativeZ);
+    }
 
     OctTileSelection::OctTileSelection() :
         m_exit(false),
@@ -252,7 +254,7 @@ namespace sam
         Camera::Fly fly = cam.GetFly();
         m_pWorld = ctx.m_pWorld;
         std::vector<Loc> locs;
-        FrustumTiles::Get(e.Cam(), locs, 100.0f, g_maxTileLod, playerBounds);
+        FrustumTiles::Get(e.Cam(), locs, 10.0f, g_maxTileLod, playerBounds);
 
         std::sort(locs.begin(), locs.end());
 
@@ -379,9 +381,12 @@ namespace sam
 
     }
 
-    void OctTileSelection::GetNearFarMidDist(float nearfarmidsq[3])
+    void OctTileSelection::GetNearFarMidDist(float nearfarmid[3])
     {
-        memcpy(nearfarmidsq, m_nearfarmidsq, sizeof(float) * 3);
+        for (int i = 0; i < 3; ++i)
+        {
+            nearfarmid[i] = sqrt(m_nearfarmidsq[i]);
+        }
     }
 
     float OctTileSelection::GetGroundHeight(const Point3f& pt)
@@ -473,5 +478,6 @@ namespace sam
         m_cv.notify_one();
         m_loaderThread.join();
     }
+
 
 }

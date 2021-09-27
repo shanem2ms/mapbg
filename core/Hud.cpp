@@ -22,6 +22,7 @@ namespace sam
     extern int nOctTilesDrawn;
     extern float g_Fps;
     extern Loc g_hitLoc;;
+    extern float g_hitLocArea;
 
 
 	void Hud::Draw(DrawContext& ctx)
@@ -34,8 +35,9 @@ namespace sam
         bgfx::dbgTextPrintf(0, 3, 0x0f, "Oct Tiles [%d, %d, %d]", OctTileSelection::sNumTiles.load(), nOctTilesTotal, nOctTilesDrawn);
         bgfx::dbgTextPrintf(0, 6, 0x0f, "Near Tiles [%d]", g_nearTiles);
         bgfx::dbgTextPrintf(0, 7, 0x0f, "Far Tiles [%d]", g_farTiles);
-        bgfx::dbgTextPrintf(0, 7, 0x0f, "Far Tiles [%d]", g_farTiles);
         bgfx::dbgTextPrintf(0, 8, 0x0f, "Fps [%f]", g_Fps);
+        bgfx::dbgTextPrintf(0, 8, 0x0f, "Area [%f]", g_hitLocArea);
+
 
         Engine& e = Engine::Inst();
         Camera::Fly la = e.Cam().GetFly();

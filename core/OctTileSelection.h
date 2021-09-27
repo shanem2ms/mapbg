@@ -36,7 +36,7 @@ namespace sam
 
         void AddTilesToGroup(std::shared_ptr<SceneGroup> grp);
         float GetGroundHeight(const Point3f& pt);
-        void GetNearFarMidDist(float nearfarmidsq[3]);
+        void GetNearFarMidDist(float nearfarmid[3]);
 
         std::shared_ptr<OctTile> TileFromPos(const Point3f& pos);
         bool Intersects(const Point3f& pos, const Vec3f& ray, Loc& outloc, Vec3i& outpt);

@@ -52,14 +52,18 @@ namespace sam
                 return true;
             }
             else
-                m_requestTiles.insert(tileLoc);
+            {
+                std::shared_ptr<TerrainTile> outTile;
+                if (tl.m_l > 0)
+                    RequestTile(tl.Parent(), pWorld, outTile);
+                m_requestTiles.insert(tl);
+            }
         }
         return false;
     }
 
     void TerrainTileSelection::Update(Engine& e, DrawContext& ctx)
     {
-
         if (m_tiles.size() > 100)
         {
             std::vector<std::pair<Loc, TerrainTile*>> alltiles;
@@ -76,42 +80,45 @@ namespace sam
             }
         }
 
-        std::vector<std::shared_ptr<TerrainTile>> nextBuildingTiles;
-        for (const Loc& oloc : m_requestTiles)
+        std::set<std::shared_ptr<TerrainTile>> nextBuildingTiles;
+        for (const Loc& loc : m_requestTiles)
         {
-            std::vector<Loc> locsParents;
-            Loc p = oloc;
-            p.m_y = 0;
-            while (p.m_l > 0)
+            auto itTile = m_tiles.find(loc);
+            if (itTile == m_tiles.end())
             {
-                locsParents.push_back(p);
-                p = p.Parent();
-            }
-            std::reverse(locsParents.begin(), locsParents.end());
-            std::shared_ptr<TerrainTile> parentTile;
-            for (const Loc& loc : locsParents)
-            {
-                auto itTile = m_tiles.find(loc);
-                if (itTile == m_tiles.end())
+                std::shared_ptr<TerrainTile> newTile;
+                if (loc.m_l > 0)
                 {
-                    auto newTile = std::make_shared<TerrainTile>(loc, parentTile);
+                    auto itParent = m_tiles.find(loc.Parent());
+                    if (itParent != m_tiles.end())
+                    {
+                        newTile = std::make_shared<TerrainTile>(loc, itParent->second);
+                        if (!newTile->Build(ctx.m_pWorld))
+                        {
+                            nextBuildingTiles.insert(newTile);
+                        }
+                        itTile = m_tiles.insert(std::make_pair(loc, newTile)).first;
+                        sNumTiles++;
+                    }
+                }
+                else
+                {
+                    newTile = std::make_shared<TerrainTile>(loc, std::shared_ptr<TerrainTile>());
                     if (!newTile->Build(ctx.m_pWorld))
                     {
-                        nextBuildingTiles.push_back(newTile);
+                        nextBuildingTiles.insert(newTile);
                     }
                     itTile = m_tiles.insert(std::make_pair(loc, newTile)).first;
                     sNumTiles++;
                 }
-                if (!intersect(itTile->second->GetBounds(), oloc.GetBBox()))
-                    break;
-                parentTile = itTile->second;
+                //if (!intersect(itTile->second->GetBounds(), oloc.GetBBox()))
             }
         }
-
-        for (std::shared_ptr<TerrainTile>& tile : m_buildingTiles)
+        for (auto itTile = m_buildingTiles.begin(); itTile != m_buildingTiles.end();
+            ++itTile)
         {
-            if (!tile->Build(ctx.m_pWorld))
-                nextBuildingTiles.push_back(tile);
+            if (!(*itTile)->Build(ctx.m_pWorld))
+                nextBuildingTiles.insert((*itTile));
         }
 
         m_buildingTiles.swap(nextBuildingTiles);

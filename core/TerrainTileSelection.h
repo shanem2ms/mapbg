@@ -19,7 +19,7 @@ namespace sam
         std::set<Loc> m_activeTiles;
         std::set<Loc> m_requestTiles;
 
-        std::vector<std::shared_ptr<TerrainTile>> m_buildingTiles;
+        std::set<std::shared_ptr<TerrainTile>> m_buildingTiles;
 
         void Update(Engine& e, DrawContext& ctx);
 

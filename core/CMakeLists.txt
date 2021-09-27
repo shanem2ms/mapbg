@@ -53,6 +53,7 @@ set(Source_Files
     "TerrainTileSelection.cpp"
     "SceneItem.cpp"
     "UIControl.cpp"
+    "ConvexHull.cpp"
     "Mesh.cpp"
     "Level.cpp"
     "SimplexNoise/SimplexNoise.cpp"
