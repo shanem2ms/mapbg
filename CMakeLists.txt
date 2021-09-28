@@ -69,7 +69,7 @@ add_dependencies(shaders Bgfx)
 
 add_subdirectory(zlib)
 add_subdirectory(leveldb)
-add_dependencies(core zlib)
+add_dependencies(core zlibstatic)
 add_dependencies(core leveldb)
 
 if (APPLE)

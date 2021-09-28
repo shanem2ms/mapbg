@@ -124,14 +124,19 @@ void CubeList::Create(const std::vector<Vec3f>& pts, float cubeSize)
         21, 22, 23,
     };
 
-    vertices.reserve(pts.size() * 24);
-    indices.reserve(pts.size() * 36);
+    verticesSize = pts.size() * 24;
+    pvertices = new PosTexcoordNrmVertex[verticesSize];
+    PosTexcoordNrmVertex* pCurVtx = pvertices;
+    indicesSize = pts.size() * 36;
+    pindices = new uint32_t[indicesSize];
+    uint32_t *pcurindex = pindices;
+    size_t vtxoffset = 0;
     for (const Vec3f& pt : pts)
     {
-        uint32_t offset = vertices.size();
+        uint32_t offset = vtxoffset;
         for (uint32_t i : s_cubeIndices)
         {
-            indices.push_back(i + offset);
+            *(pcurindex++) = i + offset;
         }
         for (const PosTexcoordNrmVertex& cubevtx : s_cubeVertices)
         {
@@ -139,7 +144,8 @@ void CubeList::Create(const std::vector<Vec3f>& pts, float cubeSize)
             vtx.m_x = vtx.m_x * cubeSize + pt[0];
             vtx.m_y = vtx.m_y * cubeSize + pt[1];
             vtx.m_z = vtx.m_z * cubeSize + pt[2];
-            vertices.push_back(vtx);
+            vtxoffset++;
+            (*pCurVtx++) = vtx;
         }
     }
 }
@@ -151,13 +157,22 @@ void CubeList::Use()
     if (!vbh.isValid())
     {
         vbh = bgfx::createVertexBuffer(
-            bgfx::makeRef(vertices.data(), vertices.size() * sizeof(PosTexcoordNrmVertex))
+            bgfx::makeRef(pvertices, verticesSize * sizeof(PosTexcoordNrmVertex), CubeList::ReleaseFn)
             , PosTexcoordNrmVertex::ms_layout
         );
+        pvertices = nullptr;
 
         ibh = bgfx::createIndexBuffer(
-            bgfx::makeRef(indices.data(), indices.size() * sizeof(uint32_t)),
+            bgfx::makeRef(pindices, indicesSize * sizeof(uint32_t), CubeList::ReleaseFn),
             BGFX_BUFFER_INDEX32
         );
+
+        pindices = nullptr;
     }
+}
+
+void CubeList::ReleaseFn(void* ptr, void* pThis)
+{
+    delete[]ptr;
+
 }

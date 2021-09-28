@@ -140,11 +140,28 @@ struct CubeList
 {
     void Create(const std::vector<Vec3f>& pts, float cubeSize);
 
+    CubeList() :
+        pvertices(nullptr),
+        verticesSize(0),
+        pindices(nullptr),
+        indicesSize(0)
+    {
+    }
+    ~CubeList()
+    {
+        if (pvertices != nullptr)
+            delete[]pvertices;
+        if (pindices != nullptr)
+            delete[]pindices;
+    }
     void Use();
     bgfxh<bgfx::VertexBufferHandle> vbh;
     bgfxh<bgfx::IndexBufferHandle> ibh;
-    std::vector<PosTexcoordNrmVertex> vertices;
-    std::vector<uint32_t> indices;
+    PosTexcoordNrmVertex *pvertices;
+    size_t verticesSize;
+    uint32_t *pindices;
+    size_t indicesSize;
+    static void ReleaseFn(void *ptr, void* pThis);
 
 };
 
