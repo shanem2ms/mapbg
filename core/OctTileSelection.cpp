@@ -163,6 +163,7 @@ namespace sam
 
                 float targetlodf = 8 - log2(frustwidth);
                 targetLod = (int)targetlodf;
+                targetLod -= 1;
             }
             
             if ((nd > 0 && curLoc.m_l > targetLod) ||
