@@ -37,7 +37,7 @@ namespace sam
     class Camera
     {
         gmtl::Matrix44f m_proj;
-        gmtl::Matrix44f m_view;
+        mutable gmtl::Matrix44f m_view;
         float m_aspect;
         float m_near;
         float m_far;
@@ -69,6 +69,7 @@ namespace sam
         int m_mode;
         LookAt m_lookat;
         Fly m_fly;
+        mutable bool m_viewdirty; 
 
 
         Camera();
@@ -78,7 +79,7 @@ namespace sam
             m_near = near; m_far = far;
         }
 
-        Frustumf GetFrustum() const;
+        Frustumf GetFrustum(float near, float far) const;
 
         void SetLookat(const LookAt& la)
         {
@@ -90,6 +91,7 @@ namespace sam
         void SetFly(const Fly& la)
         {
             m_fly = la;
+            m_viewdirty = true;
         }
 
         const Fly& GetFly() const { return m_fly; }
@@ -101,10 +103,7 @@ namespace sam
             return m_proj;
         }
 
-        const gmtl::Matrix44f& ViewMatrix() const
-        {
-            return m_view;
-        }
+        const gmtl::Matrix44f& ViewMatrix() const;
     };
 
     class SceneItem
@@ -117,6 +116,7 @@ namespace sam
         Vec4f m_strokeColor;
         float m_strokeWidth;
         bool m_isInitialized;
+        bool m_enabled;
 
         SceneItem();
 
@@ -130,6 +130,11 @@ namespace sam
         void SetOffset(const Point3f& p)
         {
             m_offset = p;
+        }
+
+        void SetEnabled(bool enabled)
+        {
+            m_enabled = enabled;
         }
 
         void SetStroke(const Vec4f& color, float width)
@@ -160,7 +165,8 @@ namespace sam
         
         void DoDraw(DrawContext& ctx);
 
-        virtual AABoxf GetBounds() const = 0;
+        virtual AABoxf GetBounds() const
+        { return AABoxf(); }
     protected:
 
         virtual void Initialize(DrawContext& nvg) {}

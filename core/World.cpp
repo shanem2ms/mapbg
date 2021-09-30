@@ -6,6 +6,7 @@
 #include <numeric>
 #include "Mesh.h"
 #include "OctTile.h"
+#include "Frustum.h"
 #include "gmtl/PlaneOps.h"
 
 
@@ -22,7 +23,8 @@ namespace sam
         m_height(-1),
         m_currentTool(0),
         m_gravityVel(0),        
-        m_flymode(false)
+        m_flymode(false),
+        m_inspectmode(false)
     {
 
     }  
@@ -79,7 +81,7 @@ namespace sam
         float yb = y / m_height;
 
         Engine& e = Engine::Inst();
-        Camera::Fly la = e.Cam().GetFly();
+        Camera::Fly la = e.DrawCam().GetFly();
         
         m_activeTouch->m_initCamDir = la.dir;
         m_activeTouch->SetInitialPos(Point2f(xb, yb));
@@ -98,12 +100,12 @@ namespace sam
             Vec2f dragDiff = Point2f(xb, yb) - m_activeTouch->TouchPos();
 
             Engine& e = Engine::Inst();
-            Camera::Fly la = e.Cam().GetFly();
+            Camera::Fly la = e.DrawCam().GetFly();
 
-            la.dir[0] = m_activeTouch->m_initCamDir[0] - dragDiff[0] * 2;
-            la.dir[1] = m_activeTouch->m_initCamDir[1] - dragDiff[1] * 2;
+            la.dir[0] = m_activeTouch->m_initCamDir[0] + dragDiff[0] * 2;
+            la.dir[1] = m_activeTouch->m_initCamDir[1] + dragDiff[1] * 2;
             la.dir[1] = std::max(la.dir[1], -pi_over_two);
-            e.Cam().SetFly(la);
+            e.DrawCam().SetFly(la);
 
         }
     }
@@ -146,16 +148,20 @@ namespace sam
             m_camVel[0] += speed;
             break;
         case WButton:
-            m_camVel[2] -= speed;
+            m_camVel[2] += speed;
             break;
         case SButton:
-            m_camVel[2] += speed;
+            m_camVel[2] -= speed;
             break;
         case FButton:
             m_flymode = !m_flymode;
             break;
         case 'B':
             g_showOctBoxes = !g_showOctBoxes;
+            break;
+        case 'I':
+            m_inspectmode = !m_inspectmode;
+            Engine::Inst().SetDbgCam(m_inspectmode);
             break;
         }
         if (k >= '1' && k <= '9')
@@ -185,41 +191,48 @@ namespace sam
 
     Loc g_hitLoc(0, 0, 0);
     float g_hitLocArea = 0;
-    float FrustumTiles_GetQuadArea(const Loc& curLoc, const Matrix44f& viewProj, bool& hasnegativeZ);
+    float g_hitDist = 0;
     void World::Update(Engine& e, DrawContext& ctx)
     {
         if (m_worldGroup == nullptr)
         {
-            /*
-            std::shared_ptr<UIButton> btn1 = std::make_shared<UIButton>("Zoom", 100.0f, 10.0f, 100.0f, 50.0f);
-            btn1->OnPressed([this](int touchId) {
-                m_currentTool = 1;
-                });
-            Application::Inst().UIMgr().AddControl(btn1);
-
-            std::shared_ptr<UIButton> btn2 = std::make_shared<UIButton>("Move", 250.0f, 10.0f, 100.0f, 50.0f);
-            btn2->OnPressed([this](int touchId) {
-                m_currentTool = 0;
-                });
-            Application::Inst().UIMgr().AddControl(btn2);
-            */
             m_worldGroup = std::make_shared<SceneGroup>();
             e.Root()->AddItem(m_worldGroup);
             m_targetCube = std::make_shared<TargetCube>();
             e.Root()->AddItem(m_targetCube);
+            m_frustum = std::make_shared<Frustum>();
+            e.Root()->AddItem(m_frustum);
 
             Camera::Fly fly;
-            fly.pos = Point3f(0.0f, 0.0f, -0.5f);
-            fly.dir = Vec2f(1.24564195f, -0.455399066f);
-            e.Cam().SetFly(fly);
+            Camera::Fly dfly;
+            Level::CamPos campos;
+            if (m_level.GetCameraPos(campos))
+            {
+                fly.pos = campos.pos;
+                fly.dir = campos.dir;
+                m_flymode = campos.flymode;
+                m_inspectmode = campos.inspect;
+                Engine::Inst().SetDbgCam(m_inspectmode);
+                dfly.pos = campos.inspectpos;
+                dfly.dir = campos.inspectdir;
+            }
+            else
+            {
+                fly.pos = Point3f(0.0f, 0.0f, -0.5f);
+                fly.dir = Vec2f(1.24564195f, -0.455399066f);
+            }
+            e.DrawCam().SetFly(dfly);
+            e.ViewCam().SetFly(fly);
 
             m_shader = e.LoadShader("vs_cubes.bin", "fs_cubes.bin");
             m_worldGroup->BeforeDraw([this](DrawContext& ctx) { ctx.m_pgm = m_shader; return true; });
 
+
         }
 
+        m_frustum->SetEnabled(m_inspectmode);
 
-        Matrix44f viewProj = e.Cam().PerspectiveMatrix() * e.Cam().ViewMatrix();
+        Matrix44f viewProj = e.ViewCam().PerspectiveMatrix() * e.ViewCam().ViewMatrix();
         invert(viewProj);
 
         Point4f corners[5] =
@@ -247,7 +260,7 @@ namespace sam
         float ystart = floorf((c[0][1] - ydist));
         float yend = ceilf((c[0][1] + ydist));
 
-        auto &cam = e.Cam();
+        auto &cam = e.ViewCam();
         Camera::Fly fly = cam.GetFly();
         const float headheight = 0.01f;
         Vec3f boundsExt(0.01f, 0.01f, 0.01f);
@@ -265,7 +278,7 @@ namespace sam
         float grnd = tile != nullptr ? tile->GetGroundPos(Point2f(fly.pos[0], fly.pos[2])) :
             INFINITY;
         m_octTileSelection.GetNearFarMidDist(ctx.m_nearfar);
-        e.Cam().SetNearFar(ctx.m_nearfar[0], ctx.m_nearfar[2]);
+        e.ViewCam().SetNearFar(ctx.m_nearfar[0], ctx.m_nearfar[2]);
 
         {
             Matrix44f mat0 = cam.GetPerspectiveMatrix(ctx.m_nearfar[0], ctx.m_nearfar[1]) *
@@ -299,25 +312,31 @@ namespace sam
                 bool test;
                 Matrix44f vp = cam.GetPerspectiveMatrix(ctx.m_nearfar[0], ctx.m_nearfar[1])*
                     cam.ViewMatrix();
-                g_hitLocArea = FrustumTiles_GetQuadArea(g_hitLoc, vp, test);
+
+                g_hitDist = dot(offset - fly.pos, dir);
             }
         }
 
         float flyspeedup = 1;
-        if (!m_flymode)
+        if (!m_flymode && !m_inspectmode)
         {
             std::shared_ptr<OctTile> tile = m_octTileSelection.TileFromPos(fly.pos);
-            float grnd = tile->GetGroundPos(Point2f(fly.pos[0], fly.pos[2]));
-
-            if (isnan(grnd)) m_gravityVel = 0;
-            else if (fly.pos[1] > (grnd + headheight))
+            if (tile == nullptr || tile->GetReadyState() < 3)
             {
-                m_gravityVel -= 0.0005f;
+                m_gravityVel = 0;
             }
             else
             {
-                fly.pos[1] = grnd + headheight;
-                m_gravityVel = 0;
+                float grnd = tile->GetGroundPos(Point2f(fly.pos[0], fly.pos[2]));
+                if (isnan(grnd) || fly.pos[1] > (grnd + headheight))
+                {
+                    m_gravityVel -= 0.0005f;
+                }
+                else
+                {
+                    fly.pos[1] = grnd + headheight;
+                    m_gravityVel = 0;
+                }
             }
         }
         else
@@ -326,18 +345,35 @@ namespace sam
             m_gravityVel = 0;
         }
 
+        if (m_inspectmode)
+            flyspeedup = 500;
+
+        auto& dcam = e.DrawCam();
         Vec3f right, up, forward;
         Vec3f upworld(0, 1, 0);
-        fly.GetDirs(right, up, forward);
+        auto dfly = dcam.GetFly();
+        dfly.GetDirs(right, up, forward);
         Vec3f fwWorld;
         cross(fwWorld, right, upworld);
-        fly.pos +=
+        dfly.pos +=
             m_camVel[0] * right * flyspeedup +
             (m_camVel[1] + m_gravityVel) * upworld * flyspeedup +
             m_camVel[2] * fwWorld * flyspeedup;
+        dcam.SetFly(dfly);
+
+        if ((ctx.m_frameIdx % 60) == 0)
+        {
+            Level::CamPos campos;
+            campos.pos = fly.pos;
+            campos.dir = fly.dir;
+            campos.flymode = m_flymode;
+            campos.inspect = m_inspectmode;
+            campos.inspectpos = dfly.pos;
+            campos.inspectdir = dfly.dir;
+            m_level.WriteCameraPos(campos);
+        }
         //fly.pos[1] = std::max(m_octTileSelection.GetGroundHeight(fly.pos), fly.pos[1]);
 
-        cam.SetFly(fly);        
 
     }
 

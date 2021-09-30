@@ -6,12 +6,10 @@
 
 namespace sam
 {
-    class Hud : public SceneItem
+    class Frustum : public SceneItem
     {
         bgfx::ProgramHandle m_shader;
-
-    public:
-        void Draw(DrawContext& ctx) override;
         void Initialize(DrawContext& nvg) override;
+        void Draw(DrawContext& ctx) override;
     };
 }

@@ -24,39 +24,27 @@ namespace sam
 
     class FrustumTiles
     {
+
+        inline static float nearFrust = 0.1f;
+        inline static float farFrust = 150.0f;
     public:
         static void Get(Camera& cam, std::vector<Loc>& locs, float pixelDist, int maxlod, const AABoxf& playerBounds)
         {
-            Frustumf viewFrust = cam.GetFrustum();
-            Matrix44f viewproj = cam.PerspectiveMatrix() * cam.ViewMatrix();
+            Frustumf viewFrust = cam.GetFrustum(nearFrust, farFrust);
+            Matrix44f viewproj = cam.GetPerspectiveMatrix(nearFrust, farFrust) * cam.ViewMatrix();
             Vec3f ctr = FrustumCenter(viewproj);
 
 
             Vec3f chkpos(floorf(ctr[0]), floorf(ctr[1]), floorf(ctr[2]));
-            GetLocsInView(locs, Loc(0, 0, 0, 0), viewFrust, viewproj, pixelDist, maxlod, playerBounds);
+            auto &fly = cam.GetFly();
+            Vec3f r, u, f;
+            fly.GetDirs(r, u, f);
+            GetLocsInView(locs, Loc(0, 0, 0, 0), viewFrust, viewproj, fly.pos, r, f, pixelDist, maxlod, playerBounds);
         }
 
     private:
 
-        // (X[i], Y[i]) are coordinates of i'th point.
-        static float polygonArea(Vec2f p[], int n)
-        {
-            // Initialize area
-            float area = 0.0;
-
-            // Calculate value of shoelace formula
-            int j = n - 1;
-            for (int i = 0; i < n; i++)
-            {
-                area += (p[j][0] + p[i][0]) * (p[j][1] - p[i][1]);
-                j = i;  // j is previous vertex to i
-            }
-
-            // Return absolute value
-            return abs(area / 2.0);
-        }
-
-
+   
         enum class ContainmentType
         {
             Disjoint = 0,
@@ -146,47 +134,39 @@ namespace sam
         }
 
     public:
-        static float GetQuadArea(const Loc& curLoc, const Matrix44f& viewProj, bool &hasnegativeZ)
-        {
-            static const int sides[6][4] =
-            {
-                { 0, 2, 6, 4 },
-                { 4, 6, 7, 5 },
-                { 5, 7, 3, 1 },
-                { 1, 3, 2, 0 },
-                { 2, 3, 7, 6 },
-                { 4, 5, 1, 0 },
-            };
-
-            AABoxf aabox = curLoc.GetBBox();
-            Point3f c[8];
-            GetCorners(aabox, c);
-            Point2f pt2d[8];
-            hasnegativeZ = false;
-            for (int idx = 0; idx < 8; ++idx)
-            {
-                Point4f pt0(c[idx][0], c[idx][1], c[idx][2], 1);
-                Point4f ppt;
-                xform(ppt, viewProj, pt0);
-                ppt /= ppt[3];
-                if (ppt[3] < 0)
-                    hasnegativeZ = true;
-                pt2d[idx] = Point2f(ppt[0], ppt[1]);
-            }
-
-            std::vector<Point2f> hullpts;
-            convexHull(pt2d, 8, hullpts);
-            return polygonArea((Vec2f*)hullpts.data(), hullpts.size());
-        }
-
+       
         static void GetLocsInView(std::vector<Loc>& locs, const Loc& curLoc,
-            const Frustumf& frustum, const Matrix44f& viewProj, float pixelDist, int maxlod, const AABoxf& playerBounds)
+            const Frustumf& frustum, const Matrix44f& viewProj, const Point3f& camPos, const Vec3f& camRight, const Vec3f &camFwd, float pixelDist, int maxlod, const AABoxf& playerBounds)
         {
-           
-            bool hasnegativeZ = false;
-            float totalArea = GetQuadArea(curLoc, viewProj, hasnegativeZ);
-            if (curLoc.m_l > 1 && !hasnegativeZ &&
-                (totalArea < pixelDist || curLoc.m_l >= maxlod))
+            float nd=0, md=0, fd=0;
+            OctTileSelection::GetLocDistance(curLoc, camPos, camFwd, nd, md, fd);
+
+            int targetLod = 0;
+            if (nd > 0)
+            {
+                Point3f targetPos = camPos + camFwd * nd;
+                float distLeft = 0, distRight = 0;
+
+                Point4f tp(targetPos[0], targetPos[1], targetPos[2], 1), sp;
+                xform(sp, viewProj, tp);
+                sp /= sp[3];
+
+                bool success = intersect(frustum.mPlanes[Frustumf::PLANE_LEFT], Rayf(targetPos, -camRight), distLeft);
+                success = intersect(frustum.mPlanes[Frustumf::PLANE_RIGHT], Rayf(targetPos, -camRight), distRight);
+                float frustwidth = fabs(distLeft) + fabs(distRight);
+
+
+                float invnd = 1.0f / md;
+                const float invFar = 4.0f / farFrust;
+                const float invNear = 1.0f / nearFrust;
+                float lerp = (invnd - farFrust) / (nearFrust - farFrust);
+
+                float targetlodf = 8 - log2(frustwidth);
+                targetLod = (int)targetlodf;
+            }
+            
+            if ((nd > 0 && curLoc.m_l > targetLod) ||
+                curLoc.m_l >= maxlod)
             {
                 locs.push_back(curLoc);
                 return;
@@ -200,24 +180,20 @@ namespace sam
                 bool intersectsPlayer = intersect(playerBounds, cbox);
                 if (res != ContainmentType::Disjoint || intersectsPlayer)
                 {
-                    GetLocsInView(locs, childLoc, frustum, viewProj, pixelDist, maxlod, playerBounds);
+                    GetLocsInView(locs, childLoc, frustum, viewProj, camPos, camRight, camFwd, pixelDist, maxlod, playerBounds);
                 }
             }
         }
     };
 
-    float FrustumTiles_GetQuadArea(const Loc& curLoc, const Matrix44f& viewProj, bool& hasnegativeZ)
-    {
-        return FrustumTiles::GetQuadArea(curLoc, viewProj, hasnegativeZ);
-    }
-
+    
     OctTileSelection::OctTileSelection() :
         m_exit(false),
         m_loaderThread(LoaderThread, this)
     {
-        m_nearfarmidsq[0] = 0.1f;
-        m_nearfarmidsq[1] = 25.0f;
-        m_nearfarmidsq[2] = 100.0f;
+        m_nearfarmid[0] = 0.1f;
+        m_nearfarmid[1] = 25.0f;
+        m_nearfarmid[2] = 100.0f;
     }
 
     
@@ -245,16 +221,46 @@ namespace sam
         }
     }
 
+
+    void OctTileSelection::GetLocDistance(const Loc &loc, const Point3f &campos, const Vec3f &camdir,
+         float &neardist, float &middist, float &fardist)
+    {
+        AABoxf box = loc.GetBBox();
+        const Point3f& m0 = box.mMin;
+        const Point3f& m1 = box.mMax;
+        Point3f pts[8] = {
+            Point3f(m0[0], m0[1], m0[2]),
+            Point3f(m0[0], m0[1], m1[2]),
+            Point3f(m0[0], m1[1], m0[2]),
+            Point3f(m0[0], m1[1], m1[2]),
+            Point3f(m1[0], m0[1], m0[2]),
+            Point3f(m1[0], m0[1], m1[2]),
+            Point3f(m1[0], m1[1], m0[2]),
+            Point3f(m1[0], m1[1], m1[2])
+        };
+        float minlen = std::numeric_limits<float>::max();
+        float maxlen = -std::numeric_limits<float>::max();
+        for (int i = 0; i < 8; ++i)
+        {
+            float l = dot(camdir, Vec3f(pts[i] - campos));
+            minlen = std::min(minlen, l);
+            maxlen = std::max(maxlen, l);
+        }
+        neardist = minlen;
+        fardist = maxlen;
+        middist = (minlen + maxlen) * 0.5f;
+    }
+
     extern int g_maxTileLod;
     void OctTileSelection::Update(Engine& e, DrawContext& ctx, const AABoxf& playerBounds)
     {
         auto oldTiles = m_activeTiles;
         m_activeTiles.clear();
-        auto& cam = e.Cam();
+        auto& cam = e.ViewCam();
         Camera::Fly fly = cam.GetFly();
         m_pWorld = ctx.m_pWorld;
         std::vector<Loc> locs;
-        FrustumTiles::Get(e.Cam(), locs, 10.0f, g_maxTileLod, playerBounds);
+        FrustumTiles::Get(cam, locs, 10.0f, g_maxTileLod, playerBounds);
 
         std::sort(locs.begin(), locs.end());
 
@@ -297,36 +303,16 @@ namespace sam
             }
         }     
 
-        for (auto sqPair : m_activeTiles)
+        Vec3f l, u, f;
+        fly.GetDirs(l, u, f);
+        for (auto loc : m_activeTiles)
         {
-            auto itSq = m_tiles.find(sqPair);
-            Loc tloc = itSq->first;
-            tloc.m_y = 0;
+            auto itSq = m_tiles.find(loc);
 
-            AABoxf box = sqPair.GetBBox();
-            const Point3f& m0 = box.mMin;
-            const Point3f& m1 = box.mMax;
-            Point3f pts[8] = {
-                Point3f(m0[0], m0[1], m0[2]),
-                Point3f(m0[0], m0[1], m1[2]),
-                Point3f(m0[0], m1[1], m0[2]),
-                Point3f(m0[0], m1[1], m1[2]),
-                Point3f(m1[0], m0[1], m0[2]),
-                Point3f(m1[0], m0[1], m1[2]),
-                Point3f(m1[0], m1[1], m0[2]),
-                Point3f(m1[0], m1[1], m1[2])
-            };
-            float minlen = std::numeric_limits<float>::max();
-            float maxlen = 0;
-            for (int i = 0; i < 8; ++i)
-            {
-                float l = lengthSquared(Vec3f(fly.pos - pts[i]));
-                minlen = std::min(minlen, l);
-                maxlen = std::max(maxlen, l);
-            }
-            itSq->second->nearDistSq = minlen;
-            itSq->second->farDistSq = maxlen;
-            itSq->second->distFromCam = (minlen + maxlen) * 0.5f;
+            GetLocDistance(loc, fly.pos, f,
+                itSq->second->m_nearDist,
+                itSq->second->distFromCam,
+                itSq->second->m_farDist);
         }
     }
 
@@ -349,26 +335,30 @@ namespace sam
         std::sort(tiles.begin(), tiles.end(), [](auto& t1, auto& t2) { return t1->distFromCam > t2->distFromCam;  });
 
 
-        float splitdistsq = tiles[tiles.size() / 2]->distFromCam;
-        float neardistsq = std::numeric_limits<float>::max();
-        float fardistsq = 0;
+        float splitdist = tiles[tiles.size() / 2]->distFromCam;
+        float neardist = std::numeric_limits<float>::max();
+        float fardist = 0;
         for (auto& t : tiles)
         {
-            //            splitdistsq += t->nearDistSq;
-            neardistsq = std::min(neardistsq, t->nearDistSq);
-            fardistsq = std::max(fardistsq, t->farDistSq);
+            neardist = std::min(neardist, t->m_nearDist);
+            fardist = std::max(fardist, t->m_farDist);
         }
 
-        m_nearfarmidsq[0] = pow(0.002, 2);
-        m_nearfarmidsq[1] = splitdistsq;
-        m_nearfarmidsq[2] = fardistsq;
+        neardist = std::max(neardist, 0.01f);
+        fardist = std::max(fardist, neardist * 2);
+        float logsplitdist = (log2(neardist) + log2(fardist)) * 0.5f;
+        splitdist = pow(2, logsplitdist);
+
+        m_nearfarmid[0] = 0.001f;// neardist;
+        m_nearfarmid[1] = 6.0f;// splitdist;
+        m_nearfarmid[2] = 180.0f;// fardist;
         int nearCt = 0;
         int farCt = 0;
         for (auto& t : tiles)
         {
-            if (t->nearDistSq < splitdistsq)
+            if (t->m_nearDist < splitdist)
                 nearCt++;
-            if (t->farDistSq > splitdistsq)
+            if (t->m_farDist > splitdist)
                 farCt++;
         }
         g_nearTiles = nearCt;
@@ -385,7 +375,7 @@ namespace sam
     {
         for (int i = 0; i < 3; ++i)
         {
-            nearfarmid[i] = sqrt(m_nearfarmidsq[i]);
+            nearfarmid[i] = m_nearfarmid[i];
         }
     }
 

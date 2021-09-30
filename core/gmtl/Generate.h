@@ -628,12 +628,12 @@ namespace gmtl
 
       result.mData[8] = ( right + left ) / ( right - left );
       result.mData[9] = ( top + bottom ) / ( top - bottom );
-      result.mData[10] = -( fr + nr ) / ( fr - nr );
-      result.mData[11] = T( -1.0 );
+      result.mData[10] = fr / ( fr - nr );
+      result.mData[11] = T( 1.0 );
 
       result.mData[12] = T( 0.0 );
       result.mData[13] = T( 0.0 );
-      result.mData[14] = -( T( 2.0 ) * fr * nr ) / ( fr - nr );
+      result.mData[14] = -( fr * nr ) / ( fr - nr );
       result.mData[15] = T( 0.0 );
 
       result.mState = Matrix<T, 4, 4>::FULL; // track state

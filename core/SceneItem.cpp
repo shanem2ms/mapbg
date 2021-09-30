@@ -11,12 +11,15 @@ namespace sam
         m_offset(0, 0, 0),
         m_scale(1, 1, 1),
         m_rotate(),
+        m_enabled(true),
         m_isInitialized(false)
     {
     }
 
     void SceneItem::DoDraw(DrawContext& ctx)
     {
+        if (!m_enabled)
+            return;
         if (!m_isInitialized)
         {
             Initialize(ctx);
@@ -187,40 +190,51 @@ namespace sam
     }
 
     void Camera::Update(int w, int h)
-    {
-        Matrix44f rot, off, scl, perp;
+    {        
         float aspect = (float)w / (float)h;
         setPerspective(m_proj, 60.0f, aspect, m_near, m_far);
         m_aspect = aspect;
-        if (m_mode == 0)
+        
+    }        
+    
+    const gmtl::Matrix44f& Camera::ViewMatrix() const 
+    {
+        if (m_viewdirty)
         {
-            Vec3f rightDir, upDir, lookDir;
-            m_fly.GetDirs(rightDir, upDir, lookDir);
-            rot.set(
-                rightDir[0], rightDir[1], rightDir[2], 0,
-                upDir[0], upDir[1], upDir[2], 0,
-                lookDir[0], lookDir[1], lookDir[2], 0,
-                0, 0, 0, 1);
+            Matrix44f rot, off, scl, perp;
+            if (m_mode == 0)
+            {
+                Vec3f rightDir, upDir, lookDir;
+                m_fly.GetDirs(rightDir, upDir, lookDir);
+                rot.set(
+                    rightDir[0], rightDir[1], rightDir[2], 0,
+                    upDir[0], upDir[1], upDir[2], 0,
+                    lookDir[0], lookDir[1], lookDir[2], 0,
+                    0, 0, 0, 1);
 
-            transpose(rot);
-            setTrans(off, m_fly.pos);
-        }
-        else
-        {
-            setRot(rot, AxisAnglef(Math::PI + m_lookat.tilt, 1.0f, 0.0f, 0.0f));
-            Vec3f vec(0, 0, m_lookat.dist);
-            Quatf q = make<gmtl::Quatf>(AxisAnglef(Math::PI + m_lookat.tilt, 1.0f, 0.0f, 0.0f));
-            vec = q * vec;
-            setTrans(off, m_lookat.pos + vec);
+                transpose(rot);
+                setTrans(off, m_fly.pos);
+            }
+            else
+            {
+                setRot(rot, AxisAnglef(Math::PI + m_lookat.tilt, 1.0f, 0.0f, 0.0f));
+                Vec3f vec(0, 0, m_lookat.dist);
+                Quatf q = make<gmtl::Quatf>(AxisAnglef(Math::PI + m_lookat.tilt, 1.0f, 0.0f, 0.0f));
+                vec = q * vec;
+                setTrans(off, m_lookat.pos + vec);
 
+            }
+            m_view = off * rot;
+            m_view = invert(m_view);
+            m_viewdirty = false;
         }
-        m_view = off * rot;
-        m_view = invert(m_view);
+        return m_view;
     }
 
-    Frustumf Camera::GetFrustum() const
+
+    Frustumf Camera::GetFrustum(float near, float far) const
     {
-        Frustumf f(m_view, m_proj);
+        Frustumf f(ViewMatrix(), GetPerspectiveMatrix(near, far));
         normalize(f);
         return f;
     }

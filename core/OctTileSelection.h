@@ -40,11 +40,13 @@ namespace sam
 
         std::shared_ptr<OctTile> TileFromPos(const Point3f& pos);
         bool Intersects(const Point3f& pos, const Vec3f& ray, Loc& outloc, Vec3i& outpt);
+        static void GetLocDistance(const Loc& loc, const Point3f& campos, const Vec3f& camdir,
+            float& neardir, float& middir, float& fardir);
 
     public:
         OctTileSelection();
         ~OctTileSelection();
-        float m_nearfarmidsq[3];
+        float m_nearfarmid[3];
     };
  
 

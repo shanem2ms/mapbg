@@ -14,6 +14,8 @@
 namespace sam
 {
 
+    bgfxh<bgfx::ProgramHandle> sBboxshader;
+
     OctTile::OctTile(const Loc& l) : m_image(-1), m_l(l),
         m_buildFrame(0),
         m_readyState(0),
@@ -303,11 +305,12 @@ namespace sam
     {
         nOctTilesTotal++;
         nOctTilesDrawn++;
-        if (ctx.m_nearfarpassIdx == 0 && farDistSq < ctx.m_nearfar[1])
+        
+        if (ctx.m_nearfarpassIdx == 0 && m_farDist < ctx.m_nearfar[1])
             return;
-        if (ctx.m_nearfarpassIdx == 1 && nearDistSq > ctx.m_nearfar[1])
+        if (ctx.m_nearfarpassIdx == 1 && m_nearDist > ctx.m_nearfar[1])
             return;
-
+            
         if (!bgfx::isValid(m_uparams))
         {
             m_uparams = bgfx::createUniform("u_params", bgfx::UniformType::Vec4, 1);
@@ -316,19 +319,7 @@ namespace sam
         if (!g_showOctBoxes && m_readyState >= 3 && m_cubeList != nullptr)
         {
             m_cubeList->Use();
-            static Vec3f c[] = {
-                Vec3f(1, 0, 0),
-                Vec3f(0.6f, 0.4f, 0),
-                Vec3f(1.0f, 1.0f, 0),
-                Vec3f(0, 1.0f, 0),
-                Vec3f(0, 0, 1.0f),
-                Vec3f(1.0f, 0, 1.0f)
-            };
-            int t = m_l.m_l;
-            Vec3f cc = c[t % 6];
-            Vec4f cr;
-            lerp(cr, m_intersects, Vec4f(1.0f, 0, 0, 1), Vec4f(0, 1, 0, 1));
-            Vec4f color = (m_intersects >= 0) ? cr : Vec4f(0.2f, 0.2f, 0.2f, 1);
+            Vec4f color = (ctx.m_nearfarpassIdx == 0) ? Vec4f(0.4f, 0.2f, 0.2f, 1) : Vec4f(0.2f, 0.2f, 0.4f, 1);
             bgfx::setUniform(m_uparams, &color, 1);
             Matrix44f m;
             identity(m);
@@ -354,6 +345,8 @@ namespace sam
         }
         else if (g_showOctBoxes)
         {
+            if (!sBboxshader.isValid())
+                sBboxshader = Engine::Inst().LoadShader("vs_cubes.bin", "fs_bbox.bin");
             Cube::init();
             AABoxf bbox = m_l.GetBBox();
             float scl = (bbox.mMax[0] - bbox.mMin[0]) * 0.45f;
@@ -363,31 +356,6 @@ namespace sam
             bgfx::setTransform(m.getData());
             Vec4f color = m_l == g_hitLoc ? Vec4f(1.0f, 0.0f, 1.0f, 1.0f) : Vec4f(0.0f, 1.0f, 1.0f, 1.0f);
             bgfx::setUniform(m_uparams, &color, 1);
-
-            if (m_l == Loc(1, 1, 1, 2))
-            {
-                std::vector<Point2f> pts;
-                Matrix44f p = Engine::Inst().Cam().GetPerspectiveMatrix(ctx.m_nearfar[1], ctx.m_nearfar[2]);
-                Matrix44f v = Engine::Inst().Cam().ViewMatrix();
-
-                
-                Matrix44f vp;
-                mult(vp, p, v);
-
-                Matrix44f wvp = vp * m;
-
-                Point4f ppos;
-                for (int i = 0; i < 36; ++i)
-                {
-                    xform(ppos, wvp,
-                        Point4f(Cube::s_cubeVertices[i].m_x,
-                            Cube::s_cubeVertices[i].m_y,
-                            Cube::s_cubeVertices[i].m_z,
-                            1));
-                    ppos /= ppos[3];
-                    pts.push_back(Point2f(ppos[0], ppos[1]));
-                }
-            }
             uint64_t state = 0
                 | BGFX_STATE_WRITE_RGB
                 | BGFX_STATE_WRITE_A
@@ -399,7 +367,7 @@ namespace sam
             bgfx::setState(state);
             bgfx::setVertexBuffer(0, Cube::vbh);
             bgfx::setIndexBuffer(Cube::ibh);
-            bgfx::submit(ctx.m_curviewIdx, ctx.m_pgm);
+            bgfx::submit(ctx.m_curviewIdx, sBboxshader);
         }
     }
 
@@ -534,10 +502,6 @@ namespace sam
         return Vec3i(-1, -1, -1);
     }
 
-    AABoxf TargetCube::GetBounds() const
-    {
-        return AABoxf();
-    }
     void TargetCube::Initialize(DrawContext& nvg)
     {
         m_shader = Engine::Inst().LoadShader("vs_cubes.bin", "fs_targetcube.bin");

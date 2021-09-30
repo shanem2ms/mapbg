@@ -23,6 +23,7 @@ class Engine
     int m_w;
     int m_h;
     Camera m_camera;
+    Camera m_debugCamera;
     
     std::shared_ptr<SceneGroup> m_root;
     std::shared_ptr<Hud> m_hud;
@@ -31,13 +32,20 @@ class Engine
     bgfx::UniformHandle m_gradient;
 
     std::map<std::string, bgfx::ProgramHandle> m_shaders;
+    bool m_debugCam;
 
 
 public:
     Engine();
 
     static Engine& Inst();
-    Camera& Cam() { return m_camera; }
+    Camera& ViewCam() { return m_camera; }
+    Camera& DrawCam() { return m_debugCam ? m_debugCamera : m_camera; }
+    void SetDbgCam(bool dbgCam)
+    {
+        m_debugCam = dbgCam;
+        m_debugCamera = m_camera;
+    }
     void Tick(float time);
 
     bgfx::ProgramHandle LoadShader(const std::string& vtx, const std::string& px);

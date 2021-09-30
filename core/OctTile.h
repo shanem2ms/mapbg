@@ -30,8 +30,8 @@ namespace sam
         int m_lastUsedRawData;
         float m_intersects;
     public:
-        float nearDistSq;
-        float farDistSq;
+        float m_nearDist;
+        float m_farDist;
         float distFromCam;
     public:
         void Draw(DrawContext& ctx) override;
@@ -70,7 +70,6 @@ namespace sam
     {
         bgfx::ProgramHandle m_shader;
         void Initialize(DrawContext& nvg) override;
-        AABoxf GetBounds() const override;
         void Draw(DrawContext& ctx) override;
     };
 }

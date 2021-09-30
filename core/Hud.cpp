@@ -22,7 +22,7 @@ namespace sam
     extern int nOctTilesDrawn;
     extern float g_Fps;
     extern Loc g_hitLoc;;
-    extern float g_hitLocArea;
+    extern float g_hitDist;
 
 
 	void Hud::Draw(DrawContext& ctx)
@@ -35,12 +35,12 @@ namespace sam
         bgfx::dbgTextPrintf(0, 3, 0x0f, "Oct Tiles [%d, %d, %d]", OctTileSelection::sNumTiles.load(), nOctTilesTotal, nOctTilesDrawn);
         bgfx::dbgTextPrintf(0, 6, 0x0f, "Near Tiles [%d]", g_nearTiles);
         bgfx::dbgTextPrintf(0, 7, 0x0f, "Far Tiles [%d]", g_farTiles);
-        bgfx::dbgTextPrintf(0, 8, 0x0f, "Fps [%f]", g_Fps);
-        bgfx::dbgTextPrintf(0, 8, 0x0f, "Area [%f]", g_hitLocArea);
+        bgfx::dbgTextPrintf(0, 8, 0x0f, "Fps [%.2f]", g_Fps);
+        bgfx::dbgTextPrintf(0, 9, 0x0f, "HitDist [%.2f]", g_hitDist);
 
 
         Engine& e = Engine::Inst();
-        Camera::Fly la = e.Cam().GetFly();
+        Camera::Fly la = e.ViewCam().GetFly();
         bgfx::dbgTextPrintf(0, 4, 0x0f, "Cam [%f %f %f]", la.pos[0], la.pos[1], la.pos[2]);
 
         //bgfx::setTransform(m.getData());
@@ -58,9 +58,4 @@ namespace sam
         bgfx::setState(state);
         bgfx::submit(0, m_shader);
     }
-
-	AABoxf Hud::GetBounds() const
-	{
-		return AABoxf();
-	}
 }

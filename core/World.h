@@ -27,6 +27,7 @@ namespace sam
         gmtl::Point3f m_camVel;
         float m_tiltVel;
         bool m_flymode;
+        bool m_inspectmode;
 
         float m_gravityVel;
 
@@ -34,7 +35,8 @@ namespace sam
         std::shared_ptr<Touch> m_activeTouch;
         int m_currentTool;
         bgfx::ProgramHandle m_shader;        
-        std::shared_ptr<TargetCube> m_targetCube;
+        std::shared_ptr<SceneItem> m_targetCube;
+        std::shared_ptr<SceneItem> m_frustum;
         Level m_level;
 
     public:

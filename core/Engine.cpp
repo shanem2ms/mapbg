@@ -10,6 +10,7 @@ namespace sam
     Engine::Engine() :
         m_h(0),
         m_w(0),
+        m_debugCam(false),
         m_root(std::make_shared<SceneGroup>())
     {
         sEngine = this;
@@ -50,7 +51,7 @@ namespace sam
         float near = dc.m_nearfar[0];
         float mid = dc.m_nearfar[1];
         float far = dc.m_nearfar[2];
-        gmtl::Matrix44f view = Cam().ViewMatrix();
+        gmtl::Matrix44f view = DrawCam().ViewMatrix();
         
         bgfx::setViewClear(0,
             BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH,
@@ -59,7 +60,21 @@ namespace sam
             0
         );
         nOctTilesTotal = nOctTilesDrawn = 0;
-        gmtl::Matrix44f proj0 = Cam().GetPerspectiveMatrix(mid, far);
+
+        Matrix44f viewProj = DrawCam().GetPerspectiveMatrix(mid, far)*
+            view;
+
+        auto &fly = DrawCam().GetFly();
+        Vec3f u, r, f;
+        fly.GetDirs(u, r, f);
+        Point3f npos = fly.pos + f * 6.0f;
+        Point4f ppos(npos[0], npos[1], npos[2], 1);
+
+        Point4f spos;
+        xform(spos, viewProj, ppos);
+        spos /= spos[3];
+
+        gmtl::Matrix44f proj0 = DrawCam().GetPerspectiveMatrix(mid, far);
         bgfx::setViewTransform(0, view.getData(), proj0.getData());
         dc.m_curviewIdx = 0;
         dc.m_nearfarpassIdx = 0;
@@ -72,8 +87,7 @@ namespace sam
         );
         nOctTilesTotal = nOctTilesDrawn = 0;
         
-        float nmid = pow(2, (log2(mid) - log2(near)) * 1.1f + log2(near));
-        gmtl::Matrix44f proj1 = Cam().GetPerspectiveMatrix(near, nmid);
+        gmtl::Matrix44f proj1 = DrawCam().GetPerspectiveMatrix(near, mid);
         bgfx::setViewTransform(1, view.getData(), proj1.getData());
         dc.m_curviewIdx = 1;
         dc.m_nearfarpassIdx = 1;
