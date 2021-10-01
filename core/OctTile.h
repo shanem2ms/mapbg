@@ -5,7 +5,7 @@
 #include "SceneItem.h"
 #include "Loc.h"
 
-struct CubeList;
+struct VoxCube;
 
 namespace sam
 {
@@ -24,7 +24,7 @@ namespace sam
         int m_readyState;
         bgfxh<bgfx::UniformHandle> m_uparams;
         std::shared_ptr<TerrainTile> m_terrainTile;
-        std::shared_ptr<CubeList> m_cubeList;
+        std::shared_ptr<VoxCube> m_voxelinst;
         std::vector<byte> m_rledata;
         std::vector<byte> m_rawdata;
         int m_lastUsedRawData;

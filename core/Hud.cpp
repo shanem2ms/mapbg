@@ -9,6 +9,7 @@
 #include "TerrainTileSelection.h"
 #define NOMINMAX
 
+extern std::atomic<size_t> sVBBytes;
 namespace sam
 {
     void Hud::Initialize(DrawContext& nvg)
@@ -23,7 +24,7 @@ namespace sam
     extern float g_Fps;
     extern Loc g_hitLoc;;
     extern float g_hitDist;
-
+    
 
 	void Hud::Draw(DrawContext& ctx)
 	{        
@@ -37,6 +38,8 @@ namespace sam
         bgfx::dbgTextPrintf(0, 7, 0x0f, "Far Tiles [%d]", g_farTiles);
         bgfx::dbgTextPrintf(0, 8, 0x0f, "Fps [%.2f]", g_Fps);
         bgfx::dbgTextPrintf(0, 9, 0x0f, "HitDist [%.2f]", g_hitDist);
+        bgfx::dbgTextPrintf(0, 10, 0x0f, "VB %d MB", sVBBytes.load() >> 20);
+        
 
 
         Engine& e = Engine::Inst();

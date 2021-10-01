@@ -22,6 +22,8 @@ namespace sam
 
     void Frustum::Draw(DrawContext& ctx)
     {
+        if (ctx.m_curviewIdx == 1)
+            return;
         Matrix44f invViewProj = Engine::Inst().ViewCam().PerspectiveMatrix()*
             Engine::Inst().ViewCam().ViewMatrix();
         invert(invViewProj);
@@ -38,11 +40,10 @@ namespace sam
         uint64_t state = 0
             | BGFX_STATE_WRITE_RGB
             | BGFX_STATE_WRITE_A
-            | BGFX_STATE_WRITE_Z
             | BGFX_STATE_DEPTH_TEST_LESS
             | BGFX_STATE_MSAA
             | BGFX_STATE_BLEND_ALPHA
-            | BGFX_STATE_CULL_CCW;
+            | BGFX_STATE_CULL_CW;
         // Set render states.l
         bgfx::setState(state);
         bgfx::submit(ctx.m_curviewIdx, m_shader);

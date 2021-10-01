@@ -53,6 +53,29 @@ struct PosTexcoordNrmVertex
     static bgfx::VertexLayout ms_layout;
 };
 
+struct VoxelVertex
+{
+    byte x;
+    byte y;
+    byte z;
+    byte d;
+
+    static void init()
+    {
+        static bool isinit = false;
+        if (!isinit)
+        {
+            ms_layout
+                .begin()
+                .add(bgfx::Attrib::TexCoord1, 4, bgfx::AttribType::Uint8)
+                .end();
+            isinit = true;
+        }
+    };
+
+    static bgfx::VertexLayout ms_layout;
+};
+
 struct Cube
 {
     inline static PosTexcoordNrmVertex s_cubeVertices[] =
@@ -144,16 +167,11 @@ struct CubeList
         pvertices(nullptr),
         verticesSize(0),
         pindices(nullptr),
-        indicesSize(0)
+        indicesSize(0),
+        memsize(0)
     {
     }
-    ~CubeList()
-    {
-        if (pvertices != nullptr)
-            delete[]pvertices;
-        if (pindices != nullptr)
-            delete[]pindices;
-    }
+    ~CubeList();
     void Use();
     bgfxh<bgfx::VertexBufferHandle> vbh;
     bgfxh<bgfx::IndexBufferHandle> ibh;
@@ -161,6 +179,7 @@ struct CubeList
     size_t verticesSize;
     uint32_t *pindices;
     size_t indicesSize;
+    size_t memsize;
     static void ReleaseFn(void *ptr, void* pThis);
 
 };
@@ -215,4 +234,27 @@ struct Quad
     static bgfx::VertexBufferHandle vbh;
     static bgfx::IndexBufferHandle ibh;
     static bool isInit;
+};
+
+struct VoxCube
+{
+    void Create(const std::vector<Vec3i>& pts);
+
+    VoxCube() :
+        //pvertices(nullptr),
+        verticesSize(0),
+        memsize(0)
+    {
+    }
+    ~VoxCube();
+    void Use();
+
+    bgfxh<bgfx::VertexBufferHandle> vbh;
+    VoxelVertex* pvertices;
+
+    //VoxelVertex* pvertices;
+    size_t verticesSize;
+    size_t memsize;
+    static void ReleaseFn(void* ptr, void* pThis);
+
 };

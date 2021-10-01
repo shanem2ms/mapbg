@@ -3,6 +3,7 @@
 
 bgfx::VertexLayout PosTexcoordVertex::ms_layout;
 bgfx::VertexLayout PosTexcoordNrmVertex::ms_layout;
+bgfx::VertexLayout VoxelVertex::ms_layout;
 
 bool Cube::isInit = false;
 bgfx::VertexBufferHandle Cube::vbh;
@@ -65,7 +66,7 @@ template <int N> std::vector<PosTexcoordVertex> Grid<N>::vertices;
 template <int N> std::vector<uint16_t> Grid<N>::indices;
 template class Grid<16>;
 
-
+std::atomic<size_t> sVBBytes;
 
 void CubeList::Create(const std::vector<Vec3f>& pts, float cubeSize)
 {
@@ -160,6 +161,8 @@ void CubeList::Use()
             bgfx::makeRef(pvertices, verticesSize * sizeof(PosTexcoordNrmVertex), CubeList::ReleaseFn)
             , PosTexcoordNrmVertex::ms_layout
         );
+
+        memsize += verticesSize * sizeof(PosTexcoordNrmVertex);
         pvertices = nullptr;
 
         ibh = bgfx::createIndexBuffer(
@@ -167,11 +170,63 @@ void CubeList::Use()
             BGFX_BUFFER_INDEX32
         );
 
+        memsize += indicesSize * sizeof(uint32_t);
         pindices = nullptr;
+        sVBBytes += memsize;
     }
 }
 
+CubeList::~CubeList()
+{
+    if (pvertices != nullptr)
+        delete[]pvertices;
+    if (pindices != nullptr)
+        delete[]pindices;
+    sVBBytes -= memsize;
+}
+
 void CubeList::ReleaseFn(void* ptr, void* pThis)
+{
+    delete[]ptr;
+
+}
+
+void VoxCube::Create(const std::vector<Vec3i>& pts)
+{
+    VoxelVertex::init();
+    verticesSize = pts.size();
+
+    pvertices = new VoxelVertex[verticesSize];
+    VoxelVertex *pdata = pvertices;
+    for (const Vec3i& pt : pts)
+    {    
+        VoxelVertex vtx = { pt[0], pt[1], pt[2], 0 };
+        *pdata++ = vtx;
+    }
+   
+    memsize = verticesSize * sizeof(VoxelVertex);
+    sVBBytes += memsize;
+}
+
+
+void VoxCube::Use()
+{
+    if (!vbh.isValid())
+    {
+        vbh = bgfx::createVertexBuffer(
+            bgfx::makeRef(pvertices, verticesSize * sizeof(VoxelVertex), VoxCube::ReleaseFn)
+            , VoxelVertex::ms_layout
+        );
+
+    }           
+}
+
+VoxCube::~VoxCube()
+{
+    sVBBytes -= memsize;
+}
+
+void VoxCube::ReleaseFn(void* ptr, void* pThis)
 {
     delete[]ptr;
 

@@ -64,16 +64,6 @@ namespace sam
         Matrix44f viewProj = DrawCam().GetPerspectiveMatrix(mid, far)*
             view;
 
-        auto &fly = DrawCam().GetFly();
-        Vec3f u, r, f;
-        fly.GetDirs(u, r, f);
-        Point3f npos = fly.pos + f * 6.0f;
-        Point4f ppos(npos[0], npos[1], npos[2], 1);
-
-        Point4f spos;
-        xform(spos, viewProj, ppos);
-        spos /= spos[3];
-
         gmtl::Matrix44f proj0 = DrawCam().GetPerspectiveMatrix(mid, far);
         bgfx::setViewTransform(0, view.getData(), proj0.getData());
         dc.m_curviewIdx = 0;

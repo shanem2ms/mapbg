@@ -15,6 +15,7 @@ namespace sam
 {
 
     bgfxh<bgfx::ProgramHandle> sBboxshader;
+    bgfxh<bgfx::ProgramHandle> sVoxshader;
 
     OctTile::OctTile(const Loc& l) : m_image(-1), m_l(l),
         m_buildFrame(0),
@@ -157,7 +158,7 @@ namespace sam
 
 
         const int tsz = TerrainTile::SquarePtsCt;
-        std::vector<Vec3f> octPts;
+        std::vector<Vec3i> octPts;
 
         size_t offset = 0;
         for (auto it = m_rledata.begin(); it != m_rledata.end(); ++it)
@@ -176,7 +177,7 @@ namespace sam
                         int z = v / tsz;
                         v -= z * tsz;
                         int x = v;
-                        octPts.push_back(Vec3f(minX + x * len, minY + y * len, minZ + z * len));
+                        octPts.push_back(Vec3i(x, y, z));
                     }
                 }
                 offset += cnt0;
@@ -194,8 +195,8 @@ namespace sam
 
         if (octPts.size() > 0)
         {
-            m_cubeList = std::make_shared<CubeList>();
-            m_cubeList->Create(octPts, len * 0.5f);
+            m_voxelinst = std::make_shared<VoxCube>();
+            m_voxelinst->Create(octPts);
         }
     }
 
@@ -316,17 +317,27 @@ namespace sam
             m_uparams = bgfx::createUniform("u_params", bgfx::UniformType::Vec4, 1);
         }
 
-        if (!g_showOctBoxes && m_readyState >= 3 && m_cubeList != nullptr)
+        if (!g_showOctBoxes && m_readyState >= 3 && m_voxelinst != nullptr)
         {
-            m_cubeList->Use();
+            if (!sVoxshader.isValid())
+                sVoxshader = Engine::Inst().LoadShader("vs_voxelcube.bin", "fs_cubes.bin");
+
+            Cube::init();
             Vec4f color = (ctx.m_nearfarpassIdx == 0) ? Vec4f(0.4f, 0.2f, 0.2f, 1) : Vec4f(0.2f, 0.2f, 0.4f, 1);
             bgfx::setUniform(m_uparams, &color, 1);
-            Matrix44f m;
-            identity(m);
+
+            AABoxf bbox = m_l.GetBBox();
+            float scl = (bbox.mMax[0] - bbox.mMin[0]) * (0.5f / TerrainTile::SquarePtsCt);
+            Point3f off = (bbox.mMax + bbox.mMin) * 0.5f;
+            Matrix44f m = makeTrans<Matrix44f>(off) *
+                makeScale<Matrix44f>(scl);
             bgfx::setTransform(m.getData());
             // Set vertex and index buffer.
-            bgfx::setVertexBuffer(0, m_cubeList->vbh);
-            bgfx::setIndexBuffer(m_cubeList->ibh);
+            bgfx::setVertexBuffer(0, Cube::vbh);
+            bgfx::setIndexBuffer(Cube::ibh);
+            m_voxelinst->Use();
+            bgfx::setInstanceDataBuffer(m_voxelinst->vbh, 0, m_voxelinst->verticesSize);
+
             uint64_t state = 0
                 | BGFX_STATE_WRITE_RGB
                 | BGFX_STATE_WRITE_A
@@ -336,7 +347,7 @@ namespace sam
                 | BGFX_STATE_BLEND_ALPHA;
             // Set render states.l
             bgfx::setState(state);
-            bgfx::submit(ctx.m_curviewIdx, ctx.m_pgm);
+            bgfx::submit(ctx.m_curviewIdx, sVoxshader);
 
             if (m_rawdata.size() > 0 && m_lastUsedRawData++ > 60)
             {
