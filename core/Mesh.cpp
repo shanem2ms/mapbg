@@ -199,7 +199,7 @@ void VoxCube::Create(const std::vector<Vec3i>& pts)
     VoxelVertex *pdata = pvertices;
     for (const Vec3i& pt : pts)
     {    
-        VoxelVertex vtx = { pt[0], pt[1], pt[2], 0 };
+        VoxelVertex vtx = { (float)pt[0], (float)pt[1], (float)pt[2], 0 };
         *pdata++ = vtx;
     }
    

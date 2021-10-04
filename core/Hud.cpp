@@ -24,20 +24,19 @@ namespace sam
     extern float g_Fps;
     extern Loc g_hitLoc;;
     extern float g_hitDist;
-    
+extern int g_buttonDown;
 
 	void Hud::Draw(DrawContext& ctx)
 	{        
         Matrix44f m =
             ctx.m_mat * CalcMat();
-
         bgfx::dbgTextClear();
         bgfx::dbgTextPrintf(0, 2, 0x0f, "Target Loc [%d, %d %d %d]", g_hitLoc.m_l, g_hitLoc.m_x, g_hitLoc.m_y, g_hitLoc.m_z);
         bgfx::dbgTextPrintf(0, 3, 0x0f, "Oct Tiles [%d, %d, %d]", OctTileSelection::sNumTiles.load(), nOctTilesTotal, nOctTilesDrawn);
         bgfx::dbgTextPrintf(0, 6, 0x0f, "Near Tiles [%d]", g_nearTiles);
         bgfx::dbgTextPrintf(0, 7, 0x0f, "Far Tiles [%d]", g_farTiles);
         bgfx::dbgTextPrintf(0, 8, 0x0f, "Fps [%.2f]", g_Fps);
-        bgfx::dbgTextPrintf(0, 9, 0x0f, "HitDist [%.2f]", g_hitDist);
+        bgfx::dbgTextPrintf(0, 9, 0x0f, "Button [%d]", g_buttonDown);
         bgfx::dbgTextPrintf(0, 10, 0x0f, "VB %d MB", sVBBytes.load() >> 20);
         
 

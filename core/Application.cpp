@@ -24,6 +24,7 @@ namespace sam
     using namespace std::chrono_literals;
 #endif
 
+int g_buttonDown = 0;
     Application::Application() :
         m_height(0),
         m_touchDown(0, 0),
@@ -70,9 +71,9 @@ namespace sam
 
     void Application::TouchDown(float x, float y, int touchId)
     {
-        m_touchDown = gmtl::Vec2f(x, y);
+        m_touchPos = m_touchDown = gmtl::Vec2f(x, y);
 
-        m_buttonDown = 1;
+        g_buttonDown = m_buttonDown = 1;
         if (!m_uiMgr->TouchDown(x, y, touchId))
             m_world->TouchDown(x, y, touchId);
     }
@@ -86,7 +87,7 @@ namespace sam
 
     void Application::TouchUp(int touchId)
     {
-        m_buttonDown = 0;
+        g_buttonDown = m_buttonDown = 0;
         if (!m_uiMgr->TouchUp(touchId))
             m_world->TouchUp(touchId);
     }
