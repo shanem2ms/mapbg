@@ -71,7 +71,7 @@ namespace sam
         }
 
         float GetGroundHeight(const gmtl::Point3f& pt) const;
-        bool Build(World* pWorld);
+        bool Build(DrawContext& ctx);
     private:
     };
 

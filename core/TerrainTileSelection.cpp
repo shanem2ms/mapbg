@@ -93,7 +93,7 @@ namespace sam
                     if (itParent != m_tiles.end())
                     {
                         newTile = std::make_shared<TerrainTile>(loc, itParent->second);
-                        if (!newTile->Build(ctx.m_pWorld))
+                        if (!newTile->Build(ctx))
                         {
                             nextBuildingTiles.insert(newTile);
                         }
@@ -104,7 +104,7 @@ namespace sam
                 else
                 {
                     newTile = std::make_shared<TerrainTile>(loc, std::shared_ptr<TerrainTile>());
-                    if (!newTile->Build(ctx.m_pWorld))
+                    if (!newTile->Build(ctx))
                     {
                         nextBuildingTiles.insert(newTile);
                     }
@@ -117,7 +117,7 @@ namespace sam
         for (auto itTile = m_buildingTiles.begin(); itTile != m_buildingTiles.end();
             ++itTile)
         {
-            if (!(*itTile)->Build(ctx.m_pWorld))
+            if (!(*itTile)->Build(ctx))
                 nextBuildingTiles.insert((*itTile));
         }
 

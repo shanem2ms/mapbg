@@ -31,6 +31,7 @@ namespace sam
         float m_nearfar[3];
         int m_curviewIdx;
         int m_frameIdx;
+        int m_numGpuCalcs;
     };
 
 
