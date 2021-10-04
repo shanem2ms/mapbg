@@ -409,6 +409,18 @@ namespace sam
         return false;
     }
 
+    bool OctTile::IsCollided(Point3f& oldpos, Point3f& newpos, AABoxf& playerbox, Vec3f& outNormal)
+    {
+        AABoxf aabb = m_l.GetBBox();
+        Vec3f extents = aabb.mMax - aabb.mMin;
+        float scale = TerrainTile::SquarePtsCt / extents[0];
+        Point3f off = aabb.mMin;
+        Point3f pmin = (playerbox.mMin - off + newpos) * scale;
+        Point3f pmax = (playerbox.mMax - off + newpos) * scale;
+        return false;
+
+    }
+
     OctTile::~OctTile()
     {
         Decomission();

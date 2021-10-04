@@ -56,6 +56,7 @@ namespace sam
         void Decomission();
         void LoadVB();
         float GetGroundPos(const Point2f& pt) const;
+        bool IsCollided(Point3f &oldpos, Point3f &newpos, AABoxf& bbox, Vec3f& outNormal);
         bool Intersect(const Point3f& pt0, const Point3f& pt1, Vec3i &hitpt);
         static Vec3i FindHit(const std::vector<byte> &data, const Vec3i p1, const Vec3i p2);
         int GetReadyState() const

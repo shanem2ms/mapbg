@@ -23,7 +23,7 @@ namespace sam
         m_height(-1),
         m_currentTool(0),
         m_gravityVel(0),        
-        m_flymode(false),
+        m_flymode(true),
         m_inspectmode(false)
     {
 
@@ -262,7 +262,9 @@ namespace sam
 
         auto &cam = e.ViewCam();
         Camera::Fly fly = cam.GetFly();
-        const float headheight = 0.01f;
+        const float playerHeadHeight = 0.01f;
+        const float playerBodyWidth = playerHeadHeight;
+
         Vec3f boundsExt(0.01f, 0.01f, 0.01f);
         AABoxf playerbounds(fly.pos - boundsExt, fly.pos + boundsExt);
 
@@ -317,37 +319,6 @@ namespace sam
             }
         }
 
-        float flyspeedup = 1;
-        if (!m_flymode && !m_inspectmode)
-        {
-            std::shared_ptr<OctTile> tile = m_octTileSelection.TileFromPos(fly.pos);
-            if (tile == nullptr || tile->GetReadyState() < 3)
-            {
-                m_gravityVel = 0;
-            }
-            else
-            {
-                float grnd = tile->GetGroundPos(Point2f(fly.pos[0], fly.pos[2]));
-                if (isnan(grnd) || fly.pos[1] > (grnd + headheight))
-                {
-                    m_gravityVel -= 0.0005f;
-                }
-                else
-                {
-                    fly.pos[1] = grnd + headheight;
-                    m_gravityVel = 0;
-                }
-            }
-        }
-        else
-        {
-            flyspeedup = 10;
-            m_gravityVel = 0;
-        }
-
-        if (m_inspectmode)
-            flyspeedup = 500;
-
         auto& dcam = e.DrawCam();
         Vec3f right, up, forward;
         Vec3f upworld(0, 1, 0);
@@ -355,10 +326,46 @@ namespace sam
         dfly.GetDirs(right, up, forward);
         Vec3f fwWorld;
         cross(fwWorld, right, upworld);
-        dfly.pos +=
-            m_camVel[0] * right * flyspeedup +
+
+        float flyspeedup = 1;
+        if (m_flymode) flyspeedup *= 10;
+        if (m_inspectmode) flyspeedup *= 50;
+
+        Point3f newPos = dfly.pos + m_camVel[0] * right * flyspeedup +
             (m_camVel[1] + m_gravityVel) * upworld * flyspeedup +
             m_camVel[2] * fwWorld * flyspeedup;
+
+        if (!m_inspectmode)
+        {
+            std::shared_ptr<OctTile> tile = m_octTileSelection.TileFromPos(fly.pos);
+            if (tile == nullptr || tile->GetReadyState() < 3)
+            {
+                m_gravityVel = 0;
+            }
+            else
+            {                
+                AABoxf playerbox(Point3f(-playerBodyWidth, -playerHeadHeight * 2, -playerBodyWidth),
+                    Point3f(playerBodyWidth, 0, playerBodyWidth));
+                Vec3f normal;
+                bool collision = tile->IsCollided(dfly.pos, newPos, playerbox, normal);
+                if (!collision && !m_flymode)
+                {
+                    m_gravityVel -= 0.0005f;
+                }
+                else
+                {
+                    //fly.pos[1] = grnd + headheight;
+                    m_gravityVel = 0;
+                }
+            }
+        }
+        else
+        {
+            m_gravityVel = 0;
+        }
+
+
+        dfly.pos = newPos;
         dcam.SetFly(dfly);
 
         if ((ctx.m_frameIdx % 60) == 0)

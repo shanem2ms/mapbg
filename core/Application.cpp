@@ -152,8 +152,10 @@ namespace sam
             , uint16_t(m_height)
         );
         
+        const int btnSize = 150;
+        const int btnSpace = 10;
         ImGui::SetNextWindowPos(
-            ImVec2(m_width - 400, m_height - 400)
+            ImVec2(m_width - btnSize*4, m_height - btnSize*3)
             , ImGuiCond_FirstUseEver
         );
 
@@ -165,17 +167,17 @@ namespace sam
             ImGuiWindowFlags_NoResize |
             ImGuiWindowFlags_NoMove);
 
-        ImGui::SetCursorPos(ImVec2(120,0));
-        ImGui::Button(ICON_FA_CHEVRON_UP, ImVec2(100, 100));
+        ImGui::SetCursorPos(ImVec2(btnSize + btnSpace * 2,0));
+        ImGui::Button(ICON_FA_CHEVRON_UP, ImVec2(btnSize, btnSize));
         buttonsThisFrame['W'] = ImGui::IsItemActive();
-        ImGui::SetCursorPos(ImVec2(120, 110));
-        ImGui::Button(ICON_FA_CHEVRON_DOWN, ImVec2(100, 100));
+        ImGui::SetCursorPos(ImVec2(btnSize + btnSpace * 2, btnSize + btnSpace));
+        ImGui::Button(ICON_FA_CHEVRON_DOWN, ImVec2(btnSize, btnSize));
         buttonsThisFrame['S'] = ImGui::IsItemActive();
-        ImGui::SetCursorPos(ImVec2(240, 50));
-        ImGui::Button(ICON_FA_CHEVRON_RIGHT, ImVec2(100, 100));
+        ImGui::SetCursorPos(ImVec2(btnSize * 2 + btnSpace * 4, btnSize / 2));
+        ImGui::Button(ICON_FA_CHEVRON_RIGHT, ImVec2(btnSize, btnSize));
         buttonsThisFrame['D'] = ImGui::IsItemActive();
-        ImGui::SetCursorPos(ImVec2(0, 50));
-        ImGui::Button(ICON_FA_CHEVRON_LEFT, ImVec2(100, 100));
+        ImGui::SetCursorPos(ImVec2(0, btnSize / 2));
+        ImGui::Button(ICON_FA_CHEVRON_LEFT, ImVec2(btnSize, btnSize));
         buttonsThisFrame['A'] = ImGui::IsItemActive();
         ImGui::End();
 
