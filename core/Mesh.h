@@ -55,10 +55,10 @@ struct PosTexcoordNrmVertex
 
 struct VoxelVertex
 {
-    byte x;
-    byte y;
-    byte z;
-    byte d;
+    float x;
+    float y;
+    float z;
+    float d;
 
     static void init()
     {
@@ -67,7 +67,7 @@ struct VoxelVertex
         {
             ms_layout
                 .begin()
-                .add(bgfx::Attrib::TexCoord1, 4, bgfx::AttribType::Uint8)
+                .add(bgfx::Attrib::TexCoord7, 4, bgfx::AttribType::Float)
                 .end();
             isinit = true;
         }
@@ -250,9 +250,8 @@ struct VoxCube
     void Use();
 
     bgfxh<bgfx::VertexBufferHandle> vbh;
-    VoxelVertex* pvertices;
 
-    //VoxelVertex* pvertices;
+    VoxelVertex* pvertices;
     size_t verticesSize;
     size_t memsize;
     static void ReleaseFn(void* ptr, void* pThis);

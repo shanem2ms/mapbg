@@ -14,10 +14,10 @@ void main()
 { 
 	vec2 tx = a_texcoord0;
 	v_texcoord0 = tx; 
-	v_normal = vec3(1,0,0);  
-	int ix = (i_data0 & 255) - 128;
-	int iy = ((i_data0 >> 8) & 255) - 128;
-	int iz = ((i_data0 >> 16) & 255) - 128;
+	v_normal = a_normal;  
+	int ix = i_data0.x - 127;
+	int iy = i_data0.y - 127;
+	int iz = i_data0.z - 127;
 	gl_Position = mul(u_modelViewProj, vec4(a_position.x + ix, a_position.y + iy, a_position.z + iz, 1.0) );
 } 
   

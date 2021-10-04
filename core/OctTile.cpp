@@ -327,7 +327,7 @@ namespace sam
             bgfx::setUniform(m_uparams, &color, 1);
 
             AABoxf bbox = m_l.GetBBox();
-            float scl = (bbox.mMax[0] - bbox.mMin[0]) * (0.5f / TerrainTile::SquarePtsCt);
+            float scl = (bbox.mMax[0] - bbox.mMin[0]) * (1.0f / TerrainTile::SquarePtsCt);
             Point3f off = (bbox.mMax + bbox.mMin) * 0.5f;
             Matrix44f m = makeTrans<Matrix44f>(off) *
                 makeScale<Matrix44f>(scl);

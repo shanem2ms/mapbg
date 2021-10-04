@@ -20,3 +20,4 @@ void main()
 	gl_FragColor.rgb = vec3(u_params[0].xyz) * (diffuse * 0.8 + 0.2);
 	gl_FragColor.a = 1;
 } 
+

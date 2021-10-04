@@ -195,7 +195,6 @@ void VoxCube::Create(const std::vector<Vec3i>& pts)
 {
     VoxelVertex::init();
     verticesSize = pts.size();
-
     pvertices = new VoxelVertex[verticesSize];
     VoxelVertex *pdata = pvertices;
     for (const Vec3i& pt : pts)
@@ -213,6 +212,7 @@ void VoxCube::Use()
 {
     if (!vbh.isValid())
     {
+        //vbh = bgfx::createynamicVertexBuffer(verticesSize, VoxelVertex::ms_layout, BGFX_BUFFER_COMPUTE_WRITE);
         vbh = bgfx::createVertexBuffer(
             bgfx::makeRef(pvertices, verticesSize * sizeof(VoxelVertex), VoxCube::ReleaseFn)
             , VoxelVertex::ms_layout
