@@ -117,7 +117,7 @@ namespace sam
         const int btnSize = 150;
         const int btnSpace = 10;
         ImGui::SetNextWindowPos(
-            ImVec2(w - btnSize * 4, h - btnSize * 3)
+            ImVec2(w - btnSize * 6, h - btnSize * 3)
             , ImGuiCond_FirstUseEver
         );
 
@@ -141,6 +141,15 @@ namespace sam
         ImGui::SetCursorPos(ImVec2(0, btnSize / 2));
         ImGui::Button(ICON_FA_CHEVRON_LEFT, ImVec2(btnSize, btnSize));
         buttonsThisFrame['A'] = ImGui::IsItemActive();
+
+        ImGui::SetCursorPos(ImVec2(btnSize * 4 + btnSpace * 4, 0));
+        ImGui::Button(ICON_FA_CARET_SQUARE_O_UP, ImVec2(btnSize, btnSize));
+        buttonsThisFrame[32] = ImGui::IsItemActive();
+
+        ImGui::SetCursorPos(ImVec2(btnSize * 4 + btnSpace * 4, btnSize + btnSpace));
+        ImGui::Button(ICON_FA_CARET_SQUARE_O_DOWN, ImVec2(btnSize, btnSize));
+        buttonsThisFrame[16] = ImGui::IsItemActive();
+
         ImGui::End();
 
         imguiEndFrame();
