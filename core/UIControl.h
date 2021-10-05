@@ -17,7 +17,10 @@ namespace sam
         bool m_isInit;
         Vec4f m_background;
         Vec4f m_border;
-        UIControl(float x, float y, float w, float h);
+        UIControl(float x, float y, float w, float h);    gmtl::Vec2f m_touchDown;
+        gmtl::Vec2f m_touchPos;
+        int m_buttonDown;
+
     public:
         virtual bool IsHit(float x, float y, int touchId);
         virtual bool TouchDown(float x, float y, int touchId) = 0;
@@ -35,6 +38,10 @@ namespace sam
         std::vector<std::shared_ptr<UIControl>> m_controls;
         std::shared_ptr<UIControl> m_capturedCtrl;
         std::shared_ptr<SceneGroup> m_uiGroup;
+        gmtl::Vec2f m_touchDown;
+        gmtl::Vec2f m_touchPos;
+        int m_buttonDown;
+
     public:
         bool TouchDown(float x, float y, int touchId);
         bool TouchDrag(float x, float y, int touchId);

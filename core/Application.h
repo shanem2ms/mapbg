@@ -18,10 +18,7 @@ class Application
     std::unique_ptr<UIManager> m_uiMgr;
     int m_width;
     int m_height;
-    gmtl::Vec2f m_touchDown;
-    gmtl::Vec2f m_touchPos;
     int m_frameIdx;
-    int m_buttonDown;
     std::string m_documentsPath;
 
 public:    

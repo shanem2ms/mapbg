@@ -1,6 +1,11 @@
 #include "StdIncludes.h"
-#include "UIControl.h"
+#include "Application.h"
+#include <bgfx/bgfx.h>
 #include "Engine.h"
+#include "UIControl.h"
+#include "World.h"
+#include "imgui.h"
+#include <chrono>
 
 namespace sam
 {
@@ -11,7 +16,10 @@ namespace sam
         m_width(w),
         m_height(h),
         m_isInit(false),
-        m_background(1.0f, 1.0f, 1.0f, 1.0f)
+        m_background(1.0f, 1.0f, 1.0f, 1.0f), 
+        m_touchDown(0, 0),
+        m_touchPos(0, 0),
+        m_buttonDown(false)
     {
 
     }
@@ -46,8 +54,14 @@ namespace sam
         m_controls.push_back(ctrl);
     }
 
+    int g_buttonDown = 0;
+
     bool UIManager::TouchDown(float x, float y, int touchId)
     {
+        m_touchPos = m_touchDown = gmtl::Vec2f(x, y);
+
+        g_buttonDown = m_buttonDown = 1;
+
         bool handled = false;
         for (auto uictrl : m_controls)
         {
@@ -65,6 +79,8 @@ namespace sam
 
     bool UIManager::TouchDrag(float x, float y, int touchId)
     {
+        m_touchPos = gmtl::Vec2f(x, y);
+
         if (m_capturedCtrl != nullptr)
         {
             m_capturedCtrl->TouchDrag(x, y, touchId);
@@ -73,10 +89,13 @@ namespace sam
         return false;
     }
 
+    static int sButtonStates[256];
+
     void UIManager::Update(Engine& engine, int w, int h, DrawContext& ctx)
     {
         if (m_uiGroup == nullptr)
         {
+            memset(sButtonStates, 0, sizeof(sButtonStates));
             m_uiGroup = std::make_shared<SceneGroup>();
             m_uiGroup->SetOffset(Point3f(0, 0, w / 2));
             engine.Root()->AddItem(m_uiGroup);
@@ -85,10 +104,63 @@ namespace sam
         {
             ctrl->Update(m_uiGroup, ctx);
         }
+
+
+        imguiBeginFrame(m_touchPos[0]
+            , m_touchPos[1]
+            , m_buttonDown
+            , 0
+            , uint16_t(w)
+            , uint16_t(h)
+        );
+
+        const int btnSize = 150;
+        const int btnSpace = 10;
+        ImGui::SetNextWindowPos(
+            ImVec2(w - btnSize * 4, h - btnSize * 3)
+            , ImGuiCond_FirstUseEver
+        );
+
+        int buttonsThisFrame[256];
+        memset(buttonsThisFrame, 0, sizeof(buttonsThisFrame));
+        ImGui::Begin("make window", nullptr,
+            ImGuiWindowFlags_NoBackground |
+            ImGuiWindowFlags_NoTitleBar |
+            ImGuiWindowFlags_NoResize |
+            ImGuiWindowFlags_NoMove);
+
+        ImGui::SetCursorPos(ImVec2(btnSize + btnSpace * 2, 0));
+        ImGui::Button(ICON_FA_CHEVRON_UP, ImVec2(btnSize, btnSize));
+        buttonsThisFrame['W'] = ImGui::IsItemActive();
+        ImGui::SetCursorPos(ImVec2(btnSize + btnSpace * 2, btnSize + btnSpace));
+        ImGui::Button(ICON_FA_CHEVRON_DOWN, ImVec2(btnSize, btnSize));
+        buttonsThisFrame['S'] = ImGui::IsItemActive();
+        ImGui::SetCursorPos(ImVec2(btnSize * 2 + btnSpace * 4, btnSize / 2));
+        ImGui::Button(ICON_FA_CHEVRON_RIGHT, ImVec2(btnSize, btnSize));
+        buttonsThisFrame['D'] = ImGui::IsItemActive();
+        ImGui::SetCursorPos(ImVec2(0, btnSize / 2));
+        ImGui::Button(ICON_FA_CHEVRON_LEFT, ImVec2(btnSize, btnSize));
+        buttonsThisFrame['A'] = ImGui::IsItemActive();
+        ImGui::End();
+
+        imguiEndFrame();
+
+        for (int i = 0; i < 256; ++i)
+        {
+            if (buttonsThisFrame[i] != sButtonStates[i])
+            {
+                if (buttonsThisFrame[i] > 0)
+                    ctx.m_pWorld->KeyDown(i);
+                else
+                    ctx.m_pWorld->KeyUp(i);
+            }
+        }
+        memcpy(sButtonStates, buttonsThisFrame, sizeof(sButtonStates));
     }
 
     bool UIManager::TouchUp(int touchId)
     {
+        g_buttonDown = m_buttonDown = 0;
         if (m_capturedCtrl != nullptr)
         {
             m_capturedCtrl->TouchUp(touchId);
