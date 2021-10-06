@@ -231,35 +231,7 @@ namespace sam
         }
 
         m_frustum->SetEnabled(m_inspectmode);
-
-        Matrix44f viewProj = e.ViewCam().PerspectiveMatrix() * e.ViewCam().ViewMatrix();
-        invert(viewProj);
-
-        Point4f corners[5] =
-        { Point4f(0, 0, 0.5f, 1),
-            Point4f(1, 1, 0.5f, 1),
-            Point4f(1, -1, 0.5f, 1),
-            Point4f(-1, 1, 0.5f, 1),
-            Point4f(-1, -1, 0.5f, 1) };
-        Point4f c[5];
-
-        float xdist = 0;
-        float ydist = 0;
-        for (int idx = 0; idx < 5; ++idx)
-        {
-            xform(c[idx], viewProj, corners[idx]);
-            c[idx] /= c[idx][3];
-            xdist += fabs(c[idx][0] - c[0][0]);
-            ydist += fabs(c[idx][1] - c[0][1]);
-        }
-
-        xdist *= 0.25f;
-        ydist *= 0.25f;
-        float xstart = floorf((c[0][0] - xdist));
-        float xend = ceilf((c[0][0] + xdist));
-        float ystart = floorf((c[0][1] - ydist));
-        float yend = ceilf((c[0][1] + ydist));
-
+       
         auto &cam = e.ViewCam();
         Camera::Fly fly = cam.GetFly();
         const float playerHeadHeight = 0.01f;

@@ -18,8 +18,10 @@ using namespace gmtl;
 
 namespace sam
 {
+    extern Loc g_hitLoc;
     void convexHull(Point2f points[], size_t n, std::vector<Point2f>& outpts);
-    
+    static bool doBreak = false;
+
     std::atomic<size_t> OctTileSelection::sNumTiles = 0;
 
     class FrustumTiles
@@ -36,7 +38,7 @@ namespace sam
 
 
             Vec3f chkpos(floorf(ctr[0]), floorf(ctr[1]), floorf(ctr[2]));
-            auto &fly = cam.GetFly();
+            auto& fly = cam.GetFly();
             Vec3f r, u, f;
             fly.GetDirs(r, u, f);
             GetLocsInView(locs, Loc(0, 0, 0, 0), viewFrust, viewproj, fly.pos, r, f, pixelDist, maxlod, playerBounds);
@@ -44,7 +46,7 @@ namespace sam
 
     private:
 
-   
+
         enum class ContainmentType
         {
             Disjoint = 0,
@@ -70,7 +72,7 @@ namespace sam
         }
 
 
-        static ContainmentType Contains(const Frustumf &f, AABoxf box)
+        static ContainmentType Contains(const Frustumf& f, AABoxf box)
         {
             ContainmentType result = ContainmentType::Contains;
             for (int i = 0; i < 6; i++)
@@ -134,11 +136,11 @@ namespace sam
         }
 
     public:
-       
-        static void GetLocsInView(std::vector<Loc>& locs, const Loc& curLoc,
-            const Frustumf& frustum, const Matrix44f& viewProj, const Point3f& camPos, const Vec3f& camRight, const Vec3f &camFwd, float pixelDist, int maxlod, const AABoxf& playerBounds)
+
+        static int TargetLodForLoc(const Loc& curLoc, const Frustumf& frustum, const Point3f& camPos, const Vec3f& camFwd,
+            const Vec3f& camRight, const Matrix44f& viewProj)
         {
-            float nd=0, md=0, fd=0;
+            float nd = 0, md = 0, fd = 0;
             OctTileSelection::GetLocDistance(curLoc, camPos, camFwd, nd, md, fd);
 
             int targetLod = 0;
@@ -165,9 +167,48 @@ namespace sam
                 targetLod = (int)targetlodf;
                 targetLod -= 1;
             }
-            
-            if ((nd > 0 && curLoc.m_l > targetLod) ||
-                curLoc.m_l >= maxlod)
+            else
+                targetLod = 1000;
+            return targetLod;
+        }
+
+        static int TargetLodForLoc(const Loc& curLoc, const Matrix44f& viewProj)
+        {
+            Point3f c[8];
+            const AABoxf& bbox = curLoc.GetBBox();
+            GetCorners(bbox, c);
+            float extents = bbox.mMax[0] - bbox.mMin[0];
+            float sq = extents / TerrainTile::SquarePtsCt;
+
+            float maxlen = 0;
+            for (int i = 0; i < 8; ++i)
+            {
+                Point4f tp0(c[i][0], c[i][1], c[i][2], 1), sp0, sp1;
+                xform(sp0, viewProj, tp0);
+                if (sp0[2] < 0)
+                    return 1000;
+                sp0 /= sp0[3];
+
+                Point4f tp1(c[i][0] + sq, c[i][1] + sq, c[i][2] + sq, 1);
+                xform(sp1, viewProj, tp1);
+                sp1 /= sp1[3];
+
+                
+                maxlen = std::max(maxlen, lengthSquared(Vec2f(sp1[0] - sp0[0], sp1[1] - sp0[1])));
+            }
+
+            return log2(maxlen) + 13;
+        }
+
+        static void GetLocsInView(std::vector<Loc>& locs, const Loc& curLoc,
+            const Frustumf& frustum, const Matrix44f& viewProj, const Point3f& camPos, const Vec3f& camRight, const Vec3f& camFwd, float pixelDist, int maxlod, const AABoxf& playerBounds)
+        {
+            if (doBreak && g_hitLoc == curLoc)
+                __debugbreak();
+
+            //int targetLod = TargetLodForLoc(curLoc, frustum, camPos, camFwd, camRight, viewProj);
+            int targetLod = TargetLodForLoc(curLoc, viewProj);
+            if (curLoc.m_l > targetLod || curLoc.m_l >= maxlod)
             {
                 locs.push_back(curLoc);
                 return;
@@ -187,7 +228,7 @@ namespace sam
         }
     };
 
-    
+
     OctTileSelection::OctTileSelection() :
         m_exit(false),
         m_loaderThread(LoaderThread, this)
@@ -197,7 +238,7 @@ namespace sam
         m_nearfarmid[2] = 100.0f;
     }
 
-    
+
     void OctTileSelection::LoaderThread(void* arg)
     {
         OctTileSelection* pThis = (OctTileSelection*)arg;
@@ -223,8 +264,8 @@ namespace sam
     }
 
 
-    void OctTileSelection::GetLocDistance(const Loc &loc, const Point3f &campos, const Vec3f &camdir,
-         float &neardist, float &middist, float &fardist)
+    void OctTileSelection::GetLocDistance(const Loc& loc, const Point3f& campos, const Vec3f& camdir,
+        float& neardist, float& middist, float& fardist)
     {
         AABoxf box = loc.GetBBox();
         const Point3f& m0 = box.mMin;
@@ -302,7 +343,7 @@ namespace sam
                 m_tiles.erase(loc);
                 sNumTiles--;
             }
-        }     
+        }
 
         Vec3f l, u, f;
         fly.GetDirs(l, u, f);
@@ -417,7 +458,7 @@ namespace sam
         std::shared_ptr<OctTile> tile;
     };
 
-    bool OctTileSelection::Intersects(const Point3f& pos, const Vec3f& ray, Loc &outloc, Vec3i &opt)
+    bool OctTileSelection::Intersects(const Point3f& pos, const Vec3f& ray, Loc& outloc, Vec3i& opt)
     {
         std::vector<IntersectTile> orderedTiles;
         Ray r(pos, ray);
@@ -428,7 +469,7 @@ namespace sam
             AABoxf aabb = pair.first.GetBBox();
             gmtl::Vec3f midpt = (aabb.mMin + aabb.mMax) * 0.5f;
 
-            bool res = intersect(aabb, r, num_hits, h1, h2);            
+            bool res = intersect(aabb, r, num_hits, h1, h2);
             if (res)
             {
                 IntersectTile tile = {

@@ -323,7 +323,8 @@ namespace sam
                 sVoxshader = Engine::Inst().LoadShader("vs_voxelcube.bin", "fs_cubes.bin");
 
             Cube::init();
-            Vec4f color = (ctx.m_nearfarpassIdx == 0) ? Vec4f(0.4f, 0.2f, 0.2f, 1) : Vec4f(0.2f, 0.2f, 0.4f, 1);
+            bool istarget = m_l == g_hitLoc;
+            Vec4f color = istarget ? Vec4f(0.5f, 0.5f, 0.5f, 1.0f) : Vec4f(0.0f, 0.5f, 0.0f, 1.0f);
             bgfx::setUniform(m_uparams, &color, 1);
 
             AABoxf bbox = m_l.GetBBox();
@@ -365,13 +366,15 @@ namespace sam
             Matrix44f m = makeTrans<Matrix44f>(off) *
                 makeScale<Matrix44f>(scl);
             bgfx::setTransform(m.getData());
-            Vec4f color = m_l == g_hitLoc ? Vec4f(1.0f, 0.0f, 1.0f, 1.0f) : Vec4f(0.0f, 1.0f, 1.0f, 1.0f);
+            bool istarget = m_l == g_hitLoc;
+            Vec4f color = istarget ? Vec4f(1.0f, 1.0f, 1.0f, 1.0f) : Vec4f(1.0f, 1.0f, 0.0f, 0.25f);
             bgfx::setUniform(m_uparams, &color, 1);
             uint64_t state = 0
                 | BGFX_STATE_WRITE_RGB
-                | BGFX_STATE_WRITE_A
-                | BGFX_STATE_WRITE_Z
-                | BGFX_STATE_DEPTH_TEST_LESS
+                | (istarget ? 0 :
+                    (BGFX_STATE_WRITE_A
+                    | BGFX_STATE_WRITE_Z
+                    | BGFX_STATE_DEPTH_TEST_LESS ))
                 | BGFX_STATE_MSAA
                 | BGFX_STATE_BLEND_ALPHA;
             // Set render states.l

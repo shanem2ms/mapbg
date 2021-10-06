@@ -10,6 +10,6 @@ $input v_texcoord0, v_normal
 
 void main()
 {
-	gl_FragColor = vec4(v_texcoord0.xy, 0, 1);
-	gl_FragColor *= 0.5;
+	gl_FragColor = vec4(v_texcoord0.xy, 1, 1) * u_params[0];
+	gl_FragColor.xyz *= gl_FragColor.a;
 } 
