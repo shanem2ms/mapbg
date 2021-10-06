@@ -118,7 +118,7 @@ namespace sam
         const int btnSpace = 10;
         ImGui::SetNextWindowPos(
             ImVec2(w - btnSize * 6, h - btnSize * 3)
-            , ImGuiCond_FirstUseEver
+            , ImGuiCond_Always
         );
 
         int buttonsThisFrame[256];
