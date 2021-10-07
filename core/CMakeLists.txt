@@ -27,6 +27,7 @@ set(Header_Files
     "TerrainTileSelection.h"
     "SceneItem.h"
     "Mesh.h"
+    "Physics.h"
     "SimplexNoise/SimplexNoise.h"
 )  
 
@@ -58,6 +59,7 @@ set(Source_Files
     "ConvexHull.cpp"
     "Mesh.cpp"
     "Level.cpp"
+    "Physics.cpp"
     "SimplexNoise/SimplexNoise.cpp"
     "imgui/imgui.cpp"
     "imgui/dear-imgui/imgui.cpp"
@@ -91,6 +93,7 @@ target_include_directories(core PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/."
     "${CMAKE_CURRENT_SOURCE_DIR}/imgui/."
     "${CMAKE_CURRENT_SOURCE_DIR}/../leveldb/include"
+    "${VCPKG_INSTALL_PATH}/include"
     ${BGFX_INCLUDE_ROOT}
     ${BX_INC_DIR_COMPAT}
     )

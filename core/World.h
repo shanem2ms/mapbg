@@ -14,6 +14,7 @@ namespace sam
     class Engine;
     class Touch;
     class TargetCube;
+    class Physics;
     
     class World
     {
@@ -38,6 +39,7 @@ namespace sam
         std::shared_ptr<SceneItem> m_targetCube;
         std::shared_ptr<SceneItem> m_frustum;
         Level m_level;
+        std::shared_ptr<Physics> m_physics;
 
     public:
 

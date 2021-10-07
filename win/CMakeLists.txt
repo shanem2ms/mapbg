@@ -32,6 +32,10 @@ target_link_libraries(${PROJECT_NAME} LINK_PUBLIC
     ${BGFX_LIB}/astc-codec.lib 
     ${BGFX_LIB}/bimg.lib 
     ${BGFX_LIB}/bx.lib
+    ${VCPKG_INSTALL_PATH}/lib/Bullet3Common.lib
+    ${VCPKG_INSTALL_PATH}/lib/BulletCollision.lib
+    ${VCPKG_INSTALL_PATH}/lib/BulletDynamics.lib
+    ${VCPKG_INSTALL_PATH}/lib/BulletInverseDynamics.lib
     core 
     ${PLATFORMLIBS}
     zlibstatic
