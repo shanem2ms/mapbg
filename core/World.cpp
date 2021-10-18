@@ -18,6 +18,16 @@ using namespace gmtl;
 
 namespace sam
 {
+    class PhysicsDbgItem : public SceneItem
+    {
+        bgfx::ProgramHandle m_shader;
+        void Initialize(DrawContext& nvg) override
+        {}
+        void Draw(DrawContext& ctx) override
+        {
+            ctx.m_pWorld->GetPhysics()->DebugRender(ctx);
+        }
+    };
   
     World::World() :
         m_width(-1),
@@ -34,6 +44,7 @@ namespace sam
     {
         m_level.OpenDb(path);
     }
+
 
     class Touch
     {
@@ -204,6 +215,8 @@ namespace sam
             e.Root()->AddItem(m_targetCube);
             m_frustum = std::make_shared<Frustum>();
             e.Root()->AddItem(m_frustum);
+            m_physicsDbgItem = std::make_shared<PhysicsDbgItem>();
+            e.Root()->AddItem(m_physicsDbgItem);
 
             Camera::Fly fly;
             Camera::Fly dfly;

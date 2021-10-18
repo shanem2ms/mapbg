@@ -12,7 +12,7 @@ namespace sam
     {
     public:
         static const int SquarePtsCt = 256;
-        static const int OverlapPtsCt = 64;
+        static const int OverlapPtsCt = SquarePtsCt/4;
         static const int TotalPtsCt = SquarePtsCt + OverlapPtsCt * 2;
     private:
         int m_image;

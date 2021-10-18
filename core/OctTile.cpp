@@ -9,6 +9,11 @@
 #include "TerrainTileSelection.h"
 #include "TerrainTile.h"
 #include "gmtl/Intersection.h"
+#include "Physics.h"
+
+#include "bullet/btBulletCollisionCommon.h"
+#include "bullet/btBulletDynamicsCommon.h"
+
 #define NOMINMAX
 
 namespace sam
@@ -21,7 +26,11 @@ namespace sam
         m_buildFrame(0),
         m_readyState(0),
         m_intersects(-1),
-        m_lastUsedRawData(0)
+        m_lastUsedRawData(0),
+        m_rigidBody(nullptr),
+        m_initialState(nullptr),
+        m_collisionShape(nullptr),
+        m_isdecommissioned(false)
     {
     }
 
@@ -189,6 +198,19 @@ namespace sam
                 cnt0 &= 0x7F;
                 int size = (cnt0 << 8) | cnt1;
                 ++it;
+                if (*it == 1)
+                {
+                    for (byte idx = 0; idx < size; ++idx)
+                    {
+                        size_t v = offset + idx;
+                        int y = (v / (tsz * tsz));
+                        v -= y * tsz * tsz;
+                        int z = v / tsz;
+                        v -= z * tsz;
+                        int x = v;
+                        octPts.push_back(Vec3i(x, y, z));
+                    }
+                }
                 offset += size;
             }
         }
@@ -197,7 +219,72 @@ namespace sam
         {
             m_voxelinst = std::make_shared<VoxCube>();
             m_voxelinst->Create(octPts);
+            if (m_l.m_l == 9)
+                CreateBulletMesh(octPts);
         }
+    }
+
+    inline btVector3 BT(const Vec3f& v3)
+    {
+        return btVector3(v3[0], v3[1], v3[2]);
+    }
+
+    void OctTile::CreateBulletMesh(const std::vector<Vec3i>& pts)
+    {
+        btTriangleMesh* pMesh = new btTriangleMesh();
+
+        AABoxf bbox = m_l.GetBBox();
+        float sqlen = bbox.mMax[0] - bbox.mMin[0] / TerrainTile::SquarePtsCt;
+        Vec3f min = bbox.mMin;
+        size_t idx = 0;
+        for (const Vec3i& pt : pts)
+        {            
+            Vec3f ppt(pt[0] * sqlen + min[0],
+                pt[1] * sqlen + min[1],
+                pt[2] * sqlen + min[2]);
+
+            Vec3f c[8] =
+            {
+                Vec3f(pt[0], pt[1], pt[2]),
+                Vec3f(pt[0], pt[1], pt[2] + sqlen),
+                Vec3f(pt[0], pt[1] + sqlen, pt[2]),
+                Vec3f(pt[0], pt[1] + sqlen, pt[2] + sqlen),
+                Vec3f(pt[0] + sqlen, pt[1], pt[2]),
+                Vec3f(pt[0] + sqlen, pt[1], pt[2] + sqlen),
+                Vec3f(pt[0] + sqlen, pt[1] + sqlen, pt[2]),
+                Vec3f(pt[0] + sqlen, pt[1] + sqlen, pt[2] + sqlen)
+            };
+
+            pMesh->addTriangle(BT(c[0]), BT(c[1]), BT(c[2]));
+            pMesh->addTriangle(BT(c[2]), BT(c[3]), BT(c[0]));
+
+            pMesh->addTriangle(BT(c[0]), BT(c[3]), BT(c[7]));
+            pMesh->addTriangle(BT(c[0]), BT(c[7]), BT(c[4]));
+
+            pMesh->addTriangle(BT(c[3]), BT(c[2]), BT(c[6]));
+            pMesh->addTriangle(BT(c[3]), BT(c[6]), BT(c[7]));
+
+            pMesh->addTriangle(BT(c[2]), BT(c[1]), BT(c[6]));
+            pMesh->addTriangle(BT(c[1]), BT(c[5]), BT(c[6]));
+
+            pMesh->addTriangle(BT(c[1]), BT(c[0]), BT(c[5]));
+            pMesh->addTriangle(BT(c[0]), BT(c[4]), BT(c[5]));
+
+            pMesh->addTriangle(BT(c[5]), BT(c[4]), BT(c[7]));
+            pMesh->addTriangle(BT(c[5]), BT(c[6]), BT(c[7]));
+            if (idx++ > 64)
+                break;
+        }
+                
+        m_collisionShape = new btBvhTriangleMeshShape(pMesh, true, true);
+
+        btTransform mat4;
+        mat4.setIdentity();
+        m_initialState = new btDefaultMotionState(mat4);
+        btRigidBody::btRigidBodyConstructionInfo constructInfo((btScalar)0, m_initialState,
+            m_collisionShape);
+        m_rigidBody = new btRigidBody(constructInfo);
+
     }
 
     void OctTile::LoadTerrainData()
@@ -230,7 +317,7 @@ namespace sam
                 float h = tpts[offset];
                 if (h > minY && h < maxY)
                 {
-                    int y = std::max(0, std::min(255, (int)((h - minY) * ext)));
+                    int y = std::max(0, std::min((TerrainTile::SquarePtsCt - 1), (int)((h - minY) * ext)));
                     data[y * tsz * tsz + z * tsz + x] = 1;
                 }
             }
@@ -257,7 +344,7 @@ namespace sam
 
         std::vector<byte> data = RleDecode(m_rledata);
         const int tsz = TerrainTile::SquarePtsCt;
-        for (int y = 255; y >= 0; --y)
+        for (int y = TerrainTile::SquarePtsCt - 1; y >= 0; --y)
         {
             if (data[y * tsz * tsz + z * tsz + x] > 0)
             {
@@ -311,10 +398,18 @@ namespace sam
             return;
         if (ctx.m_nearfarpassIdx == 1 && m_nearDist > ctx.m_nearfar[1])
             return;
+        if (ctx.m_curviewIdx > 1)
+            return;
             
         if (!bgfx::isValid(m_uparams))
         {
             m_uparams = bgfx::createUniform("u_params", bgfx::UniformType::Vec4, 1);
+        }
+
+        if (m_readyState == 3 && m_rigidBody != nullptr)
+        {
+            ctx.m_pWorld->GetPhysics()->AddRigidBody(m_rigidBody);
+            m_readyState++;
         }
 
         if (!g_showOctBoxes && m_readyState >= 3 && m_voxelinst != nullptr)
@@ -324,7 +419,7 @@ namespace sam
 
             Cube::init();
             bool istarget = m_l == g_hitLoc;
-            Vec4f color = istarget ? Vec4f(0.5f, 0.5f, 0.5f, 1.0f) : Vec4f(0.0f, 0.5f, 0.0f, 1.0f);
+            Vec4f color = m_l.m_l == 9 ? Vec4f(0.5f, 0.5f, 0.5f, 1.0f) : Vec4f(0.0f, 0.5f, 0.0f, 1.0f);
             bgfx::setUniform(m_uparams, &color, 1);
 
             AABoxf bbox = m_l.GetBBox();
@@ -385,9 +480,19 @@ namespace sam
         }
     }
 
-    void OctTile::Decomission()
+    void OctTile::Decomission(DrawContext& ctx)
     {
         m_readyState = 0;
+        if (m_rigidBody != nullptr)
+        {
+            ctx.m_pWorld->GetPhysics()->RemoveRigidBody(m_rigidBody);
+            delete m_rigidBody;
+        }
+        if (m_initialState != nullptr)
+            delete m_initialState;
+        if (m_collisionShape != nullptr)
+            delete m_collisionShape;
+        m_isdecommissioned = true;
     }
 
     bool OctTile::Intersect(const Point3f& pt0, const Point3f& pt1, Vec3i & hitpt)
@@ -426,7 +531,8 @@ namespace sam
 
     OctTile::~OctTile()
     {
-        Decomission();
+        if (!m_isdecommissioned)
+            throw;
     }
 
 
@@ -535,8 +641,10 @@ namespace sam
 
     void TargetCube::Draw(DrawContext& ctx)
     {
+        if (ctx.m_curviewIdx != 2)
+            return;
         Cube::init();
-        Matrix44f m = ctx.m_mat* CalcMat();
+        Matrix44f m = ctx.m_mat * CalcMat();
         bgfx::setTransform(m.getData());
         // Set vertex and index buffer.
         bgfx::setVertexBuffer(0, Cube::vbh);
@@ -545,7 +653,6 @@ namespace sam
             | BGFX_STATE_WRITE_RGB
             | BGFX_STATE_WRITE_A
             | BGFX_STATE_WRITE_Z
-            | BGFX_STATE_DEPTH_TEST_LESS
             | BGFX_STATE_MSAA
             | BGFX_STATE_BLEND_ALPHA;
         // Set render states.l

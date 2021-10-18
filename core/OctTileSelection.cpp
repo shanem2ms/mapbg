@@ -21,6 +21,8 @@ namespace sam
     extern Loc g_hitLoc;
     void convexHull(Point2f points[], size_t n, std::vector<Point2f>& outpts);
     static bool doBreak = false;
+    int g_numLod9 = 0;
+    int g_behindViewer = 0;
 
     std::atomic<size_t> OctTileSelection::sNumTiles = 0;
 
@@ -41,7 +43,13 @@ namespace sam
             auto& fly = cam.GetFly();
             Vec3f r, u, f;
             fly.GetDirs(r, u, f);
-            GetLocsInView(locs, Loc(0, 0, 0, 0), viewFrust, viewproj, fly.pos, r, f, pixelDist, maxlod, playerBounds);
+            g_behindViewer = 0;
+            GetLocsInView(locs, Loc(0, 0, 0, 0), viewFrust, viewproj, fly.pos, r, f, pixelDist, maxlod, playerBounds, true);
+            g_numLod9 = 0;
+            for (auto& tile : locs)
+            {
+                g_numLod9 += tile.m_l == 9 ? 1 : 0;
+            }
         }
 
     private:
@@ -137,42 +145,7 @@ namespace sam
 
     public:
 
-        static int TargetLodForLoc(const Loc& curLoc, const Frustumf& frustum, const Point3f& camPos, const Vec3f& camFwd,
-            const Vec3f& camRight, const Matrix44f& viewProj)
-        {
-            float nd = 0, md = 0, fd = 0;
-            OctTileSelection::GetLocDistance(curLoc, camPos, camFwd, nd, md, fd);
-
-            int targetLod = 0;
-            if (nd > 0)
-            {
-                Point3f targetPos = camPos + camFwd * nd;
-                float distLeft = 0, distRight = 0;
-
-                Point4f tp(targetPos[0], targetPos[1], targetPos[2], 1), sp;
-                xform(sp, viewProj, tp);
-                sp /= sp[3];
-
-                bool success = intersect(frustum.mPlanes[Frustumf::PLANE_LEFT], Rayf(targetPos, -camRight), distLeft);
-                success = intersect(frustum.mPlanes[Frustumf::PLANE_RIGHT], Rayf(targetPos, -camRight), distRight);
-                float frustwidth = fabs(distLeft) + fabs(distRight);
-
-
-                float invnd = 1.0f / md;
-                const float invFar = 4.0f / farFrust;
-                const float invNear = 1.0f / nearFrust;
-                float lerp = (invnd - farFrust) / (nearFrust - farFrust);
-
-                float targetlodf = 8 - log2(frustwidth);
-                targetLod = (int)targetlodf;
-                targetLod -= 1;
-            }
-            else
-                targetLod = 1000;
-            return targetLod;
-        }
-
-        static int TargetLodForLoc(const Loc& curLoc, const Matrix44f& viewProj)
+        static int TargetLodForLoc(const Loc& curLoc, const Matrix44f& viewProj, const Vec3f &camFwd, const Point3f &camPos)
         {
             Point3f c[8];
             const AABoxf& bbox = curLoc.GetBBox();
@@ -180,13 +153,19 @@ namespace sam
             float extents = bbox.mMax[0] - bbox.mMin[0];
             float sq = extents / TerrainTile::SquarePtsCt;
 
+            for (int i = 0; i < 8; ++i)
+            {
+                Point3f tp0(c[i][0], c[i][1], c[i][2]);
+                float v = dot((tp0 - camPos), camFwd);
+                if (v < 0)
+                    return -1;
+            }
+
             float maxlen = 0;
             for (int i = 0; i < 8; ++i)
             {
                 Point4f tp0(c[i][0], c[i][1], c[i][2], 1), sp0, sp1;
                 xform(sp0, viewProj, tp0);
-                if (sp0[2] < 0)
-                    return 1000;
                 sp0 /= sp0[3];
 
                 Point4f tp1(c[i][0] + sq, c[i][1] + sq, c[i][2] + sq, 1);
@@ -197,34 +176,62 @@ namespace sam
                 maxlen = std::max(maxlen, lengthSquared(Vec2f(sp1[0] - sp0[0], sp1[1] - sp0[1])));
             }
 
-            return log2(maxlen) + 13;
+            return std::max(log2(maxlen) + 9, 0.0f);
         }
 
-        static void GetLocsInView(std::vector<Loc>& locs, const Loc& curLoc,
-            const Frustumf& frustum, const Matrix44f& viewProj, const Point3f& camPos, const Vec3f& camRight, const Vec3f& camFwd, float pixelDist, int maxlod, const AABoxf& playerBounds)
+        static bool GetLocsInView(std::vector<Loc>& locs, const Loc& curLoc,
+            const Frustumf& frustum, const Matrix44f& viewProj, const Point3f& camPos, const Vec3f& camRight, const Vec3f& camFwd, float pixelDist, int maxlod, const AABoxf& playerBounds, bool behindCamera)
         {
             if (doBreak && g_hitLoc == curLoc)
                 __debugbreak();
 
-            //int targetLod = TargetLodForLoc(curLoc, frustum, camPos, camFwd, camRight, viewProj);
-            int targetLod = TargetLodForLoc(curLoc, viewProj);
-            if (curLoc.m_l > targetLod || curLoc.m_l >= maxlod)
-            {
-                locs.push_back(curLoc);
-                return;
-            }
+            int targetLod = TargetLodForLoc(curLoc, viewProj, camFwd, camPos);
+            
 
-            std::vector<Loc> children = curLoc.GetChildren();
-            for (const Loc& childLoc : children)
+            if (targetLod >= 0)
             {
-                AABoxf cbox = childLoc.GetBBox();
-                ContainmentType res = Contains(frustum, cbox);
-                bool intersectsPlayer = intersect(playerBounds, cbox);
-                if (res != ContainmentType::Disjoint || intersectsPlayer)
+                if (behindCamera && curLoc.m_l > targetLod)
+                    return false;
+                
+                if (curLoc.m_l >= targetLod)
                 {
-                    GetLocsInView(locs, childLoc, frustum, viewProj, camPos, camRight, camFwd, pixelDist, maxlod, playerBounds);
+                    locs.push_back(curLoc);
+                    return true;
                 }
             }
+            if (targetLod < 0 && curLoc.m_l == maxlod)
+            {
+                locs.push_back(curLoc);
+                return true;
+            }
+
+            bool hasChildren = false;
+            if (curLoc.m_l < maxlod)
+            {
+                std::vector<Loc> fillLocs;
+                fillLocs.reserve(8);
+
+                std::vector<Loc> children = curLoc.GetChildren();
+                for (const Loc& childLoc : children)
+                {
+                    AABoxf cbox = childLoc.GetBBox();
+                    ContainmentType res = Contains(frustum, cbox);
+                    bool intersectsPlayer = intersect(playerBounds, cbox);
+                    if (res != ContainmentType::Disjoint || intersectsPlayer)
+                    {
+                        bool childExists = GetLocsInView(locs, childLoc, frustum, viewProj, camPos, camRight, camFwd, pixelDist, maxlod, playerBounds, targetLod < 0);
+                        hasChildren |= childExists;
+                        if (!childExists)
+                            fillLocs.push_back(childLoc);
+                    }
+                }
+
+                if (hasChildren)
+                {
+                    locs.insert(locs.end(), fillLocs.begin(), fillLocs.end());
+                }
+            }
+            return hasChildren;
         }
     };
 
@@ -340,7 +347,9 @@ namespace sam
         {
             if (m_activeTiles.find(loc) == m_activeTiles.end())
             {
-                m_tiles.erase(loc);
+                auto itTile = m_tiles.find(loc);
+                itTile->second->Decomission(ctx);
+                m_tiles.erase(itTile);
                 sNumTiles--;
             }
         }

@@ -6,6 +6,9 @@
 #include "Loc.h"
 
 struct VoxCube;
+class btBvhTriangleMeshShape;
+class btDefaultMotionState;
+class btRigidBody;
 
 namespace sam
 {
@@ -29,6 +32,11 @@ namespace sam
         std::vector<byte> m_rawdata;
         int m_lastUsedRawData;
         float m_intersects;
+        btBvhTriangleMeshShape* m_collisionShape;
+        btDefaultMotionState* m_initialState;
+        btRigidBody *m_rigidBody;
+        bool m_isdecommissioned;
+
     public:
         float m_nearDist;
         float m_farDist;
@@ -53,7 +61,7 @@ namespace sam
         {
             m_vals = v;
         }
-        void Decomission();
+        void Decomission(DrawContext& ctx);
         void LoadVB();
         float GetGroundPos(const Point2f& pt) const;
         bool IsCollided(Point3f &oldpos, Point3f &newpos, AABoxf& bbox, Vec3f& outNormal);
@@ -61,6 +69,8 @@ namespace sam
         static Vec3i FindHit(const std::vector<byte> &data, const Vec3i p1, const Vec3i p2);
         int GetReadyState() const
         { return m_readyState; }
+
+        void CreateBulletMesh(const std::vector<Vec3i> &pts);
     private:
         static std::vector<byte> RleEncode(const std::vector<byte> data);
         static std::vector<byte> RleDecode(const std::vector<byte> data);

@@ -24,6 +24,8 @@ namespace sam
     extern float g_Fps;
     extern Loc g_hitLoc;;
     extern float g_hitDist;
+    extern int g_numLod9;
+    extern int g_behindViewer;
 extern int g_buttonDown;
 
 	void Hud::Draw(DrawContext& ctx)
@@ -36,10 +38,8 @@ extern int g_buttonDown;
         bgfx::dbgTextPrintf(0, 6, 0x0f, "Near Tiles [%d]", g_nearTiles);
         bgfx::dbgTextPrintf(0, 7, 0x0f, "Far Tiles [%d]", g_farTiles);
         bgfx::dbgTextPrintf(0, 8, 0x0f, "Fps [%.2f]", g_Fps);
-        bgfx::dbgTextPrintf(0, 9, 0x0f, "Button [%d]", g_buttonDown);
+        bgfx::dbgTextPrintf(0, 9, 0x0f, "Lod9 [%d] [%d]", g_numLod9, g_behindViewer);
         bgfx::dbgTextPrintf(0, 10, 0x0f, "VB %d MB", sVBBytes.load() >> 20);
-        
-
 
         Engine& e = Engine::Inst();
         Camera::Fly la = e.ViewCam().GetFly();

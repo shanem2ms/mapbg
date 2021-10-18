@@ -36,6 +36,7 @@ target_link_libraries(${PROJECT_NAME} LINK_PUBLIC
     ${VCPKG_INSTALL_PATH}/lib/BulletCollision.lib
     ${VCPKG_INSTALL_PATH}/lib/BulletDynamics.lib
     ${VCPKG_INSTALL_PATH}/lib/BulletInverseDynamics.lib
+    ${VCPKG_INSTALL_PATH}/lib/LinearMath.lib
     core 
     ${PLATFORMLIBS}
     zlibstatic

@@ -43,8 +43,10 @@ namespace sam
     {
         bgfx::setViewName(0, "farstuff");
         bgfx::setViewName(1, "nearstuff");
+        bgfx::setViewName(2, "items");
         bgfx::setViewFrameBuffer(0, BGFX_INVALID_HANDLE);
         bgfx::setViewFrameBuffer(1, BGFX_INVALID_HANDLE);
+        bgfx::setViewFrameBuffer(2, BGFX_INVALID_HANDLE);
         dc.m_texture = m_texture;
         dc.m_gradient = m_gradient;
         gmtl::identity(dc.m_mat);
@@ -82,8 +84,18 @@ namespace sam
         dc.m_curviewIdx = 1;
         dc.m_nearfarpassIdx = 1;
         m_root->DoDraw(dc);
+        dc.m_curviewIdx = 2;
+        bgfx::setViewClear(2,
+            BGFX_CLEAR_DEPTH,
+            0x0,
+            1.0f,
+            0
+        );
 
-        m_hud->DoDraw(dc);
+        gmtl::Matrix44f proj2 = DrawCam().GetPerspectiveMatrix(near, far);
+        bgfx::setViewTransform(2, view.getData(), proj2.getData());
+        m_root->DoDraw(dc);
+        m_hud->DoDraw(dc);        
     }
 
 

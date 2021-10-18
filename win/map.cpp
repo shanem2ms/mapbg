@@ -286,10 +286,12 @@ void Tick()
         bgfx::reset((uint32_t)r.right, (uint32_t)r.bottom, BGFX_RESET_VSYNC);
         bgfx::setViewRect(0, 0, 0, bgfx::BackbufferRatio::Equal);
         bgfx::setViewRect(1, 0, 0, bgfx::BackbufferRatio::Equal);
+        bgfx::setViewRect(2, 0, 0, bgfx::BackbufferRatio::Equal);
     }
     // This dummy draw call is here to make sure that view 0 is cleared if no other draw calls are submitted to view 0.
     bgfx::touch(0);
     bgfx::touch(1);
+    bgfx::touch(2);
     app.Draw();
 }
 

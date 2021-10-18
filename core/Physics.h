@@ -7,16 +7,29 @@ struct btDbvtBroadphase;
 class btCollisionDispatcher;
 class btDiscreteDynamicsWorld;
 class btConstraintSolver;
+class btRigidBody;
 
 namespace sam
 {
-    class DrawContext;
+    struct DrawContext;
+    class PhysicsDebugDraw;
     class Physics
     {
     public:
         Physics();
 
         void Step(const DrawContext& ctx);
+
+        btDiscreteDynamicsWorld* World()
+        {
+            return m_discreteDynamicsWorld.get();
+        }
+        static float WorldScale;
+
+        void DebugRender(DrawContext& ctx);
+        void AddRigidBody(btRigidBody* pRigidBody);
+        void RemoveRigidBody(btRigidBody* pRigidBody);
+       
     private:
         void Init();
 
@@ -25,6 +38,7 @@ namespace sam
         std::shared_ptr<btCollisionDispatcher> m_collisionDispatcher;
         std::shared_ptr<btDiscreteDynamicsWorld> m_discreteDynamicsWorld;
         std::shared_ptr<btConstraintSolver> m_constraintSolver;
+        std::shared_ptr<PhysicsDebugDraw> m_dbgPhysics;
         bool m_isInit;
     };
 }
