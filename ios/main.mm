@@ -196,6 +196,7 @@ static    void* m_device = NULL;
 {
     return YES;
 }
+
 @end
 
 

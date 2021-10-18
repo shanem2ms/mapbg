@@ -11,7 +11,7 @@
 namespace sam
 {
 
-    const int numErosionIters = 1000;
+    const int numErosionIters = 10;
 
     TerrainTile::TerrainTile(const Loc& l, std::shared_ptr<TerrainTile> parent) :
         m_image(-1), m_l(l),
