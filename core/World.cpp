@@ -7,7 +7,6 @@
 #include "Mesh.h"
 #include "OctTile.h"
 #include "Frustum.h"
-#include "Physics.h"
 #include "gmtl/PlaneOps.h"
 
 
@@ -18,16 +17,6 @@ using namespace gmtl;
 
 namespace sam
 {
-    class PhysicsDbgItem : public SceneItem
-    {
-        bgfx::ProgramHandle m_shader;
-        void Initialize(DrawContext& nvg) override
-        {}
-        void Draw(DrawContext& ctx) override
-        {
-            ctx.m_pWorld->GetPhysics()->DebugRender(ctx);
-        }
-    };
   
     World::World() :
         m_width(-1),
@@ -208,15 +197,12 @@ namespace sam
     {
         if (m_worldGroup == nullptr)
         {
-            m_physics = std::make_shared<Physics>();
             m_worldGroup = std::make_shared<SceneGroup>();
             e.Root()->AddItem(m_worldGroup);
             m_targetCube = std::make_shared<TargetCube>();
             e.Root()->AddItem(m_targetCube);
             m_frustum = std::make_shared<Frustum>();
             e.Root()->AddItem(m_frustum);
-            m_physicsDbgItem = std::make_shared<PhysicsDbgItem>();
-            e.Root()->AddItem(m_physicsDbgItem);
 
             Camera::Fly fly;
             Camera::Fly dfly;
@@ -245,7 +231,6 @@ namespace sam
 
         }
 
-        m_physics->Step(ctx);
         m_frustum->SetEnabled(m_inspectmode);
        
         auto &cam = e.ViewCam();

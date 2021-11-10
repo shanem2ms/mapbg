@@ -9,10 +9,6 @@
 #include "TerrainTileSelection.h"
 #include "TerrainTile.h"
 #include "gmtl/Intersection.h"
-#include "Physics.h"
-
-#include "bullet/btBulletCollisionCommon.h"
-#include "bullet/btBulletDynamicsCommon.h"
 
 #define NOMINMAX
 
@@ -27,9 +23,6 @@ namespace sam
         m_readyState(0),
         m_intersects(-1),
         m_lastUsedRawData(0),
-        m_rigidBody(nullptr),
-        m_initialState(nullptr),
-        m_collisionShape(nullptr),
         m_isdecommissioned(false)
     {
     }
@@ -219,75 +212,10 @@ namespace sam
         {
             m_voxelinst = std::make_shared<VoxCube>();
             m_voxelinst->Create(octPts);
-            if (m_l.m_l == 9)
-                CreateBulletMesh(octPts);
         }
     }
 
-    inline btVector3 BT(const Vec3f& v3)
-    {
-        return btVector3(v3[0], v3[1], v3[2]);
-    }
-
-    void OctTile::CreateBulletMesh(const std::vector<Vec3i>& pts)
-    {
-        btTriangleMesh* pMesh = new btTriangleMesh();
-
-        AABoxf bbox = m_l.GetBBox();
-        float sqlen = bbox.mMax[0] - bbox.mMin[0] / TerrainTile::SquarePtsCt;
-        Vec3f min = bbox.mMin;
-        size_t idx = 0;
-        for (const Vec3i& pt : pts)
-        {            
-            Vec3f ppt(pt[0] * sqlen + min[0],
-                pt[1] * sqlen + min[1],
-                pt[2] * sqlen + min[2]);
-
-            Vec3f c[8] =
-            {
-                Vec3f(pt[0], pt[1], pt[2]),
-                Vec3f(pt[0], pt[1], pt[2] + sqlen),
-                Vec3f(pt[0], pt[1] + sqlen, pt[2]),
-                Vec3f(pt[0], pt[1] + sqlen, pt[2] + sqlen),
-                Vec3f(pt[0] + sqlen, pt[1], pt[2]),
-                Vec3f(pt[0] + sqlen, pt[1], pt[2] + sqlen),
-                Vec3f(pt[0] + sqlen, pt[1] + sqlen, pt[2]),
-                Vec3f(pt[0] + sqlen, pt[1] + sqlen, pt[2] + sqlen)
-            };
-
-            pMesh->addTriangle(BT(c[0]), BT(c[1]), BT(c[2]));
-            pMesh->addTriangle(BT(c[2]), BT(c[3]), BT(c[0]));
-
-            pMesh->addTriangle(BT(c[0]), BT(c[3]), BT(c[7]));
-            pMesh->addTriangle(BT(c[0]), BT(c[7]), BT(c[4]));
-
-            pMesh->addTriangle(BT(c[3]), BT(c[2]), BT(c[6]));
-            pMesh->addTriangle(BT(c[3]), BT(c[6]), BT(c[7]));
-
-            pMesh->addTriangle(BT(c[2]), BT(c[1]), BT(c[6]));
-            pMesh->addTriangle(BT(c[1]), BT(c[5]), BT(c[6]));
-
-            pMesh->addTriangle(BT(c[1]), BT(c[0]), BT(c[5]));
-            pMesh->addTriangle(BT(c[0]), BT(c[4]), BT(c[5]));
-
-            pMesh->addTriangle(BT(c[5]), BT(c[4]), BT(c[7]));
-            pMesh->addTriangle(BT(c[5]), BT(c[6]), BT(c[7]));
-            if (idx++ > 64)
-                break;
-        }
-                
-        m_collisionShape = new btBvhTriangleMeshShape(pMesh, true, true);
-
-        btTransform mat4;
-        mat4.setIdentity();
-        m_initialState = new btDefaultMotionState(mat4);
-        btRigidBody::btRigidBodyConstructionInfo constructInfo((btScalar)0, m_initialState,
-            m_collisionShape);
-        m_rigidBody = new btRigidBody(constructInfo);
-
-    }
-
-    void OctTile::LoadTerrainData()
+       void OctTile::LoadTerrainData()
     {
         AABoxf bboxterrain = m_terrainTile->GetBounds();
         AABoxf bboxoct = m_l.GetBBox();
@@ -406,9 +334,8 @@ namespace sam
             m_uparams = bgfx::createUniform("u_params", bgfx::UniformType::Vec4, 1);
         }
 
-        if (m_readyState == 3 && m_rigidBody != nullptr)
+        if (m_readyState == 3)
         {
-            ctx.m_pWorld->GetPhysics()->AddRigidBody(m_rigidBody);
             m_readyState++;
         }
 
@@ -483,15 +410,6 @@ namespace sam
     void OctTile::Decomission(DrawContext& ctx)
     {
         m_readyState = 0;
-        if (m_rigidBody != nullptr)
-        {
-            ctx.m_pWorld->GetPhysics()->RemoveRigidBody(m_rigidBody);
-            delete m_rigidBody;
-        }
-        if (m_initialState != nullptr)
-            delete m_initialState;
-        if (m_collisionShape != nullptr)
-            delete m_collisionShape;
         m_isdecommissioned = true;
     }
 

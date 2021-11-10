@@ -27,7 +27,6 @@ set(Header_Files
     "TerrainTileSelection.h"
     "SceneItem.h"
     "Mesh.h"
-    "Physics.h"
     "SimplexNoise/SimplexNoise.h"
 )  
 
@@ -59,7 +58,6 @@ set(Source_Files
     "ConvexHull.cpp"
     "Mesh.cpp"
     "Level.cpp"
-    "Physics.cpp"
     "SimplexNoise/SimplexNoise.cpp"
     "imgui/imgui.cpp"
     "imgui/dear-imgui/imgui.cpp"
@@ -98,4 +96,4 @@ target_include_directories(core PUBLIC
     ${BX_INC_DIR_COMPAT}
     )
 
-add_compile_definitions(DLLX=;PRId64="I64d")
+add_compile_definitions(DLLX=;PRId64="I64d";BX_CONFIG_DEBUG=${BX_CONFIG_DEBUG})
